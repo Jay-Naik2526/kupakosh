@@ -9,22 +9,10 @@ forge 58-32: {'survey_stations': 59, 'ddr_docs': 60, 'activities': 456, 'mud_che
 forge 78B-32: {'survey_stations': 100, 'ddr_docs': 35, 'activities': 400, 'casing_rows': 34, 'mud_checks': 31, 'formation_tops': 2}
 forge 68-32: {'survey_stations': 0, 'ddr_docs': 12, 'activities': 52, 'casing_rows': 8, 'mud_checks': 2, 'formation_tops': 1}
 forge 78-32: {'survey_stations': 0, 'ddr_docs': 16, 'activities': 116, 'casing_rows': 16, 'formation_tops': 1}
+india: {'passages': 4439, 'basins': 23, 'india_wells_listed': 35, 'papers': 6}
 extract: 1115 events (570 need review, 150 duplicates merged), 3857 action mentions
 episodes: 1115 linked; outcomes {'unknown': 691, 'worsened': 24, 'resolved': 186, 'unresolved': 213, 'partial': 1}
 post: formations assigned to LOT/FIT and casing shoes
 auditor: {'R2_casing_shoe': 10, 'R3_formation_top': 12, 'R4_same_quantity_differs': 4, 'R6_ddr_depth_vs_sensor': 2}
-wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 379} commit 2926f34f
-hazard LOO: n=41848 brier model=0.00238 base=0.00238; ok-only n=28224
-eval extraction  event precision                  0.897 (n=39)
-eval extraction  event recall                     0.921 (n=38)
-eval extraction  depth within tolerance           0.923 (n=13)
-eval episodes    outcome precision                0.789 (n=19)
-eval episodes    outcome accuracy                 0.692 (n=26)
-eval episodes    not-an-episode rate              0.133 (n=30)
-eval hazard_loo  Brier score (model)              0.002 (n=41848)
-eval hazard_loo  Brier score (base rate)          0.002 (n=41848)
-eval hazard_loo  Brier (model, n_eff ≥ min)       0.002 (n=28224)
-eval hazard_loo  Brier (base, n_eff ≥ min)        0.002 (n=28224)
-eval copilot     citation accuracy                1.000 (n=25)
-eval copilot     refusal accuracy                 1.000 (n=30)
-bootstrap done in 26s
+wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 379, 'basin': 23} commit 0d414858
+bootstrap done in 24s

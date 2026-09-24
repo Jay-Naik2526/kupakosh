@@ -302,6 +302,22 @@ class EvalResult(Base):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
+class Basin(Base):
+    """Indian sedimentary basin (NDR / DGH public summary page)."""
+    __tablename__ = "basin"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    slug: Mapped[str] = mapped_column(String, unique=True)
+    url: Mapped[str]
+    category: Mapped[str | None]
+    area_sqkm: Mapped[float | None]       # only when the page states a single area figure
+    area_text: Mapped[str | None] = mapped_column(Text)  # verbatim sentence the area comes from
+    exploratory_wells: Mapped[float | None]
+    bbox: Mapped[list | None] = mapped_column(JSON)  # [minLon, minLat, maxLon, maxLat] parsed from the page text
+    document_id: Mapped[int | None] = mapped_column(ForeignKey("document.id"))
+    n_tables: Mapped[int | None]
+
+
 class DataSource(Base):
     __tablename__ = "data_source"
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -11,6 +11,18 @@ All data is public and used as a **stand-in** for Oil India data. Nothing is syn
 | **Utah FORGE 16A(78)-32** — GDR submission 1283 | daily drilling reports (PDF, WellEz), survey (xlsx), Pason 10-second sensor data (csv) | CC-BY 4.0 | 77 unique DDRs (duplicates removed by content hash), 623 time-breakdown activities, 422 survey stations, 101,204 sensor samples (1-min, 25 Oct 2020 → 5 Jan 2021) |
 | **Utah FORGE 16B(78)-32** — GDR submission 1516 | daily drilling reports (PDF, RIMBase), survey (txt), Pason 10-second data (zip, 1.8 GB) | CC-BY 4.0 | 88 unique DDRs, 1,383 activities, 850 survey stations, 248,968 sensor samples (30-s, 26 Apr → 21 Jul 2023) |
 
+## Added on 24 Sept 2026 (second pass)
+
+| Source | Loaded |
+|---|---|
+| **Utah FORGE 58-32** (2017, GDR 1006) | 60 daily reports, 456 activities, 59 survey stations, LOT 19.20 ppg at 9 5/8" shoe, granite contact "weathered granite @ 2,090'" |
+| **Utah FORGE 78B-32** (2021, GDR 1330) | 35 daily reports (one 93-page PDF), 400 activities, 100 survey stations, well-head lat/long; granite from 2,670 ft |
+| **Utah FORGE 68-32, 78-32** (2019 seismic-monitoring wells, GDR 1153) | 12 + 16 daily reports, basin fill only; positions from the Phase 2C shapefile |
+| **India — NDR / DGH public pages** | 23 basin summaries, 6 NDR papers/policies → 4,439 citable passages, 35 named Indian wells with drilled depth, 23 wiki pages. See `docs/INDIA_DATA.md`. |
+
+With these, the 16B replay has 5 offset wells within 1.3 km: the look-ahead now reports probabilities
+(e.g. stuck pipe in basin fill 55 %, range 29–80 %, n_eff 4.8) instead of "insufficient evidence".
+
 ## Sources in SPEC.md that were NOT used, and why
 
 | Source | Status |

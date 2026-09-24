@@ -4,6 +4,9 @@ import { post } from "@/lib/api";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 
 const SUGGEST = [
+  "Which wells were drilled in the Himalayan foreland basin and how deep?",
+  "How many exploratory wells have been drilled in the Krishna Godavari basin?",
+  "What are the reservoirs in the Assam Arakan basin?",
   "What worked against stuck pipe in the Draupne Formation?",
   "Which offset wells near 15/9-19 S had losses?",
   "What is the mud weight window near 15/9-19 S?",

@@ -1,16 +1,17 @@
-INFO:     Started server process [14124]
+INFO:     Started server process [16241]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
-INFO:     127.0.0.1:52352 - "GET /api/config HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/config HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/wells/9842/survey HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/replay/9842/range HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52361 - "GET /api/replay/wells HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52350 - "GET /api/replay/wells HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52356 - "GET /api/replay/wells HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52352 - "GET /api/wells/9842 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52357 - "GET /api/wells/9842/offsets HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52359 - "GET /api/wells/9842 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52364 - "WebSocket /ws/replay/9842?speed=120&start_md=1000" [accepted]
-INFO:     connection open
+INFO:     127.0.0.1:52425 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52427 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52434 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52437 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52439 - "GET /api/wiki/basins/himalayan-foreland/noting HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52445 - "GET /api/wiki/basins/himalayan-foreland/noting HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52434 - "GET /api/wiki/basins/himalayan-foreland HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52443 - "GET /api/wiki/basins/himalayan-foreland HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52445 - "GET /api/wiki HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52441 - "GET /api/wiki HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52443 - "GET /api/wiki HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52437 - "GET /api/wiki/basins/himalayan-foreland/history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52439 - "GET /api/wiki/basins/himalayan-foreland/history HTTP/1.1" 200 OK

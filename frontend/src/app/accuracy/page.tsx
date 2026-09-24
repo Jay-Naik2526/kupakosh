@@ -13,7 +13,8 @@ const EXPECTED = [
 ];
 
 const LIMITS = [
-  "Stand-in data: Norwegian (Sodir) and US (Utah FORGE) public records. No Oil India or Indian data is used or claimed.",
+  "Indian data: public NDR/DGH summaries of 23 sedimentary basins, 35 named Indian wells with drilled depth, and 6 NDR papers — geology and exploration facts, not daily drilling reports. Well-level Indian data needs NDR registration (student ID + HOD letter).",
+  "Well-level stand-in data: Norwegian (Sodir) and US (Utah FORGE) public records. No Oil India well data is used or claimed.",
   "Sodir well-history texts are summaries, not daily reports; they under-record problems. A rate here is a rate of recorded problems.",
   "Extraction is rule-based (no language-model key configured). Events below the review threshold are flagged ‘needs review’ and excluded from the hazard model.",
   "Sodir exploration wells have no public trajectory in this build, so the mud window and correlation use MD; for deviated wells this is approximate.",

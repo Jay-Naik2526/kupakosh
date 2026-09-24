@@ -89,10 +89,38 @@ def parse(q: str) -> dict:
         intent.append("mudwindow")
     if re.search(r"\b(probab|risk|chance|likel|expect|how often|rate)\b", ql):
         intent.append("hazard")
-    return {"wells": found_w, "formations": found_f, "hazards": haz, "intent": intent}
+    return {"wells": found_w, "formations": found_f, "hazards": haz, "intent": intent, "basins": find_basins(q)}
 
 
-def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = None) -> list[dict]:
+@lru_cache(maxsize=1)
+def _basin_names() -> list[tuple[str, int, str, int]]:
+    """(match phrase, basin id, display name, document id) for Indian basins; longest phrases first."""
+    from app.db.models import Basin
+    from app.db.session import SessionLocal
+    out = []
+    with SessionLocal() as db:
+        for b in db.scalars(select(Basin)):
+            base = re.sub(r"(?i)\bbasin\b|-nec\b", "", b.name).strip().lower()
+            phrases = {base, base.replace("-", " "), b.slug.replace("-", " ")}
+            if "krishna" in base:
+                phrases |= {"kg basin", "k-g basin"}
+            for ph in phrases:
+                if len(ph) >= 4:
+                    out.append((ph, b.id, b.name, b.document_id))
+    return sorted(out, key=lambda x: -len(x[0]))
+
+
+def find_basins(q: str) -> list[tuple[int, str, int]]:
+    ql = q.lower().replace("-", " ")
+    found = []
+    for ph, bid, name, did in _basin_names():
+        if re.search(r"\b" + re.escape(ph.replace("-", " ")) + r"\b", ql) and bid not in [f[0] for f in found]:
+            found.append((bid, name, did))
+    return found
+
+
+def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = None, doc_ids: set[int] | None = None,
+                    min_overlap: float | None = None) -> list[dict]:
     c = cfg()["copilot"]
     bm, rows, docs = _index()
     qt = [t for t in tok(q) if t not in STOP]
@@ -102,13 +130,16 @@ def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = No
     if well_ids:
         mask = np.array([r[4] in well_ids for r in rows])
         scores = np.where(mask, scores, 0)
+    if doc_ids:
+        mask = np.array([r[2] in doc_ids for r in rows])
+        scores = np.where(mask, scores, 0)
     top = np.argsort(-scores)[: (k or c["top_k"]) * 3]
     out = []
     for i in top:
         if scores[i] <= 0:
             break
         overlap = len(set(qt) & set(docs[i])) / len(set(qt))
-        if overlap < c["min_overlap"]:
+        if overlap < (min_overlap if min_overlap is not None else c["min_overlap"]):
             continue
         r = rows[i]
         out.append({"passage_id": r[0], "text": r[1], "source_ref": f"doc:{r[2]}#{r[3]}", "well_id": r[4], "score": round(float(scores[i]), 2),
@@ -220,6 +251,35 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
     if wiki_hits:
         steps.append({"tool": "get_wiki", "args": {"pages": [p.slug for p in wiki_hits]}, "result": f"{len(wiki_hits)} pages"})
 
+    # Indian basins (NDR / DGH public summaries)
+    if P["basins"]:
+        from app.db.models import Basin, Well as W
+        for bid, bname, did in P["basins"][:2]:
+            b = db.get(Basin, bid)
+            steps.append({"tool": "basin_facts", "args": {"basin": bname}, "result": "NDR summary"})
+            bits = []
+            if b.category:
+                bits.append(f"category {b.category}")
+            if b.area_text:
+                bits.append(f"“{b.area_text}”")
+            if b.exploratory_wells:
+                bits.append(f"{int(b.exploratory_wells):,} exploratory wells stated")
+            if bits:
+                paras.append(f"{bname} (India, NDR/DGH summary): " + "; ".join(bits) + f" {cite(b.url, 'NDR basin page')}.")
+            if re.search(r"\bwells?\b", question, re.I):
+                ws = db.scalars(select(W).where(W.source == "ndr_india", W.fact_url == b.url)).all()
+                if ws:
+                    items = ", ".join(f"{w.aliases[0]}" + (f" ({w.td_md_m:,.0f} m)" if w.td_md_m else "") for w in ws[:15])
+                    paras.append(f"Wells named in the {bname} summary: {items} {cite(b.url, 'NDR basin page')}.")
+        qb = question
+        for ph, _, _, _ in _basin_names():
+            qb = re.sub(r"(?i)\b" + re.escape(ph) + r"\b", " ", qb.replace("-", " "))
+        qb = re.sub(r"(?i)\bbasin\b|\bindia\b", " ", qb)
+        bev = search_evidence(qb, doc_ids={did for _, _, did in P["basins"]}, min_overlap=0.34, k=4)
+        steps.append({"tool": "search_evidence", "args": {"query": qb.strip(), "basins": [n for _, n, _ in P["basins"]]}, "result": f"{len(bev)} passages"})
+        for e in bev:
+            paras.append(f"“{e['text'][:500]}” {cite(e['source_ref'], _doc_title(db, e['source_ref']))}")
+
     # structured: recorded events for the named wells
     if P["wells"]:
         evs = well_events(db, {w for _, w in P["wells"]}, P["hazards"])
@@ -245,7 +305,7 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
     steps.append({"tool": "search_evidence", "args": {"query": question, "wells": sorted(well_ids)}, "result": f"{len(ev)} passages"})
     shown = {s["ref"] for s in sources}
     for e in [e for e in ev if e["source_ref"] not in shown][: (2 if P["wells"] else 4)]:
-        wname = cx.wells[e["well_id"]].canonical_name if e["well_id"] in cx.wells else "?"
+        wname = cx.wells[e["well_id"]].canonical_name if e["well_id"] in cx.wells else _doc_title(db, e["source_ref"])
         paras.append(f"{wname}: “{e['text']}” {cite(e['source_ref'], wname)}")
 
     if not paras:
@@ -257,4 +317,14 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
 
 
 def _jsonable(P):
-    return {"wells": [n for n, _ in P["wells"]], "formations": P["formations"], "hazards": P["hazards"], "intent": P["intent"]}
+    return {"wells": [n for n, _ in P["wells"]], "formations": P["formations"], "hazards": P["hazards"], "intent": P["intent"],
+            "basins": [n for _, n, _ in P.get("basins", [])]}
+
+
+def _doc_title(db: Session, ref: str) -> str:
+    from app.db.models import Document
+    try:
+        d = db.get(Document, int(ref.split(":")[1].split("#")[0]))
+        return d.title if d else "record"
+    except (ValueError, IndexError):
+        return "record"

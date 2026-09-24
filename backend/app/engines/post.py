@@ -28,13 +28,20 @@ def register_sources(db: Session):
     db.add_all([
         DataSource(name="Sodir FactPages — wellbores, formation tops, casing & LOT, mud, well history", url="https://factpages.sodir.no",
                    licence="NLOD 2.0", records=sodir_wells, notes=f"{n(Document.kind == 'WELL_HISTORY')} well-history documents"),
+        DataSource(name="Utah FORGE 58-32, 78B-32, 68-32, 78-32 drilling data (GDR 1006, 1330, 1153)", url="https://gdr.openei.org/submissions/1330",
+                   licence="CC-BY 4.0", records=n(Document.kind == "DDR_PDF", Document.well_id.in_(select(Well.id).where(Well.canonical_name.in_(["58-32", "78B-32", "68-32", "78-32"])))),
+                   notes="daily drilling reports, surveys, LOT — offset wells for the 16B replay"),
         DataSource(name="Utah FORGE 16A(78)-32 drilling data (GDR 1283)", url="https://gdr.openei.org/submissions/1283", licence="CC-BY 4.0",
                    records=n(Document.kind == "DDR_PDF", Document.well_id.in_(select(Well.id).where(Well.canonical_name == "16A(78)-32"))),
                    notes="daily drilling reports (PDF), survey, 10 s Pason sensor data"),
         DataSource(name="Utah FORGE 16B(78)-32 drilling data (GDR 1516)", url="https://gdr.openei.org/submissions/1516", licence="CC-BY 4.0",
                    records=n(Document.kind == "DDR_PDF", Document.well_id.in_(select(Well.id).where(Well.canonical_name == "16B(78)-32"))),
                    notes="daily drilling reports (PDF), survey, 10 s Pason sensor data"),
-        DataSource(name="Rig sensor samples (both FORGE wells, downsampled)", url="https://gdr.openei.org", licence="CC-BY 4.0",
+        DataSource(name="NDR / DGH India — 23 sedimentary-basin summaries, technical papers, data policies", url="https://www.ndrdgh.gov.in/NDR/",
+                   licence="Govt. of India public web content (cited, not redistributed)",
+                   records=n(Document.kind.in_(["BASIN_REPORT", "PAPER"])),
+                   notes="real Indian geology, fields and exploration facts; no well-level daily reports (those need NDR registration)"),
+        DataSource(name="Rig sensor samples (FORGE 16A and 16B, downsampled)", url="https://gdr.openei.org", licence="CC-BY 4.0",
                    records=forge_rt, notes="REPLAY source for the Command screen"),
     ])
     db.flush()

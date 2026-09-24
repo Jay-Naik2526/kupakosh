@@ -56,4 +56,12 @@ def resolve(db: Session, ref: str) -> dict:
     if m:
         return {"ref": ref, "found": True, "kind": "SENSOR", "well": m.group(1), "title": "Pason 10-second rig sensor data (REPLAY source)",
                 "text": f"sensor record at {m.group(2)}", "licence": "CC-BY 4.0"}
+    if ref.startswith("http"):
+        from app.db.models import Basin
+        b = db.scalars(select(Basin).where(Basin.url == ref)).first()
+        return {"ref": ref, "found": True, "kind": "PUBLIC_WEB_PAGE", "url": ref,
+                "title": f"NDR/DGH public page — {b.name}" if b else "Public web page",
+                "text": (b.area_text if b and b.area_text else None),
+                "note": "Figures quoted from the public page; open the link for the full text.",
+                "licence": "Govt. of India public web content" if b else None}
     return {"ref": ref, "found": False, "text": None}
