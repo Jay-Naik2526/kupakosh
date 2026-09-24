@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { post } from "@/lib/api";
-import { useApp } from "@/lib/state";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 
 const SUGGEST = [
@@ -14,7 +13,6 @@ const SUGGEST = [
 ];
 
 export default function Copilot() {
-  const { wellId } = useApp();
   const [q, setQ] = useState("");
   const [thread, setThread] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);

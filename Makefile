@@ -15,7 +15,7 @@ data:             ## download the real public datasets (Sodir, Utah FORGE) into 
 bootstrap:        ## rebuild DB + wiki + evals from data/raw (about 30 s)
 	cd backend && $(DYLD) .venv/bin/python -m scripts.bootstrap
 
-api:              ## FastAPI on :$(API_PORT)
+api:              ## FastAPI on :$(API_PORT)  (do not wrap in nohup: macOS strips DYLD_* and PDF export then fails)
 	cd backend && $(DYLD) .venv/bin/python -m uvicorn app.main:app --port $(API_PORT) --reload
 
 web:              ## Next.js on :3000 (expects the API on :$(API_PORT))

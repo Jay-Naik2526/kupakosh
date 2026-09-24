@@ -74,7 +74,7 @@ export default function Offsets() {
         )}
         <span className="flex flex-wrap gap-1" role="group" aria-label="Hazard filter">
           {HAZ.map((h) => (
-            <button key={h} className="chip" aria-pressed={filter.has(h)} onClick={() => { const n = new Set(filter); n.has(h) ? n.delete(h) : n.add(h); setFilter(n); }}>
+            <button key={h} className="chip" aria-pressed={filter.has(h)} onClick={() => { const n = new Set(filter); if (n.has(h)) n.delete(h); else n.add(h); setFilter(n); }}>
               {glyph[h]} {hazardLabel[h]}
             </button>
           ))}
