@@ -30,6 +30,7 @@ hazards:
       - '\binflux\b|\bpit gain\b|\bflow check (was )?positive|\bwell (was )?shut[ -]in'
       - '\bwell control (incident|problem|situation|event)'
       - "\\bdriller'?s method\\b|\\bwait and weight\\b|\\bkilled the well|\\bkill mud\\b"
+      - '\bblow[ -]?outs?\b|\buncontrolled (flow|release) of (gas|oil|well fluids?)|\bwell (fire|was on fire)\b|\bcratering\b'
     exclude:
       - 'kick(ed)?[- ]off'
       - 'kick-?off point'

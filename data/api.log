@@ -1,17 +1,55 @@
-INFO:     Started server process [16241]
+INFO:     Started server process [22649]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
-INFO:     127.0.0.1:52425 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52427 - "GET /api/status HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52434 - "GET /api/config HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52437 - "GET /api/config HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52439 - "GET /api/wiki/basins/himalayan-foreland/noting HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52445 - "GET /api/wiki/basins/himalayan-foreland/noting HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52434 - "GET /api/wiki/basins/himalayan-foreland HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52443 - "GET /api/wiki/basins/himalayan-foreland HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52445 - "GET /api/wiki HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52441 - "GET /api/wiki HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52443 - "GET /api/wiki HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52437 - "GET /api/wiki/basins/himalayan-foreland/history HTTP/1.1" 200 OK
-INFO:     127.0.0.1:52439 - "GET /api/wiki/basins/himalayan-foreland/history HTTP/1.1" 200 OK
+INFO:     Uvicorn running on http://0.0.0.0:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53954 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53956 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53959 - "GET /api/wells?q=16B HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53961 - "GET /api/wells/9842/hazards HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53963 - "POST /api/copilot HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET / HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/828e2958d60bafae-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/26d4368bf94c0ec4-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/111c93f1bc244164-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/550-4456cdfa6ab438f7.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/fd9d1056-3054852c68a3097a.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/98e207f02528a563-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/111-b544217ea353b492.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/page-4f3086d8b12990fb.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/190-2e44c0eaab34b194.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/main-app-f51184ed0575d72d.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/css/bf7ffc847223e63f.css HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/ca4dcb09-115696f07e6811a5.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/648-9e0b59826b2eff4f.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/css/f7ac3c629888afea.css HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/d3ebbfd689654d3a-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/e919c1aa-2e541c9ce80b244b.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/117-655d1a30eb0b655d.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/webpack-10a37b6d2893a156.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/ca60b95d975a0530-s.p.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/layout-a47a97147bc37cd0.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/media/85ec3505000466ce-s.woff2 HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /fixes/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /checker/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /wiki/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/wells/9842/offsets HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /mudwindow/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /offsets/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/replay/wells HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/replay/wells HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/wells/9842/survey HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/wells/9842 HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/wells/9842 HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /api/replay/9842/range HTTP/1.1" 200 OK
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/checker/page-a5410c52202abe2b.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/fixes/page-94332cdb810c982c.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/offsets/page-bc3a4bf872a7d6d4.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/mudwindow/page-7be8cdc03306c5b0.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/wiki/page-74261c7cf3ede147.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /copilot/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /brief/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /accuracy/index.txt?_rsc=19zvn HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/copilot/page-54c4b34c82a9266b.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/accuracy/page-477791d8ef9f1cc3.js HTTP/1.1" 304 Not Modified
+INFO:     2409:40c2:6052:5766:40d0:858f:dfd6:e8d2:0 - "GET /_next/static/chunks/app/brief/page-91da2397216db0fc.js HTTP/1.1" 304 Not Modified

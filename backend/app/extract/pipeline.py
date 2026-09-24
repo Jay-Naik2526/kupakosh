@@ -21,7 +21,8 @@ def source_ref(doc: Document, p: Passage, well: Well) -> str:
     return f"doc:{doc.id}#{p.locator}"
 
 
-def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF")) -> dict:
+def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF", "DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT",
+                                                         "JUDGMENT", "PAPER", "BASIN_REPORT")) -> dict:
     c = cfg()["extract"]
     db.execute(delete(Action))
     db.execute(delete(Event))
@@ -40,6 +41,9 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
         passages = db.scalars(select(Passage).where(Passage.document_id == doc.id).order_by(Passage.seq)).all()
         seen: list[tuple[str, float | None, int]] = []  # (hazard, md, seq) already emitted in this doc
         for p in passages:
+            well = wells.get(p.well_id or doc.well_id)
+            if well is None:
+                continue  # Indian public documents: only sentences that name a well can yield events
             hits = extract_sentence(p.text, well.td_md_m if well else None)
             for h in hits:
                 if _is_duplicate(seen, h.hazard, h.md_m, p.seq, c["dedup_depth_m"], cfg()["episodes"]["window_sentences"]):
@@ -57,7 +61,7 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
                 if formation is None and well and md is not None:
                     formation = tops.at(well.id, md)
                 ev = Event(
-                    well_id=doc.well_id, passage_id=p.id, activity_id=act.id if act else None, hazard=h.hazard, md_m=md,
+                    well_id=well.id, passage_id=p.id, activity_id=act.id if act else None, hazard=h.hazard, md_m=md,
                     formation=formation, t=act.t_start if act else None, severity=h.severity, quantity=h.quantity, quantity_unit=h.quantity_unit,
                     mud_weight_ppg=mw, mud_weight_source=mw_src, confidence=round(min(conf, 1.0), 3),
                     method="rule", needs_review=conf < c["review_threshold"], evidence_span=p.text,
@@ -69,7 +73,7 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
             act = act_by_passage.get(p.id)
             for a, span in find_actions(p.text):
                 db.add(Action(
-                    well_id=doc.well_id, passage_id=p.id, activity_id=act.id if act else None, action_type=a, detail=span,
+                    well_id=well.id, passage_id=p.id, activity_id=act.id if act else None, action_type=a, detail=span,
                     md_m=p.md_m, t=act.t_start if act else None,
                     confidence=c["conf_rule_base"], source_ref=source_ref(doc, p, well),
                 ))

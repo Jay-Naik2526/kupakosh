@@ -3,7 +3,7 @@ PY      := backend/.venv/bin/python
 DYLD    := DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 API_PORT ?= 8010
 
-.PHONY: setup data bootstrap api web test eval up
+.PHONY: setup data bootstrap api web test eval up share
 
 setup:            ## python 3.11 venv + backend deps + frontend deps
 	cd backend && uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements.txt
@@ -30,3 +30,8 @@ eval:             ## re-run evaluations only
 
 up:               ## target stack (Postgres/PostGIS/pgvector) — NOT verified on the build machine (no Docker)
 	docker compose up --build
+
+share:            ## build the website into the backend and serve site + API + replay on ONE port (for teammates)
+	cd frontend && KK_EXPORT=1 npx next build
+	cd backend && $(DYLD) .venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $(API_PORT)
+	# then, in another terminal:  cloudflared tunnel --url http://localhost:$(API_PORT)

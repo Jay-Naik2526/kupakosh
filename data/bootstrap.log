@@ -10,9 +10,10 @@ forge 78B-32: {'survey_stations': 100, 'ddr_docs': 35, 'activities': 400, 'casin
 forge 68-32: {'survey_stations': 0, 'ddr_docs': 12, 'activities': 52, 'casing_rows': 8, 'mud_checks': 2, 'formation_tops': 1}
 forge 78-32: {'survey_stations': 0, 'ddr_docs': 16, 'activities': 116, 'casing_rows': 16, 'formation_tops': 1}
 india: {'passages': 4439, 'basins': 23, 'india_wells_listed': 35, 'papers': 6}
-extract: 1115 events (570 need review, 150 duplicates merged), 3857 action mentions
-episodes: 1115 linked; outcomes {'unknown': 691, 'worsened': 24, 'resolved': 186, 'unresolved': 213, 'partial': 1}
+india_docs: {'india_wells_named': 29, 'docs_DGH_REPORT': 10, 'passages': 43145, 'docs_STATISTICS': 5, 'docs_ANNUAL_REPORT': 11, 'unreadable_or_empty': 25, 'docs_AUDIT_REPORT': 2, 'docs_SAFETY_ALERT': 55, 'duplicate': 11, 'docs_JUDGMENT': 2, 'docs_with_subject_well': 1, 'docs_PAPER': 1}
+extract: 1149 events (599 need review, 160 duplicates merged), 3858 action mentions
+episodes: 1149 linked; outcomes {'unknown': 719, 'worsened': 24, 'resolved': 188, 'unresolved': 217, 'partial': 1}
 post: formations assigned to LOT/FIT and casing shoes
 auditor: {'R2_casing_shoe': 10, 'R3_formation_top': 12, 'R4_same_quantity_differs': 4, 'R6_ddr_depth_vs_sensor': 2}
-wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 379, 'basin': 23} commit 0d414858
-bootstrap done in 24s
+wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 383, 'basin': 23} commit a0d7f6e3
+bootstrap done in 50s

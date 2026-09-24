@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api import routes, routes_brief, routes_copilot, routes_wiki, ws
 
@@ -15,3 +18,10 @@ for r in (routes.router, routes_wiki.router, routes_copilot.router, routes_brief
 @app.get("/health")
 def health():
     return {"ok": True}
+
+
+# Built website (frontend: `KK_EXPORT=1 npm run build` -> frontend/out). Serving it here puts the site, the API and the
+# replay WebSocket on ONE address, so a single shared link (LAN IP or tunnel) works for teammates.
+SITE = Path(__file__).resolve().parents[2] / "frontend" / "out"
+if SITE.exists():
+    app.mount("/", StaticFiles(directory=SITE, html=True), name="site")

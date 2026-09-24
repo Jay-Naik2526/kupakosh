@@ -32,8 +32,9 @@ def main():
             from app.ingest import forge
             forge.ingest(db)
             db.commit()
-        from app.ingest import india
+        from app.ingest import india, india_docs
         india.ingest(db)
+        india_docs.ingest(db)
         db.commit()
         pipeline.run(db)
         db.commit()
