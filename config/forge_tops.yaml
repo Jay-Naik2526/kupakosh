@@ -1,27 +1,72 @@
-# Utah FORGE formation contacts. FORGE has no public tops table like Sodir, so each top
-# here is taken from a verbatim daily-report line. The ingester refuses to load a top
-# whose quote is not found word-for-word in the named report.
+# Utah FORGE wells (US DOE Geothermal Data Repository, CC-BY 4.0).
+# FORGE has no public tops table like Sodir, so each formation top is taken from a verbatim daily-report
+# line. The ingester refuses to load a top whose quote is not found word-for-word in that well's reports.
 # Depths are the numbers in the quote (feet MD), converted to metres on load.
-tops:
-  "16A(78)-32":
-    - {formation: "BASIN FILL (ALLUVIUM)", level: FORMATION, top_ft: 0, lithology: clay, quote: null, note: "surface to granite contact"}
-    - {formation: "GRANITOID BASEMENT", level: FORMATION, top_ft: 4441, lithology: granite, report_date: 2020-11-07,
-       quote: "Drilling break at 4,441' 11' total, Peak ROP 112 fph Weathered granite."}
-  "16B(78)-32":
-    - {formation: "BASIN FILL (ALLUVIUM)", level: FORMATION, top_ft: 0, lithology: clay, quote: null, note: "surface to granite contact"}
-    - {formation: "GRANITOID BASEMENT", level: FORMATION, top_ft: 4330, lithology: granite, report_date: 2023-05-01,
-       quote: "Formation changed to granite wash around 4,330'."}
 wells:
   "16A(78)-32":
-    # surface location = survey 'vertical section origin' (usft, UTM 12N NAD83), 16A survey.xlsx
-    northing_usft: 13987645.2
-    easting_usft: 1097896.92
+    folder: 16A
+    ddr: {glob: "ddr/**/*.pdf", exclude: [MACOSX, ompletion, MORNING, AFTERNOON]}
+    survey: {type: xlsx16A, path: survey.xlsx}
+    realtime: 16A
+    location: {northing_usft: 13987645.2, easting_usft: 1097896.92, src: "survey.xlsx vertical-section origin (UTM 12N NAD83, usft)"}
     kb_elev_ft: 5444
     spud_date: 2020-10-30
     source_url: https://gdr.openei.org/submissions/1283
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}
+      - {formation: "GRANITOID BASEMENT", top_ft: 4441, lithology: granite,
+         quote: "Drilling break at 4,441' 11' total, Peak ROP 112 fph Weathered granite."}
   "16B(78)-32":
-    northing_usft: 13987765.96
-    easting_usft: 1097907.09
+    folder: 16B
+    ddr: {glob: "ddr/*.pdf", exclude: [MORNING, AFTERNOON]}
+    survey: {type: txt16B, path: "survey/16B(78)-32 Final Survey Report.txt"}
+    realtime: 16B
+    location: {northing_usft: 13987765.96, easting_usft: 1097907.09, src: "Final Survey Report header (UTM 12N NAD83, usft)"}
     kb_elev_ft: 5447.65
     spud_date: 2023-04-26
     source_url: https://gdr.openei.org/submissions/1516
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}
+      - {formation: "GRANITOID BASEMENT", top_ft: 4330, lithology: granite,
+         quote: "Formation changed to granite wash around 4,330'."}
+  "58-32":
+    aliases: ["MU-ESW1"]
+    folder: 58-32
+    ddr: {glob: "ddr/DailyReportSummaryRpt*.pdf", exclude: []}
+    survey: {type: pdf_grg, path: "survey/DirectionalSurveyRpt_171027103004.pdf"}
+    location: {utm_x: 335451.5, utm_y: 4263036.9, src: "Phase 2C wells shapefile (UTM 12N NAD83, m)"}
+    spud_date: 2017-07-31
+    source_url: https://gdr.openei.org/submissions/1006
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}
+      - {formation: "GRANITOID BASEMENT", top_ft: 2090, lithology: granite,
+         quote: "weathered granite @ 2,090' and granite @ 2,140'"}
+  "78B-32":
+    folder: 78B-32
+    ddr: {file: daily_reports.pdf}
+    survey: {type: csv78B, path: "survey/directional survey78B.csv"}
+    location: {lat: 38.50010313, lon: -112.8822486, src: "directional survey78B.csv well-head (NAD83 lat/long)"}
+    spud_date: 2021-06-28
+    source_url: https://gdr.openei.org/submissions/1330
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}
+      - {formation: "GRANITOID BASEMENT", top_ft: 2670, lithology: granite,
+         quote: "1050% Rhyolite 50-90% Granite", note: "mud-log sample interval 2,670-2,700 ft on the 01-Jul-21 report"}
+  "68-32":
+    folder: 68-32
+    ddr: {glob: "x/**/drilling-reports/*.pdf", exclude: []}
+    survey: {type: vertical}
+    location: {utm_x: 335485.65, utm_y: 4263155.84, src: "Phase 2C wells shapefile (UTM 12N NAD83, m)"}
+    spud_date: 2019-03-01
+    source_url: https://gdr.openei.org/submissions/1153
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}
+  "78-32":
+    folder: 78-32
+    ddr: {glob: "x/**/drilling-reports/*.pdf", exclude: []}
+    survey: {type: vertical}
+    location: {utm_x: 335781.09, utm_y: 4262993.38, src: "Phase 2C wells shapefile (UTM 12N NAD83, m)"}
+    spud_date: 2019-03-14
+    source_url: https://gdr.openei.org/submissions/1153
+    tops:
+      - {formation: "BASIN FILL (ALLUVIUM)", top_ft: 0, lithology: clay}

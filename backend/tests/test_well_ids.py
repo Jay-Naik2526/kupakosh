@@ -12,8 +12,10 @@ def test_sodir_suffixes():
 
 
 def test_forge():
-    for v in ["16A(78)-32", "16A (78)-32", "FORGE 16A (78)-32", "Utah FORGE 16A(78)-32", "16a(78)-32"]:
+    for v in ["16A(78)-32", "16A (78)-32", "FORGE 16A (78)-32", "Utah FORGE 16A(78)-32", "16a(78)-32", "FORGE 16A [78]-32"]:
         assert canonical(v) == "16A(78)-32", v
+    for v, want in [("58-32", "58-32"), ("78B-32", "78B-32"), ("FORGE 68-32", "68-32")]:
+        assert canonical(v) == want, v
 
 
 def test_slug():

@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import re
 
-_FORGE = re.compile(r"(?:utah\s+)?(?:forge\s+)?(\d+[A-Z]?)\s*\(?\s*(\d+)\s*\)?\s*-\s*(\d+)", re.I)
+# FORGE pad wells: '16A(78)-32', '16A [78]-32', 'FORGE 16A (78)-32' -> '16A(78)-32'. The bracketed section
+# number is required, so plain pad names such as '58-32' or '78B-32' are left unchanged.
+_FORGE = re.compile(r"^(?:utah\s+)?(?:forge\s+)?(\d+[A-Z]?)\s*[\(\[]\s*(\d+)\s*[\)\]]\s*-\s*(\d+)$", re.I)
 
 
 def canonical(name: str) -> str:
@@ -21,9 +23,10 @@ def canonical(name: str) -> str:
         rest = re.sub(r"\s*-\s*", "-", m.group(3).strip())
         rest = re.sub(r"\s+", " ", rest)
         return f"{m.group(1)}/{m.group(2)}-{rest}".upper()
-    m = _FORGE.search(s)
-    if m and ("forge" in s.lower() or "(" in s or re.match(r"^\d+[A-Z]?\s*\(?\d+\)?-\d+$", s)):
+    m = _FORGE.match(s)
+    if m:
         return f"{m.group(1).upper()}({m.group(2)})-{m.group(3)}"
+    s = re.sub(r"^(?:utah\s+)?forge\s+", "", s, flags=re.I)
     return s.upper()
 
 

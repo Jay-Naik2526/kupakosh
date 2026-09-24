@@ -21,3 +21,13 @@ G="https://gdr.openei.org/files/1516"
 dl "$G/16B%20Daily%20Reports.zip" "$FORGE/16B/daily_reports.zip"
 dl "$G/16B(78)-32%20Well%20Survey.zip" "$FORGE/16B/survey.zip"
 dl "$G/16B_Pason.zip" "$FORGE/16B/pason.zip"
+# --- additional Utah FORGE wells (offsets for the 16B replay) ---
+for w in 58-32 78B-32 68-32 78-32; do mkdir -p "$FORGE/$w"; done
+dl "https://gdr.openei.org/files/1006/DailyDrillingReports_Well58-32.zip" "$FORGE/58-32/daily_reports.zip"
+dl "https://gdr.openei.org/files/1006/Directional_Survey_well_58_32.zip" "$FORGE/58-32/survey.zip"
+dl "https://gdr.openei.org/files/1330/78B-32-DailyDrillingReports-6-27thru7-31.pdf" "$FORGE/78B-32/daily_reports.pdf"
+dl "https://gdr.openei.org/files/1330/78B-32%20directional%20survey%20(1).zip" "$FORGE/78B-32/survey.zip"
+dl "https://gdr.openei.org/files/1330/78B-32%2010%20sec%20data%2027200701_standard.csv" "$FORGE/78B-32/time_10s_standard.csv"
+dl "https://gdr.openei.org/files/1153/Well_68-32_data.zip" "$FORGE/68-32/data.zip"
+dl "https://gdr.openei.org/files/1153/Well_78-32_data.zip" "$FORGE/78-32/data.zip"
+dl "https://gdr.openei.org/files/1153/Utah%20FORGE%20Phase%202C%20Well%20Locations.zip" "$FORGE/phase2c_locations.zip"

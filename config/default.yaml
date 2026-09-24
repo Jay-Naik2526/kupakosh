@@ -22,6 +22,10 @@ hazard:
   base_min_wells: 10          # below this many documented wells in a formation, use the all-formation base rate
   loo_max_wells: 400          # leave-one-well-out validation sample size (deterministic: first N documented wells by id)
   min_neff: 3
+  # Prior strength depends on how the records were written. Sodir well histories are post-well summaries that
+  # rarely mention problems (LOO-tuned strength 100). FORGE wells have complete daily drilling reports, so the
+  # default weak prior applies (not LOO-validated: too few wells). Base rates are computed within the same source.
+  prior_by_source: {sodir: 100, forge: 2}
   ci: 0.8
   alert_threshold: 0.4
 anomaly: {window_s: 300, z_thresh: 3.5, cusum_k: 0.5, cusum_h: 5, min_samples: 20, persist: 3, min_flow_gpm: 100}

@@ -3,13 +3,17 @@ sodir: 41418 formation tops
 sodir: 8741 casing strings, 3750 LOT/FIT
 sodir: 35783 mud checks (rejected mw=645, md=286)
 sodir: 1979 history documents, 50453 sentences
-forge 16A(78)-32: {'wells': 1, 'survey_stations': 422, 'ddr_docs': 77, 'activities': 623, 'mud_checks': 39, 'casing_rows': 189, 'pdf_duplicate_or_undated': 86, 'formation_tops': 2, 'realtime_16A': 101204}
-forge 16B(78)-32: {'wells': 2, 'survey_stations': 850, 'ddr_docs': 165, 'activities': 1383, 'mud_checks': 107, 'casing_rows': 271, 'pdf_duplicate_or_undated': 86, 'formation_tops': 4, 'realtime_16A': 101204, 'pdf_not_ddr': 1, 'realtime_16B': 248968}
-extract: 1097 events (562 need review, 144 duplicates merged), 3724 action mentions
-episodes: 1097 linked; outcomes {'unknown': 684, 'worsened': 24, 'resolved': 177, 'unresolved': 211, 'partial': 1}
+forge 16A(78)-32: {'survey_stations': 422, 'ddr_docs': 77, 'activities': 623, 'mud_checks': 39, 'casing_rows': 189, 'duplicate_or_undated': 86, 'formation_tops': 2, 'realtime_samples': 101204}
+forge 16B(78)-32: {'survey_stations': 428, 'ddr_docs': 88, 'activities': 760, 'casing_rows': 82, 'mud_checks': 68, 'pdf_not_ddr': 1, 'formation_tops': 2, 'realtime_samples': 248968}
+forge 58-32: {'survey_stations': 59, 'ddr_docs': 60, 'activities': 456, 'mud_checks': 52, 'casing_rows': 60, 'lot': 2, 'formation_tops': 2}
+forge 78B-32: {'survey_stations': 100, 'ddr_docs': 35, 'activities': 400, 'casing_rows': 34, 'mud_checks': 31, 'formation_tops': 2}
+forge 68-32: {'survey_stations': 0, 'ddr_docs': 12, 'activities': 52, 'casing_rows': 8, 'mud_checks': 2, 'formation_tops': 1}
+forge 78-32: {'survey_stations': 0, 'ddr_docs': 16, 'activities': 116, 'casing_rows': 16, 'formation_tops': 1}
+extract: 1115 events (570 need review, 150 duplicates merged), 3857 action mentions
+episodes: 1115 linked; outcomes {'unknown': 691, 'worsened': 24, 'resolved': 186, 'unresolved': 213, 'partial': 1}
 post: formations assigned to LOT/FIT and casing shoes
-auditor: {'R2_casing_shoe': 10, 'R3_formation_top': 12, 'R4_same_quantity_differs': 2, 'R6_ddr_depth_vs_sensor': 2}
-wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 375} commit e60a379f
+auditor: {'R2_casing_shoe': 10, 'R3_formation_top': 12, 'R4_same_quantity_differs': 4, 'R6_ddr_depth_vs_sensor': 2}
+wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 379} commit 2926f34f
 hazard LOO: n=41848 brier model=0.00238 base=0.00238; ok-only n=28224
 eval extraction  event precision                  0.897 (n=39)
 eval extraction  event recall                     0.921 (n=38)
@@ -23,4 +27,4 @@ eval hazard_loo  Brier (model, n_eff ≥ min)       0.002 (n=28224)
 eval hazard_loo  Brier (base, n_eff ≥ min)        0.002 (n=28224)
 eval copilot     citation accuracy                1.000 (n=25)
 eval copilot     refusal accuracy                 1.000 (n=30)
-bootstrap done in 23s
+bootstrap done in 26s

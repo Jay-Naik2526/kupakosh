@@ -22,26 +22,30 @@ from app.engines.context import ctx
 
 
 @lru_cache(maxsize=4096)
-def base_rate(formation: str, hazard: str) -> tuple[float, int, str]:
-    """Share of documented wells that penetrated `formation` with a recorded `hazard` there.
-    Falls back to the hazard's rate across all formations when fewer than `base_min_wells` wells."""
+def base_rate(formation: str, hazard: str, source: str | None = None) -> tuple[float, int, str]:
+    """Share of documented wells (of the same data source) that penetrated `formation` with a recorded `hazard`.
+    Falls back to the hazard's rate across all formations of that source when fewer than `base_min_wells` wells."""
     cx = ctx()
     c = cfg()["hazard"]
-    wells = cx.penetrated.get(formation, set())
+    same = (lambda w: cx.wells[w].source == source) if source else (lambda w: True)
+    wells = {w for w in cx.penetrated.get(formation, set()) if same(w)}
     if len(wells) >= c["base_min_wells"]:
         k = sum(1 for w in wells if (w, formation, hazard) in cx.ev_wf)
         return (k + 0.5) / (len(wells) + 1), len(wells), "formation"
-    # all (well, formation) pairs
-    n = sum(len(v) for v in cx.penetrated.values())
-    k = sum(1 for (w, f, h) in cx.ev_wf if h == hazard)
-    return (k + 0.5) / (n + 1), n, "all_formations"
+    pairs = [(w, f) for f, ws in cx.penetrated.items() for w in ws if same(w)]
+    k = sum(1 for (w, f, h) in cx.ev_wf if h == hazard and same(w))
+    return (k + 0.5) / (len(pairs) + 1), len(pairs), "all_formations" + (f" ({source})" if source else "")
 
 
-def posterior(formation: str, hazard: str, offsets: list[dict]) -> dict:
+def posterior(formation: str, hazard: str, offsets: list[dict], source: str | None = None) -> dict:
     c = cfg()["hazard"]
     cx = ctx()
-    base, base_n, base_scope = base_rate(formation, hazard)
-    a0, b0 = c["prior_strength"] * base, c["prior_strength"] * (1 - base)
+    if source is None:  # the data source of the evidence wells decides the prior
+        srcs = [cx.wells[o["well_id"]].source for o in offsets if o["well_id"] in cx.documented]
+        source = max(set(srcs), key=srcs.count) if srcs else None
+    strength = c.get("prior_by_source", {}).get(source, c["prior_strength"])
+    base, base_n, base_scope = base_rate(formation, hazard, source)
+    a0, b0 = strength * base, strength * (1 - base)
     sw = swy = sw2 = 0.0
     evidence = []
     for o in offsets:
@@ -64,12 +68,14 @@ def posterior(formation: str, hazard: str, offsets: list[dict]) -> dict:
     lo_q = (1 - c["ci"]) / 2
     mean = a / (a + b)
     lo, hi = beta_dist.ppf([lo_q, 1 - lo_q], a, b)
-    status = "ok" if n_eff >= c["min_neff"] else "insufficient_evidence"
+    # compared at the precision shown to the user (one decimal), so "evidence 3.0 wells" never reads as insufficient
+    status = "ok" if round(n_eff, 1) >= c["min_neff"] else "insufficient_evidence"
     return {
         "formation": formation, "hazard": hazard, "label": taxonomy()["hazards"][hazard]["label"],
         "status": status, "mean": round(float(mean), 4), "ci": [round(float(lo), 4), round(float(hi), 4)], "ci_level": c["ci"],
         "n_eff": round(n_eff, 2), "n_wells": len(evidence), "n_with_event": sum(e["y"] for e in evidence),
-        "prior": {"base_rate": round(base, 4), "base_n": base_n, "scope": base_scope, "a0": round(a0, 3), "b0": round(b0, 3)},
+        "prior": {"base_rate": round(base, 4), "base_n": base_n, "scope": base_scope, "strength": strength, "source": source,
+                  "a0": round(a0, 3), "b0": round(b0, 3)},
         "evidence": sorted(evidence, key=lambda e: (-e["y"], -e["weight"])),
     }
 
