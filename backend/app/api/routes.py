@@ -7,7 +7,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.sources import resolve
-from app.config import cfg, taxonomy
+from app.config import cfg, lithology, taxonomy
 from app.db.models import (AuditFlag, CasingString, DataSource, Document, Episode, EvalResult, Event, FormationTop, MudCheck,
                            Passage, PressureTest, RealtimeSample, SurveyStation, Well, WikiPage)
 from app.db.session import get_db
@@ -94,7 +94,7 @@ def wells(q: str | None = None, bbox: str | None = None, documented: bool = Fals
 def well(well_id: int, db: Session = Depends(get_db)):
     w = _well(db, well_id)
     tops = [{"formation": t.formation, "label": pretty(t.formation), "level": t.level, "top_md_m": t.top_md_m, "base_md_m": t.base_md_m,
-             "lithology": t.lithology, "source_ref": t.source_ref} for t in ctx().tops.tops(well_id)]
+             "lithology": t.lithology or lithology().get(t.formation), "source_ref": t.source_ref} for t in ctx().tops.tops(well_id)]
     seen = set()
     casing = []
     for c in db.scalars(select(CasingString).where(CasingString.well_id == well_id).order_by(CasingString.shoe_md_m)):
@@ -283,3 +283,9 @@ def replay_range(well_id: int, db: Session = Depends(get_db)):
 def replay_wells(db: Session = Depends(get_db)):
     rows = db.execute(select(RealtimeSample.well_id, func.count()).group_by(RealtimeSample.well_id)).all()
     return [{**_w(db.get(Well, wid)), "samples": n} for wid, n in rows]
+
+
+@router.get("/wells/{well_id}/survey")
+def survey(well_id: int, db: Session = Depends(get_db)):
+    return [{"md_m": s.md_m, "inc_deg": s.inc_deg, "azi_deg": s.azi_deg, "tvd_m": s.tvd_m, "north_m": s.north_m, "east_m": s.east_m}
+            for s in db.scalars(select(SurveyStation).where(SurveyStation.well_id == well_id).order_by(SurveyStation.md_m))]

@@ -1,0 +1,36 @@
+@import "../styles/tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { font-size: var(--fs); }
+body { background: var(--desk); color: var(--ink); font-family: var(--font-plex), system-ui, sans-serif; }
+.mono, .num { font-family: var(--font-plex-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.typewriter { font-family: var(--font-courier), "Courier New", monospace; }
+.deva { font-family: var(--font-deva), sans-serif; }
+.paper-grid {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.rule-b { border-bottom: 1px solid var(--rule); }
+.rule-t { border-top: 1px solid var(--rule); }
+.btn { border: 1px solid var(--ink); border-radius: var(--radius); padding: 4px 12px; background: var(--card); color: var(--ink); font-size: 0.93rem; }
+.btn:hover { background: var(--paper); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-primary:hover { background: var(--ink-2); }
+.input { border: 1px solid var(--rule); border-radius: var(--radius); padding: 4px 8px; background: var(--card); color: var(--ink); }
+.chip { border: 1px solid var(--rule); border-radius: var(--radius); padding: 2px 8px; font-size: 0.87rem; background: var(--card); }
+.chip[aria-pressed="true"] { border: 1px solid var(--ink); box-shadow: inset 0 0 0 1px var(--ink); font-weight: 600; }
+.chip[aria-pressed="false"] { color: var(--ink-2); }
+.chip[disabled] { opacity: .45; cursor: not-allowed; }
+.label { font-size: 0.87rem; color: var(--ink-2); }
+.small { font-size: 0.87rem; }
+.h-title { font-size: 22px; font-weight: 600; }
+.link { text-decoration: underline; text-underline-offset: 2px; }
+.prose-wiki h2 { font-weight: 600; font-size: 1.05rem; margin: 1.2rem 0 .4rem; border-bottom: 1px solid var(--rule); padding-bottom: 2px; }
+.prose-wiki p, .prose-wiki li { line-height: 1.6; margin: .25rem 0; }
+.prose-wiki blockquote { border-left: 3px solid var(--rule); padding-left: 10px; color: var(--ink-2); margin: .3rem 0 .5rem; font-style: italic; }
+.prose-wiki ul { padding-left: 1.1rem; list-style: disc; }

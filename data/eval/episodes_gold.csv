@@ -1,0 +1,31 @@
+event_source_ref,hazard,event_text,true_outcome,labeller,notes
+doc:1847#p4.s3,overpressure,"An influx was registered by high gas readings at surface while circulating bottoms up from TD at 3400 m, with a gas peak of 52.3% before the well was shut in.",unknown,"AI assistant, pending human verification",
+doc:749#p4.s3,kick,"At 2329 m a 900 litres gain was recorded, indicating a kick was taking place and the drilling was suspended due to a well control situation.",unknown,"AI assistant, pending human verification","sidetrack relates to the later stuck pipe, not the kick"
+doc:988#p3.s2,fishing,"The MWD data records from 3070 m to TD are missing, due to washout, lost signal, stuck pipe and MWD tool lost in hole.",unresolved,"AI assistant, pending human verification",
+doc:278#p5.s11,stuck_pipe,"While drilling salt at 2780 m pipe stuck, and when attempting to pull free collars parted.",unresolved,"AI assistant, pending human verification",
+doc:1181#p4.s2,overpressure,"Minor shallow gas peaks were observed from mud gas readings in the pilot hole below the 30"" casing at 498 - 500 m.",resolved,"AI assistant, pending human verification",
+doc:588#p6.s11,fishing,"Core 1 was a ""junk core"".",n/a,"AI assistant, pending human verification","'junk core' is a core type, not a fishing event"
+doc:385#p4.s4,stuck_pipe,The drill pipe became stuck at 486 m and the hole was abandoned with the top of fish at 323 m.,unresolved,"AI assistant, pending human verification",
+doc:505#p4.s2,stuck_pipe,The pipe got stuck at 1572 m.,unresolved,"AI assistant, pending human verification",
+doc:355#p5.s7,fishing,A dive was made to determine if the fish was on the ocean floor.,unresolved,"AI assistant, pending human verification",
+doc:822#p5.s3,wellbore_instability,"34.5% of the total rig time was lost time due to fishing, waiting on weather, waiting for replacement of equipment, and hole problems.",unresolved,"AI assistant, pending human verification",
+doc:1651#p4.s3,wellbore_instability,"Severe hole problems with tight spots and repeated fall-out of large quantities of cavings were experienced in the bottom 12 1/4"" section of the well.",unresolved,"AI assistant, pending human verification",
+doc:34#p4.s13,fishing,"Jarring did not free the pipe, and a cement plug was set above the fish.",unresolved,"AI assistant, pending human verification",
+doc:1029#p4.s2,fishing,When coring for core no 10 the core jammed at 2512.5 m and the core head matrix was left in the hole.,partial,"AI assistant, pending human verification",'most of it was recovered' = partial
+doc:800#p4.s11,overpressure,The relative overpressure in the ORELN2 Formations is around 30 Bar.,n/a,"AI assistant, pending human verification","formation pressure statement, not a drilling episode"
+doc:713#p4.s5,stuck_pipe,"Apart from stuck conductor in the top hole, requiring a re-spud, there were no significant problems encountered in the operations.",unresolved,"AI assistant, pending human verification",
+doc:344#p4.s2,lost_circulation,"Pumping lost circulation material, without changing the mud weight, stopped loss of mud at 1710 m.",resolved,"AI assistant, pending human verification",
+doc:816#p4.s2,stuck_pipe,"While drilling the 36"" hole at 167 m, the drill string stuck.",unresolved,"AI assistant, pending human verification",
+doc:1404#p4.s3,lost_circulation,This resulted in a total loss of 28 days.,n/a,"AI assistant, pending human verification","'total loss of 28 days' = lost rig time, not lost circulation"
+doc:1613#p5.s1,wellbore_instability,"Boulders were encountered between 380 m and 400 m, but created no torquing problems while drilling.",n/a,"AI assistant, pending human verification",boulders caused no problem
+doc:362#p5.s3,overpressure,Below this level background gas varied between 1 - 15 % with trip gas up to 32%.,unknown,"AI assistant, pending human verification",
+doc:24#p4.s3,fishing,The first sidetrack was kicked off at 314 m after unsuccessful fishing (lost hole opener).,unresolved,"AI assistant, pending human verification",
+doc:1283#p4.s4,kick,"During controlling of the kick, a large proportion of gas was vented and light low gravity yellowish oil recovered from the mud.",resolved,"AI assistant, pending human verification",
+doc:27#p5.s5,fishing,"These were: dropped 10-3/4"" casing, failed wellhead, well control incident, failure of the HPC tieback packer and waiting on weather.",unresolved,"AI assistant, pending human verification",
+doc:313#p4.s6,fishing,"When trying to back off the drill pipe twisted off, leaving a 340 m fish in the hole.",unresolved,"AI assistant, pending human verification",
+doc:1866#p5.s3,lost_circulation,"Due to concerns of further severe losses, the technical sidetrack was not drilled to a sufficient depth to penetrate the expected FWL, however, wireline pressures, fluid gradients and samples were acquired in the gas and oil zones suggesting a GOC at 1912.5 m (1910 m TVD).",unknown,"AI assistant, pending human verification",
+doc:363#p5.s11,kick,"The well was shut in and several attempts were made to gain control, without success.",worsened,"AI assistant, pending human verification",developed into an underground blow out
+doc:466#p5.s7,lost_circulation,Losses of 26 bbl/hr were noted at 5475 m and were cured after pumping and soaking 2 LCM pills.,resolved,"AI assistant, pending human verification",
+doc:1974#p5.s6,fishing,"At 2963 m the drill pipe stuck in salt, and after five days of unsuccessful fishing operations, it was decided to abandon the hole.",unresolved,"AI assistant, pending human verification",
+doc:366#p9.s8,fishing,"The drill string got stuck twice, backed off, and after unsuccessful fishing, technical sidetracks were performed.",unresolved,"AI assistant, pending human verification",outcome phrase precedes the fishing trigger
+doc:100#p4.s2,wellbore_instability,Boulders were experienced in the interval 155 -170 m MD and some time was spent to correct the inclination.,resolved,"AI assistant, pending human verification",

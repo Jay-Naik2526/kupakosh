@@ -1,0 +1,99 @@
+# Dominant lithology per lithostratigraphic unit, used ONLY to choose a hatch pattern in the UI.
+# Source: Norwegian North Sea lithostratigraphic lexicon (NPD Bulletin No. 5, Isaksen & Tonstad 1989;
+# Vollset & Doré 1984) as summarised on Sodir FactPages. Approximate: a unit's dominant rock type,
+# not a log interpretation. Units not listed are drawn without a pattern ("lithology not recorded").
+# keys: sand | shale | lime | clay | chalk
+units:
+  NORDLAND GP: clay
+  UTSIRA FM: sand
+  NAUST FM: clay
+  KAI FM: clay
+  HORDALAND GP: shale
+  SKADE FM: sand
+  GRID FM: sand
+  FRIGG FM: sand
+  BRYGGE FM: clay
+  ROGALAND GP: shale
+  BALDER FM: shale
+  SELE FM: shale
+  LISTA FM: shale
+  VÅLE FM: shale
+  HERMOD FM: sand
+  HEIMDAL FM: sand
+  TY FM: sand
+  TARE FM: shale
+  TANG FM: shale
+  SHETLAND GP: chalk
+  EKOFISK FM: chalk
+  TOR FM: chalk
+  HOD FM: chalk
+  BLODØKS FM: shale
+  HIDRA FM: chalk
+  JORSALFARE FM: lime
+  KYRRE FM: shale
+  TRYGGVASON FM: shale
+  SVARTE FM: lime
+  CROMER KNOLL GP: shale
+  RØDBY FM: shale
+  SOLA FM: shale
+  ÅSGARD FM: lime
+  MIME FM: lime
+  LANGE FM: shale
+  LYR FM: lime
+  VIKING GP: shale
+  DRAUPNE FM: shale
+  HEATHER FM: shale
+  BRENT GP: sand
+  TARBERT FM: sand
+  NESS FM: sand
+  ETIVE FM: sand
+  RANNOCH FM: sand
+  BROOM FM: sand
+  DUNLIN GP: shale
+  DRAKE FM: shale
+  COOK FM: sand
+  BURTON FM: shale
+  AMUNDSEN FM: shale
+  JOHANSEN FM: sand
+  STATFJORD GP: sand
+  STATFJORD FM: sand
+  VESTLAND GP: sand
+  HUGIN FM: sand
+  SLEIPNER FM: sand
+  SANDNES FM: sand
+  BRYNE FM: sand
+  TYNE GP: shale
+  MANDAL FM: shale
+  FARSUND FM: shale
+  HAUGESUND FM: shale
+  ULA FM: sand
+  FJERRITSLEV FM: shale
+  HEGRE GP: sand
+  LUNDE FM: sand
+  TEIST FM: sand
+  SKAGERRAK FM: sand
+  SMITH BANK FM: shale
+  ZECHSTEIN GP: lime
+  SPEKK FM: shale
+  MELKE FM: shale
+  GARN FM: sand
+  NOT FM: shale
+  ILE FM: sand
+  ROR FM: shale
+  TILJE FM: sand
+  ÅRE FM: sand
+  LANGE FM : shale
+  LYSING FM: sand
+  KVITNOS FM: shale
+  NISE FM: shale
+  SPRINGAR FM: shale
+  TANG FM : shale
+  HEKKINGEN FM: shale
+  STØ FM: sand
+  NORDMELA FM: shale
+  TUBÅEN FM: sand
+  FRUHOLMEN FM: shale
+  SNADD FM: shale
+  KOBBE FM: shale
+  KLAPPMYSS FM: shale
+  HAVERT FM: shale

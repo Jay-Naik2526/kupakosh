@@ -46,6 +46,10 @@ def main():
         from app.wiki import compiler
         compiler.compile_all(db)
         db.commit()
+        if "--skip-eval" not in sys.argv:
+            from app.eval.run import run_all
+            run_all(db)
+            db.commit()
     print(f"bootstrap done in {time.time() - t0:.0f}s")
 
 

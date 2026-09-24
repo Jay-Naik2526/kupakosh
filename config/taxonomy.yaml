@@ -93,7 +93,7 @@ actions:
   circulate_condition: ['\bcirculat\w* (and|to) condition|\bconditioned (the )?mud|\bcirculated (bottoms? up|the hole clean)|\bcirculated out\b|\bcirculating out\b']
   ream_backream: ['\bback ?ream|\bream(ed|ing)?\b|\bwiper trip']
   jar: ['\bjarr(ed|ing)\b|\bjars?\b(?! (of|with) )']
-  spot_pill: ['\bspott(ed|ing)\b|\bpipe[- ]?(lax|free)\b|\bdiesel pill\b|\bacid pill\b']
+  spot_pill: ['\bspott(ed|ing)\b|\bpipe-?lax\b|\bpipe-free\b|\bdiesel pill\b|\bacid pill\b|\bpumping pipelax\b']
   pump_out: ['\bpump(ed|ing)? out of (the )?hole\b']
   cement_plug: ['\bcement plug\b|\bcemented off\b|\bplug(ged)? back\b|\bset a plug\b|\bsealed off\b']
   squeeze: ['\bsqueez(e|ed)\b']
@@ -105,9 +105,9 @@ actions:
   cut_and_abandon: ['\bstring (had to be )?cut\b|\bcut off\b|\bbacked off\b|\bback-?off\b|\bpermanently abandoned\b|\bjunk well\b']
 
 outcomes:
-  resolved: ['\bfreed\b|\bgot free\b|\bpipe (was )?free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
+  resolved: ['\bfreed\b|\bgot free\b|\bpipe (was|came|got) free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
   partial: ['\breduced (the )?losses\b|\blosses (were )?reduced\b|\bpartial(ly)?\b|\bslowed\b|\bminimi[sz]ed\b']
-  unresolved: ['\bunsuccessful\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
+  unresolved: ['\bunsuccessful\b|\bno success\b|\bwithout success\b|\bhad to be (cut|abandoned|plugged|sidetracked)\b|\bwas (cut|backed off)\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
   worsened: ['\bbecame total\b|\bincreased losses\b|\blosses increased\b|\bworsened\b|\ba second\b.*\bkick\b|\bfurther (lost circulation|losses|problems)\b|\bstuck (deeper|again)\b|\bled to\b.*\b(sidetrack|abandon)']
 
 # event glyphs (UI) — text/glyph pairs so colour is never the only signal

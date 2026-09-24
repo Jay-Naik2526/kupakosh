@@ -19,7 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import cfg, taxonomy
-from app.db.models import Document, Passage, Well, WikiPage
+from app.db.models import Event, Passage, WikiPage
 from app.engines import hazard as hz
 from app.engines import mudwindow as mw
 from app.engines.context import ctx
@@ -31,7 +31,8 @@ from app.wiki.compiler import ACTION_LABEL
 REFUSAL = "No evidence found in the records."
 STOP = set("a an the of in on at to for and or is are was were be been what which who whom how why when where did do does "
            "any there this that these those with from by as it its me my we our you your can could should would will i "
-           "tell show give list about well wells happened happen".split())
+           "tell show give list about well wells happened happen worked work works against formation formations group problems "
+           "problem recorded record near nearby offset offsets there any".split())
 _TOK = re.compile(r"[a-zæøå0-9/]+(?:-[a-z0-9]+)*", re.I)
 
 
@@ -117,10 +118,23 @@ def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = No
     return out
 
 
+def well_events(db: Session, well_ids: set[int], hazards: list[str]) -> list[Event]:
+    q = select(Event).where(Event.well_id.in_(well_ids))
+    if hazards:
+        q = q.where(Event.hazard.in_(hazards))
+    return db.scalars(q.order_by(Event.well_id, Event.md_m)).all()
+
+
 def answer(db: Session, question: str, context_well: int | None = None) -> dict:
     cx = ctx()
     P = parse(question)
     steps, paras, sources = [], [], []
+    ql = question.lower()
+    bad = [t for t in cfg()["copilot"]["unsupported_terms"] if t in ql]
+    if bad:
+        steps.append({"tool": "scope_check", "args": {"terms": bad}, "result": "not in the records"})
+        return {"question": question, "refused": True, "answer": REFUSAL + f" (Kupakosh does not hold data on: {', '.join(bad)}.)",
+                "method": steps, "sources": [], "parsed": _jsonable(P), "mode": "extractive (no LLM configured)"}
 
     def cite(ref: str, label: str | None = None) -> str:
         if ref not in [s["ref"] for s in sources]:
@@ -162,6 +176,12 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
             f = P["formations"][0] if P["formations"] else None
             L = ledger(db, h, f, list(well_ids) if (well_ids and "nearby" in P["intent"]) else None)
             rows = [r for r in L["rows"] if r["n"] > 0][:3]
+            if not rows and f:
+                paras.append(f"No {taxonomy()['hazards'][h]['label'].lower()} episode with a stated outcome is recorded in {pretty(f)}; "
+                             f"showing all formations instead {cite(f'query:ledger?hazard={h}&formation={f}', 'mitigation ledger')}.")
+                f = None
+                L = ledger(db, h, None)
+                rows = [r for r in L["rows"] if r["n"] > 0][:3]
             steps.append({"tool": "ledger", "args": {"hazard": h, "formation": f}, "result": f"{len(rows)} actions with known outcome"})
             if rows:
                 lbl = taxonomy()["hazards"][h]["label"].lower()
@@ -200,12 +220,31 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
     if wiki_hits:
         steps.append({"tool": "get_wiki", "args": {"pages": [p.slug for p in wiki_hits]}, "result": f"{len(wiki_hits)} pages"})
 
+    # structured: recorded events for the named wells
+    if P["wells"]:
+        evs = well_events(db, {w for _, w in P["wells"]}, P["hazards"])
+        steps.append({"tool": "well_events", "args": {"wells": [n for n, _ in P["wells"]], "hazards": P["hazards"]}, "result": f"{len(evs)} events"})
+        for e in evs[:6]:
+            wname = cx.wells[e.well_id].canonical_name
+            where = f" at {e.md_m:,.0f} m" if e.md_m else ""
+            fm = f" ({pretty(e.formation)})" if e.formation else ""
+            rv = " — flagged for review" if e.needs_review else ""
+            paras.append(f"{wname}{where}{fm}{rv}: “{e.evidence_span}” {cite(e.source_ref, wname)}")
+        if not evs and P["hazards"]:
+            paras.append(f"No {', '.join(taxonomy()['hazards'][h]['label'].lower() for h in P['hazards'])} record was extracted for "
+                         f"{', '.join(n for n, _ in P['wells'])}; this means none was recorded, not that none occurred "
+                         f"{cite('query:events?well=' + P['wells'][0][0], 'events table')}.")
+
     # evidence search (always)
-    ev = search_evidence(question, well_ids or None)
+    qwords = question
+    for name, _ in P["wells"]:
+        qwords = re.sub(re.escape(name), " ", qwords, flags=re.I)
+    ev = search_evidence(qwords, well_ids or None)
     if not ev and well_ids:
         ev = search_evidence(question)
     steps.append({"tool": "search_evidence", "args": {"query": question, "wells": sorted(well_ids)}, "result": f"{len(ev)} passages"})
-    for e in ev[:4]:
+    shown = {s["ref"] for s in sources}
+    for e in [e for e in ev if e["source_ref"] not in shown][: (2 if P["wells"] else 4)]:
         wname = cx.wells[e["well_id"]].canonical_name if e["well_id"] in cx.wells else "?"
         paras.append(f"{wname}: “{e['text']}” {cite(e['source_ref'], wname)}")
 

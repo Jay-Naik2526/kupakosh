@@ -1,0 +1,28 @@
+/* Kupakosh design tokens — SPEC.md §11.2. Colour = state only (ISA-101). */
+:root {
+  --desk: #2B2A27;
+  --file-board: #D8CBA8;
+  --paper: #F3F0E8;
+  --card: #FBFAF6;
+  --grid: #E2DDD0;
+  --rule: #CFC8B8;
+  --ink: #1B1A17;
+  --ink-2: #5E5A50;
+  --hazard: #B23A1E;
+  --caution: #C98A12;
+  --ok: #2F6B5E;
+  --tab-1: #E6DCC3; --tab-2: #D9E2D3; --tab-3: #E0E0DA; --tab-4: #EAD9D3;
+  --lith-sand: #E9D8A6; --lith-shale: #A7B0A0; --lith-lime: #B9C6CF; --lith-clay: #B89B7A; --lith-chalk: #EDEBE4; --lith-granite: #D9CFC7;
+  --radius: 2px;
+  --fs: 15px;
+}
+/* high-contrast mode (GIGW-inspired) */
+[data-contrast="high"] {
+  --paper: #FFFFFF; --card: #FFFFFF; --grid: #D0D0D0; --rule: #6B6B6B; --ink: #000000; --ink-2: #2E2E2E;
+  --hazard: #9E2A10; --caution: #8A5A00; --ok: #1E5247;
+}
+/* Rig mode: ISA-101 dark, Command screen only */
+[data-rig="on"] .rig-scope {
+  --paper: #1E1F21; --card: #2A2B2E; --grid: #2F3033; --rule: #3A3B3F; --ink: #D9D6CF; --ink-2: #A3A09A;
+  --hazard: #E0543A; --caution: #E0A93A; --ok: #7FB7A8;
+}

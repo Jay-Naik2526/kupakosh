@@ -24,3 +24,9 @@ def cfg() -> dict:
 @lru_cache
 def taxonomy() -> dict:
     return yaml.safe_load((CONFIG_DIR / "taxonomy.yaml").read_text())
+
+
+@lru_cache
+def lithology() -> dict:
+    p = CONFIG_DIR / "lithology.yaml"
+    return {k.strip(): v for k, v in (yaml.safe_load(p.read_text()) or {}).get("units", {}).items()} if p.exists() else {}

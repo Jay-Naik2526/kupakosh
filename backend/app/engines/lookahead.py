@@ -11,7 +11,7 @@ from functools import lru_cache
 
 from sqlalchemy.orm import Session
 
-from app.config import cfg
+from app.config import cfg, lithology
 from app.engines import hazard as hz
 from app.engines.context import ctx
 from app.engines.formations import pretty
@@ -41,7 +41,8 @@ def formation_intervals(well_id: int) -> list[dict]:
         if t.level == "GROUP" and any(x.level == "FORMATION" for x in cx.tops.tops(well_id)):
             continue
         out.append({"formation": t.formation, "label": pretty(t.formation), "top_md_m": t.top_md_m, "base_md_m": t.base_md_m,
-                    "lithology": t.lithology, "source_ref": t.source_ref})
+                    "lithology": t.lithology or lithology().get(t.formation), "lithology_source": "report" if t.lithology else ("lexicon (approx.)" if t.formation in lithology() else None),
+                    "source_ref": t.source_ref})
     return out
 
 

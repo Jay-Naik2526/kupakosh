@@ -1,0 +1,12 @@
+INFO:     Started server process [6506]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50830 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50833 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50836 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50840 - "GET /api/mudwindow?well=9842&radius_m=10000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50838 - "GET /api/wells/9842 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50836 - "GET /api/wells?documented=true&limit=12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50844 - "GET /api/wells?q=15/9-19&documented=true&limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50846 - "POST /api/copilot HTTP/1.1" 200 OK
