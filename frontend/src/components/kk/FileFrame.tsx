@@ -53,7 +53,7 @@ export function FileFrame({ children }: { children: ReactNode }) {
                 </select>
               </div>
             </header>
-            <div className="px-4 md:px-8 py-6">{children}</div>
+            <div className="px-4 md:px-8 py-6 overflow-x-auto">{children}</div>
             <footer className="px-4 md:px-8 py-3 rule-t label">{t("footer", lang)}</footer>
           </main>
           <IndexTabs />

@@ -1,0 +1,16 @@
+# Target deployment stack (SPEC.md §4). NOTE: the prototype runs on SQLite; the ORM models are
+# portable, but PostGIS/pgvector columns (geom, embedding) are not yet migrated. Not verified here (no Docker).
+services:
+  db:
+    build: { context: ., dockerfile: docker/db.Dockerfile }
+    environment: { POSTGRES_USER: kupa, POSTGRES_PASSWORD: kupa, POSTGRES_DB: kupakosh }
+    ports: ["5432:5432"]
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    environment: { DATABASE_URL: "sqlite:////data/kupakosh.db", DATA_DIR: /data, WIKI_REPO_PATH: /wiki }
+    volumes: ["./data:/data", "./wiki:/wiki"]
+    ports: ["8010:8010"]
+  web:
+    build: { context: ., dockerfile: docker/web.Dockerfile }
+    environment: { NEXT_PUBLIC_API: "http://localhost:8010" }
+    ports: ["3000:3000"]

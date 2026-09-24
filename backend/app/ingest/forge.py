@@ -70,7 +70,8 @@ def _report_date(text: str) -> date | None:
 
 
 def _report_md_ft(text: str) -> float | None:
-    m = re.search(r"MD/TVD:\s*([\d,]+)", text) or re.search(r"Measured Depth \(ft\):\s*([\d,]+)", text)
+    # "MD/TVD:7294 24 HR FTG:349" — when the MD field is blank the next token is "24 HR", which is not a depth
+    m = re.search(r"MD/TVD:\s*([\d,]+)\b(?!\s*HR\b)", text) or re.search(r"Measured Depth \(ft\):\s*([\d,]+)", text)
     return float(m.group(1).replace(",", "")) if m else None
 
 

@@ -44,7 +44,7 @@ export default function MudWindow() {
       {loading && <p className="label mt-3">Loading…</p>}
       {d && rows.length === 0 && <div className="mt-5"><EmptyState title="Insufficient evidence for a mud-weight window" why="No LOT/FIT result, and no loss or kick with a known mud weight, is recorded in this well or its offsets within the radius. Try a larger radius." /></div>}
       {d && rows.length > 0 && (
-        <div className="grid gap-6 mt-5" style={{ gridTemplateColumns: `${W + 10}px 110px minmax(0,1fr)` }}>
+        <div className="flex flex-wrap gap-6 mt-5 items-start">
           {/* Zone A — depth vs ppg */}
           <section aria-label="mud weight window chart">
             <svg width={W} height={H} className="paper-grid" role="img" aria-label="Depth versus mud weight: safe band, evidence and active well">
@@ -79,7 +79,7 @@ export default function MudWindow() {
             <LithologyColumn intervals={d.tops} y={y} height={H} width={110} />
           </section>
           {/* Zone C — casing & cement lessons + per-formation table */}
-          <section aria-label="casing and cement lessons" className="min-w-0">
+          <section aria-label="casing and cement lessons" className="min-w-[380px] flex-1">
             <h3 className="font-semibold mb-2">Window by formation</h3>
             <Register rows={rows} cols={[
               { key: "f", head: "Formation", cell: (r: any) => r.label },

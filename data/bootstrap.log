@@ -3,9 +3,24 @@ sodir: 41418 formation tops
 sodir: 8741 casing strings, 3750 LOT/FIT
 sodir: 35783 mud checks (rejected mw=645, md=286)
 sodir: 1979 history documents, 50453 sentences
-forge 16A(78)-32: {'wells': 1, 'survey_stations': 422, 'ddr_docs': 77, 'activities': 623, 'mud_checks': 44, 'casing_rows': 189, 'pdf_duplicate_or_undated': 86, 'formation_tops': 2, 'realtime_16A': 101204}
-forge 16B(78)-32: {'wells': 2, 'survey_stations': 850, 'ddr_docs': 165, 'activities': 1383, 'mud_checks': 112, 'casing_rows': 271, 'pdf_duplicate_or_undated': 86, 'formation_tops': 4, 'realtime_16A': 101204, 'pdf_not_ddr': 1, 'realtime_16B': 248968}
-extract: 1104 events (564 need review, 146 duplicates merged), 3730 action mentions
-episodes: 1104 linked; outcomes {'unknown': 708, 'worsened': 25, 'resolved': 185, 'unresolved': 185, 'partial': 1}
+forge 16A(78)-32: {'wells': 1, 'survey_stations': 422, 'ddr_docs': 77, 'activities': 623, 'mud_checks': 39, 'casing_rows': 189, 'pdf_duplicate_or_undated': 86, 'formation_tops': 2, 'realtime_16A': 101204}
+forge 16B(78)-32: {'wells': 2, 'survey_stations': 850, 'ddr_docs': 165, 'activities': 1383, 'mud_checks': 107, 'casing_rows': 271, 'pdf_duplicate_or_undated': 86, 'formation_tops': 4, 'realtime_16A': 101204, 'pdf_not_ddr': 1, 'realtime_16B': 248968}
+extract: 1097 events (562 need review, 144 duplicates merged), 3724 action mentions
+episodes: 1097 linked; outcomes {'unknown': 684, 'worsened': 24, 'resolved': 177, 'unresolved': 211, 'partial': 1}
 post: formations assigned to LOT/FIT and casing shoes
-bootstrap done in 18s
+auditor: {'R2_casing_shoe': 10, 'R3_formation_top': 12, 'R4_same_quantity_differs': 2, 'R6_ddr_depth_vs_sensor': 2}
+wiki: {'rejected_sentences': 0, 'hazard': 8, 'formation': 96, 'well': 375} commit e60a379f
+hazard LOO: n=41848 brier model=0.00238 base=0.00238; ok-only n=28224
+eval extraction  event precision                  0.897 (n=39)
+eval extraction  event recall                     0.921 (n=38)
+eval extraction  depth within tolerance           0.923 (n=13)
+eval episodes    outcome precision                0.789 (n=19)
+eval episodes    outcome accuracy                 0.692 (n=26)
+eval episodes    not-an-episode rate              0.133 (n=30)
+eval hazard_loo  Brier score (model)              0.002 (n=41848)
+eval hazard_loo  Brier score (base rate)          0.002 (n=41848)
+eval hazard_loo  Brier (model, n_eff ≥ min)       0.002 (n=28224)
+eval hazard_loo  Brier (base, n_eff ≥ min)        0.002 (n=28224)
+eval copilot     citation accuracy                1.000 (n=25)
+eval copilot     refusal accuracy                 1.000 (n=30)
+bootstrap done in 23s
