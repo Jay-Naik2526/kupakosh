@@ -1,0 +1,139 @@
+==> Downloading Homebrew API data
+✔︎ JSON API packages.arm64_golden_gate.jws.json
+==> Downloading bottle manifests
+✔︎ Bottle Manifest pango (1.58.2)
+==> Would install 1 formula:
+pango 1.58.2
+==> Would install 20 dependencies for pango:
+libpng
+freetype
+fontconfig
+glib
+xorgproto
+libxau
+libxdmcp
+libxcb
+libx11
+libxext
+libxrender
+lzo
+pixman
+cairo
+fribidi
+graphite2
+icu4c@78
+harfbuzz
+libdatrie
+libthai
+==> Would upgrade 1 dependency for pango:
+pcre2
+==> Fetching downloads for: pango
+✔︎ Bottle pcre2 (10.48)
+✔︎ Bottle Manifest libpng (1.6.58)
+✔︎ Bottle Manifest freetype (2.14.3)
+✔︎ Bottle Manifest fontconfig (2.18.3)
+✔︎ Bottle Manifest glib (2.90.0)
+✔︎ Bottle Manifest xorgproto (2025.1)
+✔︎ Bottle Manifest libxau (1.0.12)
+✔︎ Bottle Manifest libxdmcp (1.1.5)
+✔︎ Bottle Manifest libxcb (1.17.0)
+✔︎ Bottle Manifest libx11 (1.8.13)
+✔︎ Bottle Manifest libxext (1.3.7)
+✔︎ Bottle libxdmcp (1.1.5)
+✔︎ Bottle Manifest libxrender (0.9.12)
+✔︎ Bottle Manifest lzo (2.10)
+✔︎ Bottle Manifest pixman (0.46.4)
+✔︎ Bottle Manifest fribidi (1.0.17)
+✔︎ Bottle Manifest graphite2 (1.3.15)
+✔︎ Bottle libxau (1.0.12)
+✔︎ Bottle Manifest icu4c@78 (78.3)
+✔︎ Bottle libxrender (0.9.12)
+✔︎ Bottle Manifest cairo (1.18.6)
+✔︎ Bottle lzo (2.10)
+✔︎ Bottle pixman (0.46.4)
+✔︎ Bottle libxext (1.3.7)
+✔︎ Bottle Manifest libdatrie (0.2.14)
+✔︎ Bottle libxcb (1.17.0)
+✔︎ Bottle Manifest harfbuzz (14.5.0)
+✔︎ Bottle freetype (2.14.3)
+✔︎ Bottle libdatrie (0.2.14)
+✔︎ Bottle fribidi (1.0.17)
+✔︎ Bottle Manifest libthai (0.1.30)
+✔︎ Bottle libthai (0.1.30)
+✔︎ Bottle graphite2 (1.3.15)
+✔︎ Bottle fontconfig (2.18.3)
+✔︎ Bottle libpng (1.6.58)
+✔︎ Bottle xorgproto (2025.1)
+✔︎ Bottle pango (1.58.2)
+✔︎ Bottle libx11 (1.8.13)
+✔︎ Bottle cairo (1.18.6)
+✔︎ Bottle harfbuzz (14.5.0)
+✔︎ Bottle glib (2.90.0)
+✔︎ Bottle icu4c@78 (78.3)
+==> Installing dependencies for pango: libpng, freetype, fontconfig, pcre2, glib, xorgproto, libxau, libxdmcp, libxcb, libx11, libxext, libxrender, lzo, pixman, cairo, fribidi, graphite2, icu4c@78, harfbuzz, libdatrie and libthai
+==> Installing pango dependency: libpng
+==> Pouring libpng--1.6.58.arm64_golden_gate.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/libpng/1.6.58: 28 files, 1.4MB
+==> Installing pango dependency: freetype
+==> Pouring freetype--2.14.3.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/freetype/2.14.3: 68 files, 2.7MB
+==> Installing pango dependency: fontconfig
+==> Pouring fontconfig--2.18.3.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/fontconfig/2.18.3: 102 files, 1.9MB
+==> Upgrading pango dependency: pcre2
+==> Pouring pcre2--10.48.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/pcre2/10.48: 245 files, 7.3MB
+==> Installing pango dependency: glib
+==> Pouring glib--2.90.0.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/glib/2.90.0: 501 files, 39.7MB
+==> Installing pango dependency: xorgproto
+==> Pouring xorgproto--2025.1.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/xorgproto/2025.1: 268 files, 4.1MB
+==> Installing pango dependency: libxau
+==> Pouring libxau--1.0.12.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxau/1.0.12: 21 files, 120.1KB
+==> Installing pango dependency: libxdmcp
+==> Pouring libxdmcp--1.1.5.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxdmcp/1.1.5: 12 files, 125.8KB
+==> Installing pango dependency: libxcb
+==> Pouring libxcb--1.17.0.arm64_golden_gate.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/libxcb/1.17.0: 2,498 files, 7.4MB
+==> Installing pango dependency: libx11
+==> Pouring libx11--1.8.13.arm64_golden_gate.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/libx11/1.8.13: 1,043 files, 7.3MB
+==> Installing pango dependency: libxext
+==> Pouring libxext--1.3.7.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxext/1.3.7: 88 files, 455.9KB
+==> Installing pango dependency: libxrender
+==> Pouring libxrender--0.9.12.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libxrender/0.9.12: 13 files, 213.4KB
+==> Installing pango dependency: lzo
+==> Pouring lzo--2.10.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/lzo/2.10: 32 files, 562.8KB
+==> Installing pango dependency: pixman
+==> Pouring pixman--0.46.4.arm64_golden_gate.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/pixman/0.46.4: 11 files, 1.4MB
+==> Installing pango dependency: cairo
+==> Pouring cairo--1.18.6.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/cairo/1.18.6: 58 files, 4.6MB
+==> Installing pango dependency: fribidi
+==> Pouring fribidi--1.0.17.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/fribidi/1.0.17: 69 files, 753.4KB
+==> Installing pango dependency: graphite2
+==> Pouring graphite2--1.3.15.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/graphite2/1.3.15: 19 files, 258.8KB
+==> Installing pango dependency: icu4c@78
+==> Pouring icu4c@78--78.3.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/icu4c@78/78.3: 279 files, 87.5MB
+==> Installing pango dependency: harfbuzz
+==> Pouring harfbuzz--14.5.0.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/harfbuzz/14.5.0: 96 files, 14.1MB
+==> Installing pango dependency: libdatrie
+==> Pouring libdatrie--0.2.14.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libdatrie/0.2.14: 20 files, 278.2KB
+==> Installing pango dependency: libthai
+==> Pouring libthai--0.1.30.arm64_golden_gate.bottle.tar.gz
+🍺  /opt/homebrew/Cellar/libthai/0.1.30: 30 files, 958.2KB
+==> Installing pango
+==> Pouring pango--1.58.2.arm64_golden_gate.bottle.1.tar.gz
+🍺  /opt/homebrew/Cellar/pango/1.58.2: 69 files, 3.7MB

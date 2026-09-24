@@ -1,0 +1,114 @@
+# Hazard / action / outcome taxonomy (SPEC.md §8).
+# Patterns are case-insensitive Python regexes. They were extended by reading real
+# Sodir well-history sentences and Utah FORGE daily-report remarks.
+# `exclude` patterns veto a match in the same sentence (known false-positive traps).
+
+hazards:
+  lost_circulation:
+    label: Lost circulation
+    include:
+      - 'lost circulation'
+      - 'circulation (was )?lost'
+      - 'circulation losses'
+      - '\b(mud|fluid|total|partial|severe|seepage|dynamic|static|downhole) loss(es)?\b'
+      - '\blosses (occurred|started|were|was|of|to the formation|became|increased)'
+      - '\blost returns\b|\bno returns\b|\bwithout returns\b|\bpartial returns\b|\bloss of returns\b'
+      - '\blosing (mud|returns)|\blost \d+(\.\d+)? ?(bbl|m3)'
+      - 'lost circulation material (was|were) (pumped|spotted|added|used)'
+    exclude:
+      - 'no (mud )?losses'
+      - '\b(LCM|nut ?plug|high vis\w*) sweep\b|sweep .{0,20}(LCM|nutplug)|for cleaning hole'
+      - '\bfluid loss (additive|control|value)|\bAPI fluid loss|\bHTHP\b'
+      - 'without (any )?(significant )?losses'
+      - 'weight loss|heat loss|loss of (signal|power|communication|data)|pressure loss|production loss'
+  kick:
+    label: Kick / influx
+    include:
+      - '\b(gas|oil|water|salt ?water|condensate|shallow gas|hydrocarbon) kick'
+      - '\bkicks? (was|were) (taken|experienced|circulated)'
+      - '\ba kick\b|\bthe kick\b|\bkick (at|zone|occurred|was)\b'
+      - '\binflux\b|\bpit gain\b|\bflow check (was )?positive|\bwell (was )?shut[ -]in'
+      - '\bwell control (incident|problem|situation|event)'
+      - "\\bdriller'?s method\\b|\\bwait and weight\\b|\\bkilled the well|\\bkill mud\\b"
+    exclude:
+      - 'kick(ed)?[- ]off'
+      - 'kick-?off point'
+      - '\bno (kick|influx)'
+  stuck_pipe:
+    label: Stuck pipe
+    include:
+      - '\bstuck\b'
+      - '\boverpull\b'
+      - '\btight hole\b|\btight spots?\b|\bhole (was )?tight\b|\bhole seemed to be tight'
+      - '\b(hole|string|annulus|well) (had )?pack(ed|ing)[ -]off\b|\bpacked[ -]off\b|\bpack[ -]off (occurred|problems?|tendenc)'
+      - '\bdifferential(ly)? stick'
+      - '\bjarr(ed|ing)\b|\bjars? (was|were) (fired|used)'
+    exclude:
+      - '(break\w*|broke) off (the )?core|check\w* (for )?overpull|every \d+.{0,5} to check'
+      - 'stuck (logging |wireline )?tool|\b(RFT|FMT|MDT|RCI|DST|logging|wireline|MWD|LWD)[- ]?(tool|string)s?\b.{0,30}\bstuck|stuck.{0,20}\b(RFT|FMT|MDT|RCI|logging tool|wireline)'
+  torque_spike:
+    label: Torque spike
+    include:
+      - '\bhigh torque\b|\berratic torque\b|\btorque spikes?\b|\bexcessive torque\b|\bstalling\b|\bstalled\b|\bstick[- ]slip\b'
+    exclude: []
+  overpressure:
+    label: Overpressure / gas
+    include:
+      - '\boverpressur'
+      - '\bconnection gas\b|\btrip gas\b|\bhigh background gas\b|\bgas peaks?\b|\bgas cut mud\b|\bgas-cut\b'
+      - '\bpore pressure (increase|ramp|was higher|higher than)'
+      - '\bhigher (than expected |than prognosed )?pore pressure'
+    exclude:
+      - '\bno (significant )?(overpressure|gas peaks?)'
+  cementing_issue:
+    label: Cementing issue
+    include:
+      - '\bsqueez(e|ed)\b(?! into the formation)|\bcement squeeze\b|\bremedial cement'
+      - '\bpoor (cement )?bond\b|\bno cement returns\b|\bcement (job )?(failed|failure)|\bfailed cement'
+      - '\bcement(ing)? (was )?lost|\blosses during cementing'
+    exclude:
+      - 'barite squeezed'
+  fishing:
+    label: Fishing / junk
+    include:
+      - '\bfishing\b|\bthe fish\b|\ba fish\b|\bfish (at|was|left)\b'
+      - '\btwisted off\b|\bleft in (the )?hole\b|\bjunk\b(?! (the )?well)|\bparted\b|\bdropped [\d/" -]*(casing|pipe|string|bha)'
+      - '\blost (in hole|the bha|hole opener|bha|bit)\b'
+    exclude:
+      - 'fishing (vessel|boat|fleet|activity|ground)'
+      - 'junk (slot|throat|basket|sub|mill)'
+  wellbore_instability:
+    label: Wellbore instability
+    include:
+      - '\b(large|excessive|abundant|splintery|increased|heavy) cavings\b|\bcavings (were|was|increased|observed|problems)\b|\bhole collapse\b|\bhole (was )?washed out\b|\bwashed[- ]out hole\b|\bhole (instability|problems)\b|\bunstable (hole|shale|formation)\b|\bswelling (clay|shale)|\bbit balling\b|\bboulders\b|\bhole enlargement\b'
+      - '\b(had|required|necessary) to (back ?)?ream\b|\bextensive (back ?)?reaming\b|\ba lot of (back ?)?reaming\b|\bproblems? (with|while) (back ?)?reaming\b'
+    exclude:
+      - 'calculated .{0,10}washout|washout (factor|%)'
+
+actions:
+  lcm_pill: ['\bLCM\b|lost circulation material|\bpill\b(?!.*(pipe|free))|\bmica\b|\bnut ?plug\b|\bfibre\b|\bfiber\b']
+  reduce_mw: ['\b(reduc|lower|cut|decreas)\w* (the )?mud (weight|density)|\bmud weight (was )?(reduced|lowered|cut)']
+  increase_mw: ['\b(increas|rais)\w* (the )?mud (weight|density)|\bmud weight (was )?(increased|raised)|\bweighted up\b|\bweight(ed)? up the mud|\bkill mud\b|\bheavier mud\b|mud weight was required|mud weight was eventually circulated']
+  reduce_flow: ['\breduc\w* (the )?(flow|pump) ?rate|\breduced (circulation|pumping)']
+  circulate_condition: ['\bcirculat\w* (and|to) condition|\bconditioned (the )?mud|\bcirculated (bottoms? up|the hole clean)|\bcirculated out\b|\bcirculating out\b']
+  ream_backream: ['\bback ?ream|\bream(ed|ing)?\b|\bwiper trip']
+  jar: ['\bjarr(ed|ing)\b|\bjars?\b(?! (of|with) )']
+  spot_pill: ['\bspott(ed|ing)\b|\bpipe[- ]?(lax|free)\b|\bdiesel pill\b|\bacid pill\b']
+  pump_out: ['\bpump(ed|ing)? out of (the )?hole\b']
+  cement_plug: ['\bcement plug\b|\bcemented off\b|\bplug(ged)? back\b|\bset a plug\b|\bsealed off\b']
+  squeeze: ['\bsqueez(e|ed)\b']
+  shut_in_kill: ["\\bshut[ -]in\\b|\\bdriller'?s method\\b|\\bwait and weight\\b|\\bkill(ed)?\\b|\\bbullhead"]
+  pooh: ['\bpull(ed)? out of (the )?hole\b|\bPOOH\b|\btripped out\b']
+  sidetrack: ['\bsidetrack|\bside ?track|\bT2\b|\bT3\b']
+  change_bha: ['\bchang\w* (the )?(bha|bit|assembly)\b|\bnew bha\b|\bnew bit\b']
+  fishing_run: ['\bfishing (run|operation|job|attempt)|\bovershot\b|\bspear\b|\bwashover\b|\bretrieved\b|\brecover(ed|ing) the fish']
+  cut_and_abandon: ['\bstring (had to be )?cut\b|\bcut off\b|\bbacked off\b|\bback-?off\b|\bpermanently abandoned\b|\bjunk well\b']
+
+outcomes:
+  resolved: ['\bfreed\b|\bgot free\b|\bpipe (was )?free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
+  partial: ['\breduced (the )?losses\b|\blosses (were )?reduced\b|\bpartial(ly)?\b|\bslowed\b|\bminimi[sz]ed\b']
+  unresolved: ['\bunsuccessful\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
+  worsened: ['\bbecame total\b|\bincreased losses\b|\blosses increased\b|\bworsened\b|\ba second\b.*\bkick\b|\bfurther (lost circulation|losses|problems)\b|\bstuck (deeper|again)\b|\bled to\b.*\b(sidetrack|abandon)']
+
+# event glyphs (UI) — text/glyph pairs so colour is never the only signal
+glyphs: {lost_circulation: "▲", kick: "◆", stuck_pipe: "■", cementing_issue: "○", overpressure: "△", fishing: "✕", torque_spike: "≋", wellbore_instability: "▽"}

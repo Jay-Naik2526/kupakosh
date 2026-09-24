@@ -1,0 +1,11 @@
+data/raw/
+data/processed/
+*.db
+__pycache__/
+.venv/
+node_modules/
+.next/
+.env
+wiki/.git
+wiki/
+.DS_Store

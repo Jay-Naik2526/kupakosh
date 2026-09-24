@@ -1,0 +1,39 @@
+# Kupakosh — every threshold, window, weight and radius lives here (SPEC.md §0.6, §12).
+units: {depth: m, mud_weight: ppg, volume: bbl}
+conversions: {ft_to_m: 0.3048, sg_to_ppg: 8.345, m3_to_bbl: 6.2898}
+
+extract:
+  review_threshold: 0.6
+  mw_range_ppg: [7, 20]
+  # confidence components for rule-only extraction (no LLM key configured)
+  conf_rule_base: 0.55
+  conf_depth_bonus: 0.15      # a depth was found in the same sentence
+  conf_formation_bonus: 0.1   # depth resolved to a formation top
+  conf_negation_penalty: 0.5  # "without losses", "no problems"
+  mud_table_max_gap_m: 150    # use Sodir mud-table MW only if a reading lies this close to the event depth
+  min_depth_ft: 100           # feet numbers below this in DDR text are footage/rates, not depths
+  dedup_depth_m: 30           # same hazard within this depth in one document = same event
+
+episodes: {window_h: 72, window_sentences: 4}
+ledger: {min_n_display: 3, z: 1.96, partial_credit: 0.5}
+offsets: {default_radius_m: 10000, max_radius_m: 50000, D_m: 5000, w_geo: 0.4, w_strat: 0.4, w_depth: 0.2, max_offsets: 40}
+hazard:
+  prior_strength: 2
+  base_min_wells: 10          # below this many documented wells in a formation, use the all-formation base rate
+  loo_max_wells: 400          # leave-one-well-out validation sample size (deterministic: first N documented wells by id)
+  min_neff: 3
+  ci: 0.8
+  alert_threshold: 0.4
+anomaly: {window_s: 300, z_thresh: 3.5, cusum_k: 0.5, cusum_h: 5, min_samples: 20, persist: 3, min_flow_gpm: 100}
+lookahead: {lookahead_m: 150, cooldown_s: 120}
+auditor: {depth_tol_m: 30, time_tol_min: 60, mw_tol_ppg: 0.3, pit_drop_bbl: 5}
+mudwindow: {near_edge_ppg: 0.3}
+replay: {default_speed: 60, max_speed: 600, tick_ms: 500}
+copilot: {top_k: 6, min_overlap: 0.6}  # a passage must contain >= 60% of the question's content words
+llm: {provider: gemini, fallback: groq, max_retries: 1, temperature: 0}
+embeddings: {model: BAAI/bge-small-en-v1.5, dim: 384}
+ui: {max_zones: 3, file_prefix: "KPK", default_lang: en}
+demo:
+  users:
+    - {name: "R. Das", role: "Senior Reviewer"}
+    - {name: "A. Sharma", role: "Drilling Engineer"}

@@ -1,0 +1,27 @@
+# Utah FORGE formation contacts. FORGE has no public tops table like Sodir, so each top
+# here is taken from a verbatim daily-report line. The ingester refuses to load a top
+# whose quote is not found word-for-word in the named report.
+# Depths are the numbers in the quote (feet MD), converted to metres on load.
+tops:
+  "16A(78)-32":
+    - {formation: "BASIN FILL (ALLUVIUM)", level: FORMATION, top_ft: 0, lithology: clay, quote: null, note: "surface to granite contact"}
+    - {formation: "GRANITOID BASEMENT", level: FORMATION, top_ft: 4441, lithology: granite, report_date: 2020-11-07,
+       quote: "Drilling break at 4,441' 11' total, Peak ROP 112 fph Weathered granite."}
+  "16B(78)-32":
+    - {formation: "BASIN FILL (ALLUVIUM)", level: FORMATION, top_ft: 0, lithology: clay, quote: null, note: "surface to granite contact"}
+    - {formation: "GRANITOID BASEMENT", level: FORMATION, top_ft: 4330, lithology: granite, report_date: 2023-05-01,
+       quote: "Formation changed to granite wash around 4,330'."}
+wells:
+  "16A(78)-32":
+    # surface location = survey 'vertical section origin' (usft, UTM 12N NAD83), 16A survey.xlsx
+    northing_usft: 13987645.2
+    easting_usft: 1097896.92
+    kb_elev_ft: 5444
+    spud_date: 2020-10-30
+    source_url: https://gdr.openei.org/submissions/1283
+  "16B(78)-32":
+    northing_usft: 13987765.96
+    easting_usft: 1097907.09
+    kb_elev_ft: 5447.65
+    spud_date: 2023-04-26
+    source_url: https://gdr.openei.org/submissions/1516

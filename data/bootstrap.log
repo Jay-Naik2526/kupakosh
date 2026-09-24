@@ -1,0 +1,11 @@
+sodir: 9840 wells, 138 fields
+sodir: 41418 formation tops
+sodir: 8741 casing strings, 3750 LOT/FIT
+sodir: 35783 mud checks (rejected mw=645, md=286)
+sodir: 1979 history documents, 50453 sentences
+forge 16A(78)-32: {'wells': 1, 'survey_stations': 422, 'ddr_docs': 77, 'activities': 623, 'mud_checks': 44, 'casing_rows': 189, 'pdf_duplicate_or_undated': 86, 'formation_tops': 2, 'realtime_16A': 101204}
+forge 16B(78)-32: {'wells': 2, 'survey_stations': 850, 'ddr_docs': 165, 'activities': 1383, 'mud_checks': 112, 'casing_rows': 271, 'pdf_duplicate_or_undated': 86, 'formation_tops': 4, 'realtime_16A': 101204, 'pdf_not_ddr': 1, 'realtime_16B': 248968}
+extract: 1104 events (564 need review, 146 duplicates merged), 3730 action mentions
+episodes: 1104 linked; outcomes {'unknown': 708, 'worsened': 25, 'resolved': 185, 'unresolved': 185, 'partial': 1}
+post: formations assigned to LOT/FIT and casing shoes
+bootstrap done in 18s
