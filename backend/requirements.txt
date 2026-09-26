@@ -18,3 +18,5 @@ sqlalchemy==2.0.54
 uvicorn==0.53.0
 weasyprint==70.0
 sentence-transformers==6.1.0
+pytesseract==0.3.13
+pypdfium2==5.13.0

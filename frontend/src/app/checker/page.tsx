@@ -5,6 +5,7 @@ import { useApp } from "@/lib/state";
 import { Register } from "@/components/kk/Register";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { CountryFilter } from "@/components/kk/CountryFilter";
+import { EventReviewDrawer } from "@/components/kk/EventReview";
 
 const RULE: Record<string, string> = {
   R1_ddr_loss_vs_pit: "DDR losses vs sensor pit volume",
@@ -49,6 +50,7 @@ export default function Checker() {
         <div><span className="label">Resolved</span> <span className="num text-2xl">{flags.length - open}</span></div>
         <div><span className="label">Avg trust (wiki pages)</span> <span className="num text-2xl">{trust === null ? "—" : `${Math.round(trust * 100)}%`}</span></div>
         <CountryFilter />
+        <EventReviewDrawer />
         <div className="ml-auto flex gap-1">
           <button className="chip" aria-pressed={status === "open"} onClick={() => { setStatus("open"); setSel(null); }}>Open</button>
           <button className="chip" aria-pressed={status !== "open"} onClick={() => { setStatus("done"); setSel(null); }}>Resolved</button>

@@ -54,6 +54,8 @@ def main():
         pipeline.run(db)
         from app.extract import llm_extract
         llm_extract.run(db)  # pass 2; skipped (and stated) when no LLM key is configured
+        from app.engines import review_replay
+        review_replay.run(db)  # human decisions from the review queue survive a rebuild
         db.commit()
         episodes.run(db)
         db.commit()
