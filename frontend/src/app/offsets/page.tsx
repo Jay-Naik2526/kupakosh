@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { scaleLinear } from "d3-scale";
 import { get } from "@/lib/api";
 import { useApp } from "@/lib/state";
-import { glyph, hazardLabel, m } from "@/lib/format";
+import { glyph, hazardLabel, hazardText, m } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import { WellPicker } from "@/components/kk/WellPicker";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { DepthAxis } from "@/components/kk/CurveTrack";
@@ -17,7 +18,7 @@ const H = 560, COLW = 120, GAP = 44;
 const HAZ = Object.keys(hazardLabel);
 
 export default function Offsets() {
-  const { wellId, setWellId, ready, country } = useApp();
+  const { wellId, setWellId, ready, country, lang } = useApp();
   const [radius, setRadius] = useState(10000);
   const [align, setAlign] = useState<"md" | "formation">("md");
   const [flatOn, setFlatOn] = useState<string>("");
@@ -57,17 +58,17 @@ export default function Offsets() {
     <div>
       {/* Zone A — toolbar */}
       <section aria-label="toolbar" className="flex flex-wrap items-center gap-x-5 gap-y-2 rule-b pb-3">
-        <CountryFilter />
-        <WellPicker label="Active well" />
-        <label className="label" htmlFor="rad">Radius</label>
+        <CountryFilter label={t("countryLabel", lang)} />
+        <WellPicker label={t("activeWell", lang)} />
+        <label className="label" htmlFor="rad">{t("radius", lang)}</label>
         <select id="rad" className="input" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
           {[2000, 5000, 10000, 20000, 50000].map((r) => <option key={r} value={r}>{r / 1000} km</option>)}
         </select>
-        <span className="label">Align</span>
+        <span className="label">{t("offsAlign", lang)}</span>
         <span role="group" aria-label="Align" className="inline-flex gap-1">
           <button className="chip" aria-pressed={align === "md"} onClick={() => setAlign("md")}>MD</button>
           <button className="chip" disabled title="TVD needs surveys; Sodir exploration wells have no public survey here" aria-disabled>TVD</button>
-          <button className="chip" aria-pressed={align === "formation"} onClick={() => setAlign("formation")}>Formation</button>
+          <button className="chip" aria-pressed={align === "formation"} onClick={() => setAlign("formation")}>{t("offsFormationLbl", lang)}</button>
         </span>
         {align === "formation" && (
           <select className="input" aria-label="Flatten on formation" value={flatOn} onChange={(e) => setFlatOn(e.target.value)}>
@@ -77,22 +78,22 @@ export default function Offsets() {
         <span className="flex flex-wrap gap-1" role="group" aria-label="Hazard filter">
           {HAZ.map((h) => (
             <button key={h} className="chip" aria-pressed={filter.has(h)} onClick={() => { const n = new Set(filter); if (n.has(h)) n.delete(h); else n.add(h); setFilter(n); }}>
-              {glyph[h]} {hazardLabel[h]}
+              {glyph[h]} {hazardText(h, lang)}
             </button>
           ))}
         </span>
-        <button className="btn ml-auto" onClick={() => setMapView(!mapView)}>{mapView ? "Correlation view" : "Map view"}</button>
+        <button className="btn ml-auto" onClick={() => setMapView(!mapView)}>{mapView ? t("offsCorrelation", lang) : t("offsMap", lang)}</button>
       </section>
 
       {/* Zone B — correlation panel (or map) */}
       <section aria-label="correlation panel" className="mt-5">
-        {!wellId && <EmptyState title="No well selected" why="Pick a well with reports to see its offsets." />}
-        {loading && <div className="label">Loading offsets…</div>}
+        {!wellId && <EmptyState title={t("cmdNoWellSelected", lang)} why={t("offsNoWellWhy", lang)} />}
+        {loading && <div className="label">{t("loadingOffsets", lang)}</div>}
         {mapView && sec && (
           <MiniMap height={560} radius_m={radius} center={[cols[0].well.lat, cols[0].well.lon]} onPick={(id) => setWellId(id)}
             wells={[{ ...cols[0].well, active: true }, ...mapWells.map((o) => ({ id: o.well_id, name: o.name, lat: o.lat, lon: o.lon, documented: o.documented, n_events: o.n_events }))]} />
         )}
-        {!mapView && sec && cols.length === 1 && <EmptyState title="No documented offset wells in this radius" why="Only wells with a report or history text can contribute evidence. Increase the radius." />}
+        {!mapView && sec && cols.length === 1 && <EmptyState title={t("offsNoDocTitle", lang)} why={t("offsNoDocWhy", lang)} />}
         {!mapView && sec && (
           <div className="overflow-x-auto">
             <div className="flex">
@@ -114,8 +115,8 @@ export default function Offsets() {
                       <div key={c.well.id} style={{ width: COLW }}>
                         <div className="small" style={{ height: 74 }}>
                           <div className="font-semibold">{i === 0 ? "▶ " : ""}{c.well.name}</div>
-                          {c.offset ? <div className="label num">{m(c.offset.raw.distance_m)} · sim {c.offset.sim.toFixed(2)}</div> : <div className="label">active well</div>}
-                          <div className="label">{c.events.length} events · TD {m(c.well.td_md_m)}</div>
+                          {c.offset ? <div className="label num">{m(c.offset.raw.distance_m)} · sim {c.offset.sim.toFixed(2)}</div> : <div className="label">{t("offsActiveWellTag", lang)}</div>}
+                          <div className="label">{c.events.length} {t("cmdEvents", lang)} · TD {m(c.well.td_md_m)}</div>
                         </div>
                         <LithologyColumn intervals={c.tops} y={ys} height={H} width={COLW} labels
                           glyphs={c.events.filter((e: any) => filter.has(e.hazard)).map((e: any) => ({ md_m: e.md_m, hazard: e.hazard, dim: e.needs_review, onClick: () => setSel({ ...e, well: c.well.name }) }))} />
@@ -125,16 +126,16 @@ export default function Offsets() {
                 </div>
               </div>
             </div>
-            <p className="label mt-2">Glyphs: {HAZ.map((h) => `${glyph[h]} ${hazardLabel[h]}`).join(" · ")}. Grey glyphs need review. Patterns: dominant lithology from reports (FORGE) or the Norwegian lexicon (approximate); blank = not recorded.</p>
+            <p className="label mt-2">{t("offsGlyphsPrefix", lang)} {HAZ.map((h) => `${glyph[h]} ${hazardText(h, lang)}`).join(" · ")}. {t("offsGreyNote", lang)}</p>
           </div>
         )}
       </section>
 
       {/* Zone C — selected event */}
-      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? `${glyph[sel.hazard]} ${hazardLabel[sel.hazard]} — ${sel.well}` : ""}>
+      <Drawer open={!!sel} onClose={() => setSel(null)} title={sel ? `${glyph[sel.hazard]} ${hazardText(sel.hazard, lang)} — ${sel.well}` : ""}>
         {sel && (
           <div>
-            <div className="small"><span className="label">Depth</span> <span className="num">{m(sel.md_m)}</span> · <span className="label">Formation</span> {sel.formation ?? "unknown"} · <span className="label">confidence</span> <span className="num">{sel.confidence.toFixed(2)}</span>{sel.needs_review && <b> · needs review</b>}</div>
+            <div className="small"><span className="label">{t("offsDepthLbl", lang)}</span> <span className="num">{m(sel.md_m)}</span> · <span className="label">{t("offsFormationLbl", lang)}</span> {sel.formation ?? t("offsUnknown", lang)} · <span className="label">{t("offsConfidenceLbl", lang)}</span> <span className="num">{sel.confidence.toFixed(2)}</span>{sel.needs_review && <b> · {t("offsNeedsReview", lang)}</b>}</div>
             <blockquote className="mt-3 border-l-2 border-ink pl-3 italic">“{sel.evidence}”<SourceFootnote refId={sel.source_ref} n={1} /></blockquote>
             <div className="label mt-2 mono">{sel.source_ref}</div>
           </div>

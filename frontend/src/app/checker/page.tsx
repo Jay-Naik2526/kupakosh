@@ -6,6 +6,7 @@ import { Register } from "@/components/kk/Register";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { CountryFilter } from "@/components/kk/CountryFilter";
 import { EventReviewDrawer } from "@/components/kk/EventReview";
+import { t } from "@/lib/i18n";
 
 const RULE: Record<string, string> = {
   R1_ddr_loss_vs_pit: "DDR losses vs sensor pit volume",
@@ -14,9 +15,17 @@ const RULE: Record<string, string> = {
   R4_same_quantity_differs: "Same quantity, different reports",
   R6_ddr_depth_vs_sensor: "Report depth vs sensor depth",
 };
+const RULE_HI: Record<string, string> = {
+  R1_ddr_loss_vs_pit: "DDR लॉस बनाम सेंसर पिट आयतन",
+  R2_casing_shoe: "केसिंग शू: पाठ बनाम तालिका",
+  R3_formation_top: "संरचना शीर्ष: पाठ बनाम तालिका",
+  R4_same_quantity_differs: "समान मात्रा, भिन्न रिपोर्ट",
+  R6_ddr_depth_vs_sensor: "रिपोर्ट गहराई बनाम सेंसर गहराई",
+};
 
 export default function Checker() {
-  const { user, country } = useApp();
+  const { user, country, lang } = useApp();
+  const ruleLabel = (r: string) => (lang === "hi" ? RULE_HI[r] ?? RULE[r] ?? r : RULE[r] ?? r);
   const [flags, setFlags] = useState<any[]>([]);
   const [status, setStatus] = useState<string>("open");
   const [sel, setSel] = useState<number | null>(null);
@@ -46,38 +55,38 @@ export default function Checker() {
     <div>
       {/* Zone A — summary line */}
       <section className="flex flex-wrap gap-6 items-baseline rule-b pb-3" aria-label="summary">
-        <div><span className="label">Open</span> <span className="num text-2xl">{open}</span></div>
-        <div><span className="label">Resolved</span> <span className="num text-2xl">{flags.length - open}</span></div>
-        <div><span className="label">Avg trust (wiki pages)</span> <span className="num text-2xl">{trust === null ? "—" : `${Math.round(trust * 100)}%`}</span></div>
-        <CountryFilter />
+        <div><span className="label">{t("chkOpen", lang)}</span> <span className="num text-2xl">{open}</span></div>
+        <div><span className="label">{t("chkResolved", lang)}</span> <span className="num text-2xl">{flags.length - open}</span></div>
+        <div><span className="label">{t("chkAvgTrust", lang)}</span> <span className="num text-2xl">{trust === null ? "—" : `${Math.round(trust * 100)}%`}</span></div>
+        <CountryFilter label={t("countryLabel", lang)} />
         <EventReviewDrawer />
         <div className="ml-auto flex gap-1">
-          <button className="chip" aria-pressed={status === "open"} onClick={() => { setStatus("open"); setSel(null); }}>Open</button>
-          <button className="chip" aria-pressed={status !== "open"} onClick={() => { setStatus("done"); setSel(null); }}>Resolved</button>
+          <button className="chip" aria-pressed={status === "open"} onClick={() => { setStatus("open"); setSel(null); }}>{t("chkOpen", lang)}</button>
+          <button className="chip" aria-pressed={status !== "open"} onClick={() => { setStatus("done"); setSel(null); }}>{t("chkResolved", lang)}</button>
         </div>
       </section>
 
       <div className="grid gap-8 mt-5" style={{ gridTemplateColumns: cur ? "minmax(0,1fr) minmax(0,1.2fr)" : "1fr" }}>
         {/* Zone B — conflicts register */}
         <section aria-label="conflicts">
-          {rows.length === 0 ? <EmptyState title={status === "open" ? "No open conflicts" : "Nothing resolved yet"} why="The auditor compares report text, Sodir tables and rig sensor data; each disagreement beyond tolerance becomes a row here." /> :
+          {rows.length === 0 ? <EmptyState title={status === "open" ? t("chkNoOpenTitle", lang) : t("chkNoneResolvedTitle", lang)} why={t("chkWhy", lang)} /> :
             <Register rows={rows} onRow={(_, i) => setSel(i)} selected={sel} cols={[
-              { key: "w", head: "Well", cell: (f: any) => f.well },
-              { key: "r", head: "Check", cell: (f: any) => RULE[f.rule] ?? f.rule },
-              { key: "d", head: "Difference", num: true, cell: (f: any) => f.delta },
-              { key: "s", head: "Severity", cell: (f: any) => f.severity === "medium" ? <b>● medium</b> : "○ low" },
-              ...(status !== "open" ? [{ key: "st", head: "Decision", cell: (f: any) => `${f.status} — ${f.resolved_by}` }] : []),
+              { key: "w", head: t("chkCol_well", lang), cell: (f: any) => f.well },
+              { key: "r", head: t("chkCol_check", lang), cell: (f: any) => ruleLabel(f.rule) },
+              { key: "d", head: t("chkCol_diff", lang), num: true, cell: (f: any) => f.delta },
+              { key: "s", head: t("chkCol_severity", lang), cell: (f: any) => f.severity === "medium" ? <b>● {t("chkMedium", lang)}</b> : `○ ${t("chkLow", lang)}` },
+              ...(status !== "open" ? [{ key: "st", head: t("chkCol_decision", lang), cell: (f: any) => `${f.status} — ${f.resolved_by}` }] : []),
             ]} />}
         </section>
 
         {/* Zone C — selected conflict, two excerpts side by side */}
         {cur && (
           <section aria-label="selected conflict">
-            <h3 className="font-semibold">{RULE[cur.rule] ?? cur.rule} — {cur.well} <span className="label">({cur.delta})</span></h3>
+            <h3 className="font-semibold">{ruleLabel(cur.rule)} — {cur.well} <span className="label">({cur.delta})</span></h3>
             <div className="grid grid-cols-2 gap-3 mt-3">
               {[{ k: "A", claim: cur.claim_a, ref: cur.ref_a, src: a }, { k: "B", claim: cur.claim_b, ref: cur.ref_b, src: b }].map((s) => (
                 <div key={s.k} className="bg-card border border-rule rounded-kk p-3 small">
-                  <div className="font-semibold">Source {s.k}</div>
+                  <div className="font-semibold">{s.k === "A" ? t("chkSourceA", lang) : t("chkSourceB", lang)}</div>
                   <p className="mt-1">{s.claim}</p>
                   {s.src?.text && s.src.text !== s.claim && <p className="mt-2 text-ink2 italic">“{s.src.text}”</p>}
                   <div className="label mono mt-2 break-all">{s.ref}</div>
@@ -87,15 +96,15 @@ export default function Checker() {
             </div>
             {cur.status === "open" ? (
               <div className="mt-4 space-y-2">
-                {!user && <p className="small">Select a demo user (top right) to record a decision.</p>}
-                <textarea className="input w-full" rows={2} placeholder="Reviewer note" value={note} onChange={(e) => setNote(e.target.value)} disabled={!user} />
+                {!user && <p className="small">{t("selectDemoUserDecision", lang)}</p>}
+                <textarea className="input w-full" rows={2} placeholder={t("chkReviewerNote", lang)} value={note} onChange={(e) => setNote(e.target.value)} disabled={!user} />
                 <div className="flex gap-2">
-                  <button className="btn" disabled={!user} onClick={() => resolve("accept_a")}>Accept A</button>
-                  <button className="btn" disabled={!user} onClick={() => resolve("accept_b")}>Accept B</button>
-                  <button className="btn" disabled={!user} onClick={() => resolve("uncertain")}>Mark uncertain</button>
+                  <button className="btn" disabled={!user} onClick={() => resolve("accept_a")}>{t("chkAcceptA", lang)}</button>
+                  <button className="btn" disabled={!user} onClick={() => resolve("accept_b")}>{t("chkAcceptB", lang)}</button>
+                  <button className="btn" disabled={!user} onClick={() => resolve("uncertain")}>{t("chkMarkUncertain", lang)}</button>
                 </div>
               </div>
-            ) : <p className="mt-3 small">Decision: <b>{cur.status}</b> by {cur.resolved_by}{cur.reviewer_note ? ` — “${cur.reviewer_note}”` : ""}</p>}
+            ) : <p className="mt-3 small">{t("chkDecisionBy", lang)} <b>{cur.status}</b> {t("chkBy", lang)} {cur.resolved_by}{cur.reviewer_note ? ` — “${cur.reviewer_note}”` : ""}</p>}
           </section>
         )}
       </div>

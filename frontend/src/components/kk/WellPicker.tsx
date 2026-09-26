@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import { get } from "@/lib/api";
 import { useApp } from "@/lib/state";
+import { t } from "@/lib/i18n";
 
 /** Search + pick the active well (shared across screens). */
-export function WellPicker({ onlyReplay = false, label = "Well" }: { onlyReplay?: boolean; label?: string }) {
-  const { wellId, setWellId, country } = useApp();
+export function WellPicker({ onlyReplay = false, label }: { onlyReplay?: boolean; label?: string }) {
+  const { wellId, setWellId, country, lang } = useApp();
   const [q, setQ] = useState("");
   const [opts, setOpts] = useState<any[]>([]);
   const [cur, setCur] = useState<any>(null);
@@ -17,7 +18,7 @@ export function WellPicker({ onlyReplay = false, label = "Well" }: { onlyReplay?
   }, [q, onlyReplay, country]);
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <label className="label" htmlFor="wellq">{label}</label>
+      <label className="label" htmlFor="wellq">{label ?? t("well", lang)}</label>
       {!onlyReplay && <input id="wellq" className="input w-40" placeholder={country ? `search ${country} wells` : "search e.g. 15/9"} value={q} onChange={(e) => setQ(e.target.value)} />}
       <select className="input min-w-[12rem]" aria-label="Select well" value={wellId ?? ""} onChange={(e) => setWellId(e.target.value ? Number(e.target.value) : null)}>
         <option value="">— select —</option>

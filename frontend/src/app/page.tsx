@@ -4,7 +4,8 @@ import Link from "next/link";
 import { scaleLinear } from "d3-scale";
 import { get, WS } from "@/lib/api";
 import { useApp } from "@/lib/state";
-import { actionLabel, m, pct } from "@/lib/format";
+import { actionText, m, pct } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import { Stamp } from "@/components/kk/Stamp";
 import { NoticeSlip } from "@/components/kk/NoticeSlip";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
@@ -93,100 +94,100 @@ export default function Command() {
       <div className="rig-scope" style={rig ? { background: "var(--paper)", color: "var(--ink)", padding: 12, borderRadius: 2 } : undefined}>
         {/* Zone A — status line */}
         <section aria-label="status" className="flex flex-wrap items-center gap-x-5 gap-y-2 rule-b pb-3">
-          <WellPicker onlyReplay label="Well" />
-          <Stamp kind="replay" text={lang === "hi" ? "पुनःचलन · REPLAY" : "REPLAY"} sub="recorded data, not live" />
-          <div><span className="label">Bit depth </span><span className="num" style={{ fontSize: rig ? 26 : 20 }}>{bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"}</span>
-            <span className="label"> · </span><span className="num">{tvd !== null ? `${Math.round(tvd).toLocaleString()} m TVD` : "TVD unknown"}</span></div>
-          <div><span className="label">Formation </span><span className="font-semibold">{la?.current?.label ?? "—"}</span></div>
+          <WellPicker onlyReplay label={t("well", lang)} />
+          <Stamp kind="replay" text={lang === "hi" ? "पुनःचलन · REPLAY" : "REPLAY"} sub={t("cmdReplaySub", lang)} />
+          <div><span className="label">{t("bitDepth", lang)} </span><span className="num" style={{ fontSize: rig ? 26 : 20 }}>{bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"}</span>
+            <span className="label"> · </span><span className="num">{tvd !== null ? `${Math.round(tvd).toLocaleString()} m TVD` : t("tvdUnknown", lang)}</span></div>
+          <div><span className="label">{t("formationLabel", lang)} </span><span className="font-semibold">{la?.current?.label ?? "—"}</span></div>
           <div className="small label">{last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `recorded ${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : ""}</div>
           <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <label className="label" htmlFor="startmd">Start at</label>
+            <label className="label" htmlFor="startmd">{t("startAt", lang)}</label>
             <select id="startmd" className="input" value={startMd} onChange={(e) => setStartMd(e.target.value === "" ? "" : Number(e.target.value))}>
-              <option value="">spud</option>
-              {jumpTargets.map((t: any) => <option key={t.formation} value={Math.max(0, Math.round(t.top_md_m - 150))}>150 m above {t.label} ({Math.round(t.top_md_m - 150)} m)</option>)}
+              <option value="">{t("spudOpt", lang)}</option>
+              {jumpTargets.map((jt: any) => <option key={jt.formation} value={Math.max(0, Math.round(jt.top_md_m - 150))}>150 m above {jt.label} ({Math.round(jt.top_md_m - 150)} m)</option>)}
               {[500, 1000, 1500, 2000, 2500, 3000].map((d) => <option key={d} value={d}>{d} m</option>)}
             </select>
-            <label className="label" htmlFor="spd">Speed</label>
+            <label className="label" htmlFor="spd">{t("speedLabel", lang)}</label>
             <select id="spd" className="input" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
               {[30, 60, 120, 300, 600].map((s) => <option key={s} value={s}>{s}×</option>)}
             </select>
-            {running ? <button className="btn" onClick={stop}>■ Pause</button> : <button className="btn btn-primary" onClick={start} disabled={!wellId}>▶ Start replay</button>}
-            <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>Rig mode</button>
+            {running ? <button className="btn" onClick={stop}>{t("pauseBtn", lang)}</button> : <button className="btn btn-primary" onClick={start} disabled={!wellId}>{t("startReplay", lang)}</button>}
+            <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>{t("rigMode", lang)}</button>
           </div>
         </section>
 
-        {!wellId && <div className="mt-6"><EmptyState title="No well selected" why="Choose a well that has recorded rig-sensor data to replay." /></div>}
+        {!wellId && <div className="mt-6"><EmptyState title={t("cmdNoWellSelected", lang)} why={t("cmdNoWellWhy", lang)} /></div>}
         {wellId && (
           <div className="grid gap-8 mt-5" style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}>
             {/* Zone B — mud-log view */}
             <section aria-label="mud log" className="overflow-x-auto">
               <div className="flex gap-3 items-start">
-                <div><div className="small rule-b pb-0.5 mb-1">m MD</div><DepthAxis y={y} height={H} /></div>
-                <div><div className="small rule-b pb-0.5 mb-1">Formation</div>
+                <div><div className="small rule-b pb-0.5 mb-1">{t("cmdMdAxis", lang)}</div><DepthAxis y={y} height={H} /></div>
+                <div><div className="small rule-b pb-0.5 mb-1">{t("formationLabel", lang)}</div>
                   <LithologyColumn intervals={tops} y={y} height={H} width={132} bit={bit} target={hazardTarget} /></div>
                 <CurveTrack title="Torque" unit="kft·lb" pts={trackPts("torque")} y={y} height={H} width={rig ? 150 : 118} />
                 <CurveTrack title="Pit volume" unit="bbl" pts={trackPts("pit_vol")} y={y} height={H} width={rig ? 150 : 118} />
                 <CurveTrack title="Mud weight" unit="ppg" pts={trackPts("mw_ppg")} y={y} height={H} width={rig ? 120 : 96} />
               </div>
-              <p className="label mt-2">Sensor: {well?.name} Pason rig data (CC-BY 4.0). Mud weight: daily report mud checks. Red dots: abnormal-behaviour samples.
-                {anomaly && <> Last abnormal behaviour: <b>{anomaly.channels.join(", ")}</b> at {anomaly.t?.slice(11, 16)}.</>}</p>
-              {ended && <p className="small mt-1">Replay reached the end of the recorded data.</p>}
+              <p className="label mt-2">{t("cmdSensorNote1", lang)} {well?.name} {t("cmdSensorNote2", lang)}
+                {anomaly && <> {t("cmdLastAbnormal", lang)} <b>{anomaly.channels.join(", ")}</b> {anomaly.t?.slice(11, 16)}.</>}</p>
+              {ended && <p className="small mt-1">{t("cmdReplayEnded", lang)}</p>}
             </section>
 
             {/* Zone C — top look-ahead hazard */}
             <section aria-label="look-ahead">
-              {!la && <EmptyState title={running ? "Reading ahead…" : "Replay not started"} why={`Start the replay. Every tick, Kupakosh looks ${150} m ahead of the bit and checks offset-well records for the formations coming up.`} />}
-              {la && !top && <EmptyState title="Nothing recorded ahead" why={`No offset well recorded a problem in ${la.current?.label ?? "this formation"} or in the formations within 150 m below the bit (${la.n_offsets} offsets in radius). Absence of a record is not proof of safety.`} />}
+              {!la && <EmptyState title={running ? t("cmdReadingAhead", lang) : t("cmdReplayNotStarted", lang)} why={`Start the replay. Every tick, Kupakosh looks ${150} m ahead of the bit and checks offset-well records for the formations coming up.`} />}
+              {la && !top && <EmptyState title={t("cmdNothingAhead", lang)} why={`No offset well recorded a problem in ${la.current?.label ?? "this formation"} or in the formations within 150 m below the bit (${la.n_offsets} offsets in radius). Absence of a record is not proof of safety.`} />}
               {top && (
                 <NoticeSlip level={top.level} title={`${top.label} · ${top.formation_label}`}
-                  where={top.in_formation ? "in the current formation" : `in ${Math.round(top.distance_m)} m`}
+                  where={top.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(top.distance_m)} m`}
                   mean={top.mean} ci={top.ci} neff={top.n_eff} nWells={top.n_wells} nWithEvent={top.n_with_event} status={top.status}
                   actions={<>
-                    <button className="btn" onClick={() => { const e = top.evidence.find((x: any) => x.events.length); if (e) openSource(e.events[0].source_ref); }}>{lang === "hi" ? "स्रोत देखें" : "View sources"}</button>
-                    <Link className="btn" href={`/wiki?page=${encodeURIComponent("formations/" + slugF(top.formation))}`}>{lang === "hi" ? "ज्ञानकोश खोलें" : "Open wiki"}</Link>
+                    <button className="btn" onClick={() => { const e = top.evidence.find((x: any) => x.events.length); if (e) openSource(e.events[0].source_ref); }}>{t("sources", lang)}</button>
+                    <Link className="btn" href={`/wiki?page=${encodeURIComponent("formations/" + slugF(top.formation))}`}>{t("openWiki", lang)}</Link>
                   </>}>
-                  <div className="label mb-1">What worked before {top.fixes?.scope ? `(${top.fixes.scope})` : ""}</div>
-                  {(top.fixes?.rows ?? []).length === 0 && <div className="small text-ink2">No episode with a stated outcome.</div>}
+                  <div className="label mb-1">{t("cmdWhatWorkedBefore", lang)} {top.fixes?.scope ? `(${top.fixes.scope})` : ""}</div>
+                  {(top.fixes?.rows ?? []).length === 0 && <div className="small text-ink2">{t("cmdNoEpisodeOutcome", lang)}</div>}
                   <ul className="space-y-1">
                     {(top.fixes?.rows ?? []).map((r: any) => (
                       <li key={r.action} className="grid items-center gap-x-3 small rule-b pb-1" style={{ gridTemplateColumns: "minmax(0,1fr) auto auto" }}>
-                        <span>{actionLabel[r.action] ?? r.action}{r.anecdotal ? <span className="label"> · anecdotal</span> : null}
-                          {r.worsened > 0 && <span className="num" style={{ color: "var(--hazard)" }}> · ▲ {r.worsened} made worse</span>}</span>
+                        <span>{actionText(r.action, lang)}{r.anecdotal ? <span className="label"> · {t("cmdAnecdotal", lang)}</span> : null}
+                          {r.worsened > 0 && <span className="num" style={{ color: "var(--hazard)" }}> · ▲ {r.worsened} {t("cmdMadeWorse", lang)}</span>}</span>
                         <span className="num">{fmtK(r.k)}/{r.n}</span>
                         <IntervalBar rate={r.rate} lb={r.lb} width={96} anecdotal={r.anecdotal} />
                       </li>
                     ))}
                   </ul>
-                  <div className="label mt-2">Evidence: {top.evidence.filter((e: any) => e.y).map((e: any) => e.name).join(", ") || "none"} · prior {pct(top.prior.base_rate)} ({top.prior.scope.replace("_", " ")})</div>
+                  <div className="label mt-2">{t("cmdEvidencePrefix", lang)} {top.evidence.filter((e: any) => e.y).map((e: any) => e.name).join(", ") || t("cmdNone", lang)} · {t("cmdPrior", lang)} {pct(top.prior.base_rate)} ({top.prior.scope.replace("_", " ")})</div>
                 </NoticeSlip>
               )}
               <div className="flex gap-2 mt-4 flex-wrap">
-                <button className="btn" onClick={() => setDrawer("offsets")}>Offset wells ({offsets.length}) ▸</button>
-                {more > 0 && <button className="btn" onClick={() => setDrawer("alerts")}>Further alerts ({more}) ▸</button>}
+                <button className="btn" onClick={() => setDrawer("offsets")}>{t("cmdOffsetWellsBtn", lang)} ({offsets.length}) ▸</button>
+                {more > 0 && <button className="btn" onClick={() => setDrawer("alerts")}>{t("cmdFurtherAlertsBtn", lang)} ({more}) ▸</button>}
               </div>
             </section>
           </div>
         )}
       </div>
 
-      <Drawer open={drawer === "offsets"} onClose={() => setDrawer(null)} title={`Offset wells within ${m(10000)}`} width={560}>
+      <Drawer open={drawer === "offsets"} onClose={() => setDrawer(null)} title={`${t("cmdOffsetWellsWithin", lang)} ${m(10000)}`} width={560}>
         {well && <MiniMap center={[well.lat, well.lon]} radius_m={10000} height={260}
           wells={[{ ...well, active: true }, ...offsets.map((o) => ({ id: o.well_id, name: o.name, lat: o.lat, lon: o.lon, documented: o.documented, n_events: o.n_events }))]} />}
         <ul className="mt-3">
           {offsets.map((o) => (
             <li key={o.well_id} className="rule-b py-2 small flex justify-between gap-3">
-              <span>{o.name} <span className="label">{o.documented ? "reports" : "no reports"} · {o.n_events} events</span></span>
+              <span>{o.name} <span className="label">{o.documented ? t("cmdReports", lang) : t("cmdNoReports", lang)} · {o.n_events} {t("cmdEvents", lang)}</span></span>
               <span className="num">{o.raw.distance_m.toLocaleString()} m · sim {o.sim.toFixed(2)}</span>
             </li>
           ))}
-          {offsets.length === 0 && <li className="small">No wells within the radius.</li>}
+          {offsets.length === 0 && <li className="small">{t("cmdNoWellsInRadius", lang)}</li>}
         </ul>
       </Drawer>
-      <Drawer open={drawer === "alerts"} onClose={() => setDrawer(null)} title="All look-ahead items">
+      <Drawer open={drawer === "alerts"} onClose={() => setDrawer(null)} title={t("cmdAllLookahead", lang)}>
         {[...(la?.alerts ?? []), ...(la?.notices ?? [])].slice(1).map((a: any, i: number) => (
           <div key={i} className="rule-b py-2 small">
             <div className="font-semibold">{a.label} · {a.formation_label} <span className="label">{a.level}</span></div>
-            <div>{a.status === "ok" ? `${pct(a.mean)} (range ${pct(a.ci[0])}–${pct(a.ci[1])})` : "insufficient evidence"} · n_eff {a.n_eff.toFixed(1)} · {a.in_formation ? "current formation" : `in ${Math.round(a.distance_m)} m`}</div>
+            <div>{a.status === "ok" ? `${pct(a.mean)} (range ${pct(a.ci[0])}–${pct(a.ci[1])})` : t("insufficient", lang)} · n_eff {a.n_eff.toFixed(1)} · {a.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(a.distance_m)} m`}</div>
           </div>
         ))}
       </Drawer>

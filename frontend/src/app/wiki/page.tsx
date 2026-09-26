@@ -8,13 +8,14 @@ import { NotingSheet } from "@/components/kk/NotingSheet";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
+import { t } from "@/lib/i18n";
 
 export default function WikiPageWrap() { return <Suspense><Wiki /></Suspense>; }
 
 function Wiki() {
   const params = useSearchParams();
   const router = useRouter();
-  const { user } = useApp();
+  const { user, lang } = useApp();
   const slug = params.get("page") ?? "hazards/lost_circulation";
   const [page, setPage] = useState<any>(null);
   const [notes, setNotes] = useState<any[]>([]);
@@ -31,7 +32,7 @@ function Wiki() {
 
   const load = () => {
     setErr(null);
-    get(`/api/wiki/${slug}`).then((p) => { setPage(p); setDraft(p.body); }).catch(() => { setPage(null); setErr("Page not found."); });
+    get(`/api/wiki/${slug}`).then((p) => { setPage(p); setDraft(p.body); }).catch(() => { setPage(null); setErr(lang === "hi" ? "पृष्ठ नहीं मिला।" : "Page not found."); });
     get(`/api/wiki/${slug}/noting`).then(setNotes).catch(() => setNotes([]));
     get(`/api/wiki/${slug}/history`).then(setHist).catch(() => setHist([]));
   };
@@ -53,11 +54,11 @@ function Wiki() {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <button className="btn" onClick={() => setDrawer("index")}>Index ▸</button>
-        <button className="btn" onClick={() => setDrawer("tray")}>Pending in tray ({pending.length}) ▸</button>
-        {hist.length > 1 && <button className="btn" onClick={() => showDiff(hist[1].commit, hist[0].commit)}>Version diff ▸</button>}
+        <button className="btn" onClick={() => setDrawer("index")}>{t("wikiIndexBtn", lang)}</button>
+        <button className="btn" onClick={() => setDrawer("tray")}>{t("wikiPendingTray", lang)} ({pending.length}) ▸</button>
+        {hist.length > 1 && <button className="btn" onClick={() => showDiff(hist[1].commit, hist[0].commit)}>{t("wikiVersionDiff", lang)}</button>}
       </div>
-      {err && !page && <EmptyState title="Not found" why={err} />}
+      {err && !page && <EmptyState title={t("wikiNotFound", lang)} why={err} />}
       {page && (
         <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 64fr) minmax(0, 36fr)" }}>
           {/* Zone A — the document */}
@@ -66,17 +67,17 @@ function Wiki() {
               <div>
                 <div className="typewriter small">{page.ref_no} · v{page.version}</div>
                 <h2 className="text-xl font-semibold mt-1">{page.title}</h2>
-                <div className="label">{page.kind} page · {page.n_sources} sources · commit <span className="mono">{page.git_commit?.slice(0, 8)}</span></div>
-                <TrustBar v={page.trust} />
+                <div className="label">{page.kind} {t("wikiPageSuffix", lang)} · {page.n_sources} {t("wikiSourcesSuffix", lang)} · {t("wikiCommit", lang)} <span className="mono">{page.git_commit?.slice(0, 8)}</span></div>
+                <TrustBar v={page.trust} lang={lang} />
               </div>
               {page.status === "approved" && <Stamp kind="approved" round text="APPROVED" sub={`${page.approved_by} · ${page.approved_at?.slice(0, 10)}`} />}
               {page.status === "returned" && <Stamp kind="returned" text="RETURNED" />}
-              {(page.status === "draft" || page.status === "in_review") && <Stamp kind="draft" text={page.status === "draft" ? "DRAFT" : "IN REVIEW"} sub="not approved knowledge" />}
+              {(page.status === "draft" || page.status === "in_review") && <Stamp kind="draft" text={page.status === "draft" ? "DRAFT" : "IN REVIEW"} sub={t("wikiNotApprovedKnowledge", lang)} />}
             </div>
             {!editing && <Markdown body={page.body} onLink={(s) => router.push(`/wiki?page=${encodeURIComponent(s)}`)} />}
             {editing && (
               <div className="mt-4">
-                <p className="label">Edit the Markdown. Every line must still end with a citation marker like [^s3]; uncited lines are rejected.</p>
+                <p className="label">{t("wikiEditHelp", lang)}</p>
                 <textarea className="input w-full mono small mt-2" rows={22} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="page markdown" />
               </div>
             )}
@@ -84,26 +85,26 @@ function Wiki() {
 
           {/* Zone B — noting sheet + actions */}
           <aside aria-label="noting">
-            <h3 className="font-semibold mb-2">Noting <span className="deva label">टिप्पणी</span></h3>
+            <h3 className="font-semibold mb-2">{t("wikiNoting", lang)} <span className="deva label">टिप्पणी</span></h3>
             <NotingSheet notes={notes} />
             <div className="mt-4 space-y-2">
-              {!user && <p className="small">Select a demo user (top right) to approve, edit or return this page.</p>}
-              <textarea className="input w-full" rows={3} placeholder="Note for the file (optional)" value={note} onChange={(e) => setNote(e.target.value)} aria-label="reviewer note" disabled={!user} />
+              {!user && <p className="small">{t("selectDemoUserApprove", lang)}</p>}
+              <textarea className="input w-full" rows={3} placeholder={t("wikiNoteForFile", lang)} value={note} onChange={(e) => setNote(e.target.value)} aria-label="reviewer note" disabled={!user} />
               <div className="flex gap-2 flex-wrap">
-                <button className="btn btn-primary" disabled={!user || busy || page.status === "approved"} onClick={() => act("approve")}>Approve</button>
-                {!editing ? <button className="btn" disabled={!user || busy} onClick={() => setEditing(true)}>Edit</button>
-                  : <><button className="btn" disabled={busy} onClick={() => act("edit")}>Save edit</button><button className="btn" onClick={() => { setEditing(false); setDraft(page.body); }}>Cancel</button></>}
-                <button className="btn" disabled={!user || busy} onClick={() => act("return")}>Return</button>
+                <button className="btn btn-primary" disabled={!user || busy || page.status === "approved"} onClick={() => act("approve")}>{t("wikiApprove", lang)}</button>
+                {!editing ? <button className="btn" disabled={!user || busy} onClick={() => setEditing(true)}>{t("wikiEdit", lang)}</button>
+                  : <><button className="btn" disabled={busy} onClick={() => act("edit")}>{t("wikiSaveEdit", lang)}</button><button className="btn" onClick={() => { setEditing(false); setDraft(page.body); }}>{t("wikiCancel", lang)}</button></>}
+                <button className="btn" disabled={!user || busy} onClick={() => act("return")}>{t("wikiReturn", lang)}</button>
               </div>
               {err && <p className="small" style={{ color: "var(--hazard)" }}>✕ {err}</p>}
-              <p className="label">Each action adds a numbered noting para and a git commit. Only approved pages count as approved knowledge.</p>
+              <p className="label">{t("wikiReviewNote", lang)}</p>
             </div>
           </aside>
         </div>
       )}
 
-      <Drawer open={drawer === "index" || drawer === "tray"} onClose={() => setDrawer(null)} title={drawer === "tray" ? `Pending in tray (${pending.length})` : "Page index"}>
-        <input className="input w-full mb-3" placeholder="filter…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <Drawer open={drawer === "index" || drawer === "tray"} onClose={() => setDrawer(null)} title={drawer === "tray" ? `${t("wikiPendingTray", lang)} (${pending.length})` : t("wikiPageIndex", lang)}>
+        <input className="input w-full mb-3" placeholder={t("wikiFilterPlaceholder", lang)} value={q} onChange={(e) => setQ(e.target.value)} />
         {(["basin", "hazard", "formation", "well"] as const).map((k) => {
           const rows = (drawer === "tray" ? pending : all).filter((p) => p.kind === k && p.title.toLowerCase().includes(q.toLowerCase()));
           if (!rows.length) return null;
@@ -118,26 +119,26 @@ function Wiki() {
           );
         })}
       </Drawer>
-      <Drawer open={drawer === "diff"} onClose={() => setDrawer(null)} title="Version diff" width={640}>
+      <Drawer open={drawer === "diff"} onClose={() => setDrawer(null)} title={t("wikiVersionDiffTitle", lang)} width={640}>
         <div className="mb-3 small">
           {hist.map((h, i) => (
             <div key={h.commit} className="rule-b py-1 flex justify-between gap-2">
               <span><span className="mono">{h.short}</span> {h.message}</span>
-              {i < hist.length - 1 && <button className="link" onClick={() => showDiff(hist[i + 1].commit, h.commit)}>diff vs previous</button>}
+              {i < hist.length - 1 && <button className="link" onClick={() => showDiff(hist[i + 1].commit, h.commit)}>{t("wikiDiffVsPrevious", lang)}</button>}
             </div>
           ))}
         </div>
-        <Diff text={diff} />
+        <Diff text={diff} lang={lang} />
       </Drawer>
     </div>
   );
 }
 
-function TrustBar({ v }: { v: number | null }) {
-  if (v === null || v === undefined) return <div className="label mt-1">Trust: not computed</div>;
+function TrustBar({ v, lang }: { v: number | null; lang: "en" | "hi" }) {
+  if (v === null || v === undefined) return <div className="label mt-1">{t("wikiTrustNotComputed", lang)}</div>;
   return (
     <div className="flex items-center gap-2 mt-2 small" title="share of cited report lines with no open report conflict">
-      <span className="label">Trust</span>
+      <span className="label">{t("wikiTrust", lang)}</span>
       <span className="inline-block h-2 w-40 border border-ink"><span className="block h-full" style={{ width: `${v * 100}%`, background: "var(--ink)" }} /></span>
       <span className="num">{Math.round(v * 100)}%</span>
     </div>
@@ -177,8 +178,8 @@ function Markdown({ body, onLink }: { body: string; onLink: (slug: string) => vo
   return <div className="prose-wiki mt-2">{out}</div>;
 }
 
-function Diff({ text }: { text: string }) {
-  if (!text) return <p className="label">Select two versions.</p>;
+function Diff({ text, lang }: { text: string; lang: "en" | "hi" }) {
+  if (!text) return <p className="label">{t("wikiSelectTwo", lang)}</p>;
   const lines = text.split("\n").filter((l) => !/^(diff|index|---|\+\+\+|@@)/.test(l));
   const out: JSX.Element[] = [];
   let cur: JSX.Element[] = [];
@@ -190,5 +191,5 @@ function Diff({ text }: { text: string }) {
     else cur.push(<span key={i}>{t}</span>);
   });
   if (cur.length) out.push(<p key="last" className="small">{cur}</p>);
-  return <div className="bg-card border border-rule p-3 rounded-kk">{out}<p className="label mt-2">Added text underlined (green), removed text struck through (red).</p></div>;
+  return <div className="bg-card border border-rule p-3 rounded-kk">{out}<p className="label mt-2">{t("wikiDiffLegend", lang)}</p></div>;
 }

@@ -5,9 +5,10 @@ import { useApp } from "@/lib/state";
 import { m, pct, ppg } from "@/lib/format";
 import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
+import { t } from "@/lib/i18n";
 
 export default function Brief() {
-  const { wellId, ready } = useApp();
+  const { wellId, ready, lang } = useApp();
   const [lat, setLat] = useState<number | "">("");
   const [lon, setLon] = useState<number | "">("");
   const [td, setTd] = useState<number>(4000);
@@ -50,55 +51,55 @@ export default function Brief() {
         <MiniMap center={lat !== "" && lon !== "" ? [Number(lat), Number(lon)] : null} radius_m={radius} height={220}
           wells={near.map((w) => ({ id: w.id, name: w.name, lat: w.lat, lon: w.lon, documented: w.documented, n_events: w.n_events }))}
           onPick={(id) => { const w = near.find((x) => x.id === id); if (w) { setLat(Number(w.lat.toFixed(5))); setLon(Number(w.lon.toFixed(5))); } }} />
-        <p className="label">Click a well on the map to use its location, or type coordinates.</p>
+        <p className="label">{t("brClickMap", lang)}</p>
         <div className="grid grid-cols-2 gap-2">
-          <label className="small">Latitude<input className="input w-full num" value={lat} onChange={(e) => setLat(e.target.value === "" ? "" : Number(e.target.value))} /></label>
-          <label className="small">Longitude<input className="input w-full num" value={lon} onChange={(e) => setLon(e.target.value === "" ? "" : Number(e.target.value))} /></label>
-          <label className="small">Target depth (m MD)<input className="input w-full num" type="number" value={td} onChange={(e) => setTd(Number(e.target.value))} /></label>
-          <label className="small">Offset radius
+          <label className="small">{t("brLatitude", lang)}<input className="input w-full num" value={lat} onChange={(e) => setLat(e.target.value === "" ? "" : Number(e.target.value))} /></label>
+          <label className="small">{t("brLongitude", lang)}<input className="input w-full num" value={lon} onChange={(e) => setLon(e.target.value === "" ? "" : Number(e.target.value))} /></label>
+          <label className="small">{t("brTargetDepth", lang)}<input className="input w-full num" type="number" value={td} onChange={(e) => setTd(Number(e.target.value))} /></label>
+          <label className="small">{t("brOffsetRadius", lang)}
             <select className="input w-full" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>{[5000, 10000, 20000, 50000].map((r) => <option key={r} value={r}>{r / 1000} km</option>)}</select></label>
         </div>
-        <label className="small block">Planned tops (optional, one per line: <span className="mono">FORMATION, top_m</span>). If empty, tops are inferred from the nearest documented offsets.
+        <label className="small block">{t("brPlannedTops", lang)} <span className="mono">FORMATION, top_m</span>). {t("brInferredNote", lang)}
           <textarea className="input w-full mono small mt-1" rows={4} value={tops} onChange={(e) => setTops(e.target.value)} placeholder={"UTSIRA FM, 800\nDRAUPNE FM, 3100"} /></label>
         <div className="flex gap-2">
-          <button className="btn btn-primary" onClick={build} disabled={busy || lat === ""}>{busy ? "Compiling…" : "Prepare brief"}</button>
-          <button className="btn" onClick={pdf} disabled={!b}>Download PDF</button>
-          <button className="btn" disabled title="Not built in this prototype">Send for review</button>
+          <button className="btn btn-primary" onClick={build} disabled={busy || lat === ""}>{busy ? t("brCompiling", lang) : t("brPrepareBrief", lang)}</button>
+          <button className="btn" onClick={pdf} disabled={!b}>{t("brDownloadPdf", lang)}</button>
+          <button className="btn" disabled title={t("brNotBuilt", lang)}>{t("brSendForReview", lang)}</button>
         </div>
         {err && <p className="small" style={{ color: "var(--hazard)" }}>✕ {err}</p>}
       </section>
 
       {/* Zone B — A4 preview */}
       <section aria-label="A4 preview" className="overflow-x-auto">
-        {!b && <div className="bg-card border border-dashed border-rule p-10 text-ink2" style={{ aspectRatio: "210/297", maxWidth: 720 }}>The A4 preview appears here.</div>}
+        {!b && <div className="bg-card border border-dashed border-rule p-10 text-ink2" style={{ aspectRatio: "210/297", maxWidth: 720 }}>{t("brPreviewPlaceholder", lang)}</div>}
         {b && (
           <div className="bg-white text-ink border border-rule p-10 small" style={{ maxWidth: 760, boxShadow: "none" }}>
             <div style={{ height: 2, background: "linear-gradient(90deg,#FF9933 33.3%,#fff 33.3% 66.6%,#138808 66.6%)" }} />
             <div className="flex justify-between border-b border-ink pb-1 mt-2">
-              <span>Kupakosh · Prototype for Oil India Limited · SIH 2026</span>
-              <span className="typewriter">No. {b.ref_no} · Dated {b.date}</span>
+              <span>Kupakosh · {t("board", lang)}</span>
+              <span className="typewriter">No. {b.ref_no} · {t("brDated", lang)} {b.date}</span>
             </div>
-            <h2 className="font-semibold mt-3" style={{ fontSize: 16 }}>Subject: {b.subject}</h2>
-            <p className="label mt-1">Distribution: {b.distribution.join(", ")}. {b.n_offsets} wells in radius, {b.n_documented} with reports. {b.inputs.tops_inferred ? "Formation tops inferred from the nearest documented offsets." : "Formation tops as planned."}</p>
-            <Sec n={1} t="Formation column (expected tops, m MD)">
+            <h2 className="font-semibold mt-3" style={{ fontSize: 16 }}>{t("brSubject", lang)} {b.subject}</h2>
+            <p className="label mt-1">{t("brDistribution", lang)} {b.distribution.join(", ")}. {b.n_offsets} {t("brWellsInRadius", lang)} {b.n_documented} {t("brWithReports", lang)} {b.inputs.tops_inferred ? t("brTopsInferred", lang) : t("brTopsPlanned", lang)}</p>
+            <Sec n={1} t={t("brSec1", lang)}>
               <table className="w-full"><tbody>{b.formations.map((f: any) => <tr key={f.formation} className="rule-b"><td className="num w-24">{m(f.top_md_m)}</td><td>{f.label}</td></tr>)}</tbody></table>
             </Sec>
-            <Sec n={2} t="Hazards per formation (recorded-problem rate in offsets, 80% range)">
-              {b.hazards.length === 0 ? <p>No recorded hazard in offset wells.</p> : (
-                <table className="w-full"><thead><tr className="border-b border-ink text-left"><th>Formation</th><th>Hazard</th><th className="text-right">Rate</th><th className="text-right">Range</th><th className="text-right">n_eff</th><th>What worked before</th></tr></thead>
+            <Sec n={2} t={t("brSec2", lang)}>
+              {b.hazards.length === 0 ? <p>{t("brNoHazard", lang)}</p> : (
+                <table className="w-full"><thead><tr className="border-b border-ink text-left"><th>{t("brTableFormation", lang)}</th><th>{t("brTableHazard", lang)}</th><th className="text-right">{t("brTableRate", lang)}</th><th className="text-right">{t("brTableRange", lang)}</th><th className="text-right">n_eff</th><th>{t("brTableWhatWorked", lang)}</th></tr></thead>
                   <tbody>{b.hazards.map((h: any, i: number) => (
                     <tr key={i} className="rule-b align-top"><td>{h.formation_label}</td><td>{h.label}{h.sources[0] && <SourceFootnote refId={h.sources[0].source_ref} n="src" />}</td>
-                      {h.status === "ok" ? <><td className="num text-right">{pct(h.mean)}</td><td className="num text-right">{pct(h.ci[0])}–{pct(h.ci[1])}</td></> : <td colSpan={2} className="text-right italic">insufficient evidence</td>}
+                      {h.status === "ok" ? <><td className="num text-right">{pct(h.mean)}</td><td className="num text-right">{pct(h.ci[0])}–{pct(h.ci[1])}</td></> : <td colSpan={2} className="text-right italic">{t("insufficient", lang).toLowerCase()}</td>}
                       <td className="num text-right">{h.n_eff.toFixed(1)}</td>
                       <td>{h.fixes.slice(0, 2).map((f: any) => `${f.action} (${f.k}/${f.n})`).join("; ") || "—"}</td></tr>))}</tbody></table>)}
-              <p className="label mt-1">Rates count problems recorded in reports; no record is not proof of no problem.</p>
+              <p className="label mt-1">{t("brRatesNote", lang)}</p>
             </Sec>
-            <Sec n={3} t="Mud-weight window (ppg)">
-              {b.mud_window.length === 0 ? <p>Insufficient evidence.</p> : <table className="w-full"><tbody>{b.mud_window.map((r: any) => <tr key={r.formation} className="rule-b"><td>{r.label}</td><td className="num">{ppg(r.lower_ppg)} – {ppg(r.upper_ppg)}</td><td>{r.status.replace("_", " ")}</td></tr>)}</tbody></table>}
+            <Sec n={3} t={t("brSec3", lang)}>
+              {b.mud_window.length === 0 ? <p>{t("brInsufficientEv", lang)}</p> : <table className="w-full"><tbody>{b.mud_window.map((r: any) => <tr key={r.formation} className="rule-b"><td>{r.label}</td><td className="num">{ppg(r.lower_ppg)} – {ppg(r.upper_ppg)}</td><td>{r.status.replace("_", " ")}</td></tr>)}</tbody></table>}
             </Sec>
-            <Sec n={4} t="Casing & cement lessons">{b.casing_lessons.length === 0 ? <p>None recorded in offsets.</p> : <ul className="list-disc pl-5">{b.casing_lessons.map((l: any, i: number) => <li key={i}>{l.well}: {l.od_in}″ shoe at {m(l.shoe_md_m)} — “{l.cement_issues[0].text.slice(0, 160)}”</li>)}</ul>}</Sec>
-            <Sec n={5} t="Open report conflicts in offset wells">{b.audit.length === 0 ? <p>None open.</p> : <ul className="list-disc pl-5">{b.audit.map((a: any, i: number) => <li key={i}>{a.well}: {a.rule} ({a.delta})</li>)}</ul>}</Sec>
-            <Sec n={6} t="Sources"><ol className="list-decimal pl-5 mono" style={{ fontSize: 11 }}>{b.sources.slice(0, 20).map((s: string) => <li key={s}>{s}</li>)}</ol></Sec>
+            <Sec n={4} t={t("brSec4", lang)}>{b.casing_lessons.length === 0 ? <p>{t("brNoneRecordedOffsets", lang)}</p> : <ul className="list-disc pl-5">{b.casing_lessons.map((l: any, i: number) => <li key={i}>{l.well}: {l.od_in}″ shoe at {m(l.shoe_md_m)} — “{l.cement_issues[0].text.slice(0, 160)}”</li>)}</ul>}</Sec>
+            <Sec n={5} t={t("brSec5", lang)}>{b.audit.length === 0 ? <p>{t("brNoneOpen", lang)}</p> : <ul className="list-disc pl-5">{b.audit.map((a: any, i: number) => <li key={i}>{a.well}: {a.rule} ({a.delta})</li>)}</ul>}</Sec>
+            <Sec n={6} t={t("brSec6", lang)}><ol className="list-decimal pl-5 mono" style={{ fontSize: 11 }}>{b.sources.slice(0, 20).map((s: string) => <li key={s}>{s}</li>)}</ol></Sec>
             <div className="grid grid-cols-3 gap-6 mt-10">{b.signatures.map((s: any) => <div key={s.role}><div className="border-b border-ink h-10" /><b>{s.role}</b><div>{s.name || " "}</div></div>)}</div>
             <p className="mt-6"><b>{b.disclaimer}</b> <span className="label">{b.data_note}</span></p>
           </div>

@@ -28,7 +28,7 @@ export function FileFrame({ children }: { children: ReactNode }) {
       <div className="rounded-kk p-3 md:p-6" style={{ background: "var(--file-board)" }}>
         <div className="typewriter text-[13px] md:text-[14px] mb-3 text-ink flex flex-wrap gap-x-3">
           <span>FILE No. {fileNo}</span><span>·</span><span>{t("board", lang)}</span>
-          <span className="ml-auto label hidden md:inline" style={{ color: "var(--ink)" }}>Ctrl+K — search / jump</span>
+          <span className="ml-auto label hidden md:inline" style={{ color: "var(--ink)" }}>{lang === "hi" ? "Ctrl+K — खोजें / जाएँ" : "Ctrl+K — search / jump"}</span>
         </div>
         <div className="flex items-start">
           <main className="flex-1 min-w-0 bg-paper rounded-kk relative" style={{ minHeight: "calc(100vh - 120px)" }}>
@@ -46,10 +46,10 @@ export function FileFrame({ children }: { children: ReactNode }) {
                   <button className="chip" onClick={() => setScale(15)} aria-label="Default text size">A</button>
                   <button className="chip" onClick={() => setScale(Math.min(19, scale + 1))} aria-label="Larger text">A+</button>
                 </span>
-                <button className="chip" aria-pressed={contrast} onClick={() => setContrast(!contrast)}>◐ Contrast</button>
+                <button className="chip" aria-pressed={contrast} onClick={() => setContrast(!contrast)}>{t("contrastBtn", lang)}</button>
                 <select className="chip" aria-label="Demo user" value={user?.name ?? ""} onChange={(e) => setUser(users.find((u) => u.name === e.target.value) ?? null)}>
-                  <option value="">Guest (read only)</option>
-                  {users.map((u) => <option key={u.name} value={u.name}>{u.name} — {u.role} (demo user)</option>)}
+                  <option value="">{t("guestReadOnly", lang)}</option>
+                  {users.map((u) => <option key={u.name} value={u.name}>{u.name} — {u.role} ({t("demoUserSuffix", lang)})</option>)}
                 </select>
               </div>
             </header>

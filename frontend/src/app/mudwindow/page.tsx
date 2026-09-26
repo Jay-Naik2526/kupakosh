@@ -9,12 +9,13 @@ import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { Register } from "@/components/kk/Register";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
+import { t } from "@/lib/i18n";
 
 const H = 560, W = 560, PAD = { l: 52, r: 12, t: 22, b: 30 };
 const NEAR = 0.3; // mirrors config mudwindow.near_edge_ppg (display only)
 
 export default function MudWindow() {
-  const { wellId, setWellId, ready, openSource } = useApp();
+  const { wellId, setWellId, ready, openSource, lang } = useApp();
   const [radius, setRadius] = useState(10000);
   const [d, setD] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -34,15 +35,15 @@ export default function MudWindow() {
   return (
     <div>
       <section className="flex flex-wrap gap-4 items-center rule-b pb-3" aria-label="controls">
-        <WellPicker label="Active well" />
-        <label className="label" htmlFor="r">Offset radius</label>
+        <WellPicker label={t("activeWell", lang)} />
+        <label className="label" htmlFor="r">{t("offsetRadius", lang)}</label>
         <select id="r" className="input" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
           {[5000, 10000, 20000, 50000].map((r) => <option key={r} value={r}>{r / 1000} km</option>)}
         </select>
-        {d && <span className="small">{d.n_offset_wells} wells · {pts.length} evidence points · {active.length} mud checks on active well</span>}
+        {d && <span className="small">{d.n_offset_wells} {t("mwWellsCount", lang)} · {pts.length} {t("mwEvidencePoints", lang)} · {active.length} {t("mwMudChecksActive", lang)}</span>}
       </section>
-      {loading && <p className="label mt-3">Loading…</p>}
-      {d && rows.length === 0 && <div className="mt-5"><EmptyState title="Insufficient evidence for a mud-weight window" why="No LOT/FIT result, and no loss or kick with a known mud weight, is recorded in this well or its offsets within the radius. Try a larger radius." /></div>}
+      {loading && <p className="label mt-3">{t("loading", lang)}</p>}
+      {d && rows.length === 0 && <div className="mt-5"><EmptyState title={t("mwInsufficientTitle", lang)} why={t("mwInsufficientWhy", lang)} /></div>}
       {d && rows.length > 0 && (
         <div className="flex flex-wrap gap-6 mt-5 items-start">
           {/* Zone B — depth vs ppg, with the thin lithology column aligned to the same depth scale */}
@@ -72,27 +73,27 @@ export default function MudWindow() {
               <text x={W - PAD.r} y={14} fontSize={11} textAnchor="end" fill="var(--ink-2)">mud weight, ppg →</text>
               <text x={6} y={14} fontSize={11} fill="var(--ink-2)">m MD ↓</text>
             </svg>
-            <p className="label mt-2">△ LOT/FIT (upper) · ▲ losses (upper) · ◆ kick / ◇ gas (lower) · hatched = window · dashed = one-sided · amber line = active well within {NEAR} ppg of an edge. Click a glyph for its source. {d.note}</p>
+            <p className="label mt-2">{t("mwLegend", lang)} {NEAR} {t("mwLegendSuffix", lang)} {d.note}</p>
             </div>
             <LithologyColumn intervals={d.tops} y={y} height={H} width={110} />
           </section>
           {/* Zone C — casing & cement lessons + per-formation table */}
           <section aria-label="casing and cement lessons" className="min-w-[380px] flex-1">
-            <h3 className="font-semibold mb-2">Window by formation</h3>
+            <h3 className="font-semibold mb-2">{t("mwWindowByFormation", lang)}</h3>
             <Register rows={rows} cols={[
-              { key: "f", head: "Formation", cell: (r: any) => r.label },
-              { key: "lo", head: "Lower", num: true, cell: (r: any) => ppg(r.lower_ppg) },
-              { key: "hi", head: "Upper", num: true, cell: (r: any) => ppg(r.upper_ppg) },
-              { key: "s", head: "Status", cell: (r: any) => (r.status === "conflict" ? <b style={{ color: "var(--hazard)" }}>✕ conflict</b> : r.status.replace("_", " ")) },
-              { key: "u", head: "Used p10–p90", num: true, cell: (r: any) => (r.used_p10_p90 ? `${r.used_p10_p90[0]}–${r.used_p10_p90[1]}` : "—") },
+              { key: "f", head: t("mwCol_formation", lang), cell: (r: any) => r.label },
+              { key: "lo", head: t("mwCol_lower", lang), num: true, cell: (r: any) => ppg(r.lower_ppg) },
+              { key: "hi", head: t("mwCol_upper", lang), num: true, cell: (r: any) => ppg(r.upper_ppg) },
+              { key: "s", head: t("mwCol_status", lang), cell: (r: any) => (r.status === "conflict" ? <b style={{ color: "var(--hazard)" }}>✕ {t("mwConflict", lang)}</b> : r.status.replace("_", " ")) },
+              { key: "u", head: t("mwCol_used", lang), num: true, cell: (r: any) => (r.used_p10_p90 ? `${r.used_p10_p90[0]}–${r.used_p10_p90[1]}` : "—") },
             ]} />
-            <h3 className="font-semibold mt-6 mb-2">Casing &amp; cement lessons</h3>
-            <Register rows={d.casing_lessons.filter((c: any) => c.cement_issues.length).slice(0, 12)} empty="No cementing problem recorded near a casing shoe in these wells."
+            <h3 className="font-semibold mt-6 mb-2">{t("mwCasingCement", lang)}</h3>
+            <Register rows={d.casing_lessons.filter((c: any) => c.cement_issues.length).slice(0, 12)} empty={t("mwNoCementIssue", lang)}
               cols={[
-                { key: "w", head: "Well", cell: (c: any) => c.well },
-                { key: "c", head: "Casing", cell: (c: any) => `${c.od_in ?? "?"}″ at ${m(c.shoe_md_m)}` },
-                { key: "f", head: "Formation", cell: (c: any) => c.label ?? "unknown" },
-                { key: "i", head: "Issue", cell: (c: any) => <span>“{c.cement_issues[0].text.slice(0, 140)}…”<SourceFootnote refId={c.cement_issues[0].source_ref} n="src" /></span> },
+                { key: "w", head: t("mwCol_well", lang), cell: (c: any) => c.well },
+                { key: "c", head: t("mwCol_casing", lang), cell: (c: any) => `${c.od_in ?? "?"}″ at ${m(c.shoe_md_m)}` },
+                { key: "f", head: t("mwCol_formation", lang), cell: (c: any) => c.label ?? t("offsUnknown", lang) },
+                { key: "i", head: t("mwCol_issue", lang), cell: (c: any) => <span>“{c.cement_issues[0].text.slice(0, 140)}…”<SourceFootnote refId={c.cement_issues[0].source_ref} n="src" /></span> },
               ]} />
           </section>
         </div>
