@@ -57,6 +57,7 @@ embeddings:
   rrf_k: 60                 # reciprocal-rank fusion constant (keyword rank + semantic rank)
   candidates: 200           # top-N from each retriever entering the fusion
   min_cos: 0.78             # a passage found only by meaning (little word overlap) must be at least this similar
+  min_overlap_meaning: 0.25 # ...and still share at least this share of the question's content words (an anchor)
 ingest: {max_upload_mb: 50}
 ui: {max_zones: 3, file_prefix: "KPK", default_lang: en}
 demo:

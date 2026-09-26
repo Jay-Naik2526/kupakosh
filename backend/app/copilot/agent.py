@@ -180,7 +180,7 @@ def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = No
     for i in sorted(fused, key=lambda i: -fused[i]):
         overlap = len(set(qt) & set(docs[i])) / len(set(qt))
         cos = float(dense[i]) if dense is not None else None
-        if overlap < need and not (cos is not None and cos >= ce["min_cos"]):
+        if overlap < need and not (cos is not None and cos >= ce["min_cos"] and overlap >= ce["min_overlap_meaning"]):
             continue
         r = rows[i]
         how = "both" if i in kw_set and i in de_set else "keyword" if i in kw_set else "meaning"
