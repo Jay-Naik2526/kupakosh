@@ -28,7 +28,7 @@ export function FileFrame({ children }: { children: ReactNode }) {
       <div className="rounded-kk p-3 md:p-6" style={{ background: "var(--file-board)" }}>
         <div className="typewriter text-[13px] md:text-[14px] mb-3 text-ink flex flex-wrap gap-x-3">
           <span>FILE No. {fileNo}</span><span>·</span><span>{t("board", lang)}</span>
-          <span className="ml-auto label hidden md:inline">Ctrl+K — search / jump</span>
+          <span className="ml-auto label hidden md:inline" style={{ color: "var(--ink)" }}>Ctrl+K — search / jump</span>
         </div>
         <div className="flex items-start">
           <main className="flex-1 min-w-0 bg-paper rounded-kk relative" style={{ minHeight: "calc(100vh - 120px)" }}>

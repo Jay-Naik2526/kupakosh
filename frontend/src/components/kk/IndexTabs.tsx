@@ -26,7 +26,7 @@ export function IndexTabs() {
                      borderRadius: "0 var(--radius) var(--radius) 0", transform: active ? "none" : "translateX(0)", opacity: active ? 1 : 0.92 }}>
             <span className="num text-[12px] font-semibold">{t.no}</span>
             <span className="text-[11px] leading-tight font-medium" style={{ writingMode: "horizontal-tb" }}>{lang === "hi" ? t.hi : t.en}</span>
-            <span className="text-[10px] leading-tight text-ink2 deva">{lang === "hi" ? t.en : t.hi}</span>
+            <span className="text-[10px] leading-tight deva" style={{ color: "var(--ink)" }}>{lang === "hi" ? t.en : t.hi}</span>
           </Link>
         );
       })}

@@ -52,19 +52,31 @@ EVENT_KINDS = {"DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT", "JUDGMENT", "PAPER"
 
 _WELL = re.compile(r"\b[Ww]ells?\s+(?:No\.?\s*|number\s+)?((?:[A-Z][A-Za-z]{2,}(?:[ -][A-Z][A-Za-z]{2,})?)[ -]?#?\s?\d{1,3}[A-Z]?)\b")
 # "Baghjan 5 Oil Well", "Baghjan-5 well", "Baghjan Well No. 5"
-_WELL2 = re.compile(r"\b([A-Z][a-z]{3,})[ -]#?(\d{1,3})\s+(?:[Oo]il\s+|[Gg]as\s+|[Ee]xploratory\s+)?[Ww]ell\b")
+_WELL2 = re.compile(r"\b([A-Z][a-z]{3,})(?:[ -]|--)#?(\d{1,3})\s+(?:[Oo]il\s+|[Gg]as\s+|[Ee]xploratory\s+)?[Ww]ell\b")
 _WELL3 = re.compile(r"\b([A-Z][a-z]{3,})\s+[Ww]ell\s+(?:No\.?\s*|#\s*)(\d{1,3})\b")
 _JUNK = re.compile(r"(?i)^(explored|unexplored|onland|offshore|services?|figure|fig|table|annexure|block|phase|page|section|para|chapter|schedule|note|total|year|round|well)\b")
+
+
+# Spellings of the same well seen in the public texts (OCR/typing variants and the operator's short code).
+WELL_ALIASES = {"BGN-5": "Baghjan-5", "Bahjan-5": "Baghjan-5"}
+# Wells named in Indian documents that are not Indian wells (e.g. cited foreign analogues) — never tagged India.
+NOT_INDIAN = {"Ignik Sikumi-1", "Sikumi-1"}
+
+
+def normalise_well(name: str) -> str | None:
+    name = re.sub(r"-{2,}", "-", name.strip())
+    name = WELL_ALIASES.get(name, name)
+    return None if name in NOT_INDIAN else name
 
 
 def find_well_name(s: str) -> str | None:
     for rx in (_WELL2, _WELL3):
         m = rx.search(s)
         if m and not _JUNK.match(m.group(1)):
-            return f"{m.group(1)}-{m.group(2)}"
+            return normalise_well(f"{m.group(1)}-{m.group(2)}")
     m = _WELL.search(s)
     if m and not _JUNK.match(m.group(1)):
-        return m.group(1)
+        return normalise_well(re.sub(r"\s*#\s*", "-", m.group(1)))
     return None
 
 

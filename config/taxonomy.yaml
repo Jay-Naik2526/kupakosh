@@ -30,7 +30,7 @@ hazards:
       - '\binflux\b|\bpit gain\b|\bflow check (was )?positive|\bwell (was )?shut[ -]in'
       - '\bwell control (incident|problem|situation|event)'
       - "\\bdriller'?s method\\b|\\bwait and weight\\b|\\bkilled the well|\\bkill mud\\b"
-      - '\bblow[ -]?outs?\b|\buncontrolled (flow|release) of (gas|oil|well fluids?)|\bwell (fire|was on fire)\b|\bcratering\b'
+      - '\bblow[ -]?outs?\b(?![ -]preventer)|\buncontrolled (flow|release) of (gas|oil|well fluids?)|\bwell (fire|was on fire)\b|\bcratering\b'
     exclude:
       - 'kick(ed)?[- ]off'
       - 'kick-?off point'
@@ -77,6 +77,7 @@ hazards:
       - '\blost (in hole|the bha|hole opener|bha|bit)\b'
     exclude:
       - 'fishing (vessel|boat|fleet|activity|ground)'
+      - '\bfish(ing|ery|eries|ermen)?\b.{0,20}\b(communit(y|ies)|folk|livelihoods?|villagers?|villages?|nets?|ponds?|wetlands?|dolphins?|species|population)\b|\bfishermen\b|\bfisheries\b'
       - 'junk (slot|throat|basket|sub|mill)'
   wellbore_instability:
     label: Wellbore instability

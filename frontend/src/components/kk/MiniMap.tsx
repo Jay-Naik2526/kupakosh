@@ -3,6 +3,9 @@ import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+// MapLibre v6 loads its worker as a separate ES module; serve it from /public (copied by `npm run maplibre-worker`).
+if (typeof window !== "undefined") maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
+
 export type MapWell = { id: number; name: string; lat: number; lon: number; documented?: boolean; n_events?: number; active?: boolean };
 
 /** Muted paper-style map (OSM raster, desaturated) with the radius circle. */

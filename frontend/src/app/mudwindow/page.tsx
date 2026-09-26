@@ -45,8 +45,9 @@ export default function MudWindow() {
       {d && rows.length === 0 && <div className="mt-5"><EmptyState title="Insufficient evidence for a mud-weight window" why="No LOT/FIT result, and no loss or kick with a known mud weight, is recorded in this well or its offsets within the radius. Try a larger radius." /></div>}
       {d && rows.length > 0 && (
         <div className="flex flex-wrap gap-6 mt-5 items-start">
-          {/* Zone A — depth vs ppg */}
-          <section aria-label="mud weight window chart">
+          {/* Zone B — depth vs ppg, with the thin lithology column aligned to the same depth scale */}
+          <section aria-label="mud weight window chart" className="flex gap-2 items-start">
+            <div>
             <svg width={W} height={H} className="paper-grid" role="img" aria-label="Depth versus mud weight: safe band, evidence and active well">
               <defs><pattern id="safe" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--ok)" strokeWidth="1.2" /></pattern></defs>
               {rows.filter((r: any) => r.top_md_m !== null && r.base_md_m !== null).map((r: any) => (
@@ -72,10 +73,7 @@ export default function MudWindow() {
               <text x={6} y={14} fontSize={11} fill="var(--ink-2)">m MD ↓</text>
             </svg>
             <p className="label mt-2">△ LOT/FIT (upper) · ▲ losses (upper) · ◆ kick / ◇ gas (lower) · hatched = window · dashed = one-sided · amber line = active well within {NEAR} ppg of an edge. Click a glyph for its source. {d.note}</p>
-          </section>
-          {/* Zone B — thin lithology column */}
-          <section aria-label="formations">
-            <div style={{ height: 0 }} />
+            </div>
             <LithologyColumn intervals={d.tops} y={y} height={H} width={110} />
           </section>
           {/* Zone C — casing & cement lessons + per-formation table */}

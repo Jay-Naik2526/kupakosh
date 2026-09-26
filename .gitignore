@@ -12,3 +12,4 @@ node_modules/
 data/api.log
 frontend/out/
 .DS_Store
+frontend/public/maplibre/

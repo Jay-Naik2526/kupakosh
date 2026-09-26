@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -22,6 +23,7 @@ def health():
 
 # Built website (frontend: `KK_EXPORT=1 npm run build` -> frontend/out). Serving it here puts the site, the API and the
 # replay WebSocket on ONE address, so a single shared link (LAN IP or tunnel) works for teammates.
+mimetypes.add_type("text/javascript", ".mjs")  # MapLibre worker module (strict MIME check for module scripts)
 SITE = Path(__file__).resolve().parents[2] / "frontend" / "out"
 if SITE.exists():
     app.mount("/", StaticFiles(directory=SITE, html=True), name="site")

@@ -102,7 +102,7 @@ export default function Offsets() {
                   {cols.slice(0, -1).map((c: any, i: number) => c.tops.map((t: any) => {
                     const n = cols[i + 1].tops.find((x: any) => x.formation === t.formation);
                     if (!n) return null;
-                    return <line key={i + t.formation} x1={i * (COLW + GAP) + 50} x2={(i + 1) * (COLW + GAP)} y1={y(t.top_md_m - shift(c))} y2={y(n.top_md_m - shift(cols[i + 1]))}
+                    return <line key={`${i}-${t.formation}-${t.top_md_m}`} x1={i * (COLW + GAP) + 50} x2={(i + 1) * (COLW + GAP)} y1={y(t.top_md_m - shift(c))} y2={y(n.top_md_m - shift(cols[i + 1]))}
                       stroke="var(--ink-2)" strokeDasharray="3 3" strokeWidth={0.8} />;
                   }))}
                 </svg>
