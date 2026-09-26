@@ -27,9 +27,13 @@ def wilson_lb(k: float, n: int, z: float) -> float:
     return (p + z * z / (2 * n) - z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))) / (1 + z * z / n)
 
 
-def ledger(db: Session, hazard: str | None = None, formation: str | None = None, well_ids: list[int] | None = None) -> dict:
+def ledger(db: Session, hazard: str | None = None, formation: str | None = None, well_ids: list[int] | None = None,
+           country: str | None = None) -> dict:
     c = cfg()["ledger"]
     q = select(Episode)
+    if country:  # a join, not an id list: one country can have tens of thousands of wells (SQLite variable limit)
+        from app.db.models import Well
+        q = q.join(Well, Well.id == Episode.well_id).where(Well.country == country)
     if hazard:
         q = q.where(Episode.hazard == hazard)
     if formation:

@@ -16,7 +16,10 @@ const EXPECTED = [
 
 const LIMITS = [
   "Indian data: public NDR/DGH summaries of 23 sedimentary basins, 35 named Indian wells with drilled depth, and 6 NDR papers — geology and exploration facts, not daily drilling reports. Well-level Indian data needs NDR registration (student ID + HOD letter).",
-  "Well-level stand-in data: Norwegian (Sodir) and US (Utah FORGE) public records. No Oil India well data is used or claimed.",
+  "Well-level stand-in data: public records from Norway (Sodir, FORCE 2020), USA (Utah FORGE, BSEE Gulf of Mexico), UK (NSTA), Netherlands (NLOG), Australia (SARIG, GSQ), New Zealand (NZP&M) and Canada (CNSOPB, C-NLOPB, Saskatchewan). No Oil India well data is used or claimed.",
+  "UK, New Zealand and Canadian wells are headers only (location, depth, operator): their report archives need a login, so no events come from them.",
+  "Scanned reports (for example 34 Queensland completion reports) are stored but not read: OCR is not installed in this build.",
+  "US Gulf of Mexico records are BSEE incident summaries, not daily drilling reports; the column layout of the BSEE borehole file was inferred, and unclear columns were left out.",
   "Sodir well-history texts are summaries, not daily reports; they under-record problems. A rate here is a rate of recorded problems.",
   "Extraction is rule-based (no language-model key configured). Events below the review threshold are flagged ‘needs review’ and excluded from the hazard model.",
   "Sodir exploration wells have no public trajectory in this build, so the mud window and correlation use MD; for deviated wells this is approximate.",

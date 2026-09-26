@@ -12,8 +12,8 @@ export const TABS: { href: string; no: string; en: string; hi: string; q: string
   { href: "/accuracy", no: "09", en: "Accuracy", hi: "सटीकता", q: "How much can you trust this?", qhi: "इस पर कितना भरोसा किया जा सकता है?" },
 ];
 export const T: Record<string, S> = {
-  footer: { en: "Decision support only – the engineer decides. Data: public NDR/DGH India basin summaries, and Sodir (Norway) and Utah FORGE (USA) well records used as stand-ins for well-level data; no Oil India well data.",
-            hi: "केवल निर्णय सहायता – निर्णय अभियंता का। डेटा: सार्वजनिक NDR/DGH भारत बेसिन सारांश, तथा कूप-स्तर हेतु प्रतिनिधि Sodir (नॉर्वे) व Utah FORGE (अमेरिका) अभिलेख; ऑयल इंडिया का कूप डेटा नहीं।" },
+  footer: { en: "Decision support only – the engineer decides. Data: public records from India (NDR/DGH, OISD, court and parliament records, papers), Norway, UK, Netherlands, USA, Australia, New Zealand and Canada, used as stand-ins for well-level data; no Oil India well data.",
+            hi: "केवल निर्णय सहायता – निर्णय अभियंता का। डेटा: भारत (NDR/DGH, OISD, न्यायालय व संसद अभिलेख, शोध-पत्र), नॉर्वे, ब्रिटेन, नीदरलैंड, अमेरिका, ऑस्ट्रेलिया, न्यूज़ीलैंड व कनाडा के सार्वजनिक अभिलेख, कूप-स्तर हेतु प्रतिनिधि; ऑयल इंडिया का कूप डेटा नहीं।" },
   board: { en: "Prototype for Oil India Limited · SIH 2026", hi: "ऑयल इंडिया लिमिटेड हेतु प्रोटोटाइप · SIH 2026" },
   replay: { en: "REPLAY", hi: "पुनःचलन" },
   insufficient: { en: "Insufficient evidence", hi: "अपर्याप्त साक्ष्य" },

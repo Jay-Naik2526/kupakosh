@@ -245,10 +245,7 @@ def ledger(hazard: str | None = None, formation: str | None = None, well: int | 
     well_ids = None
     if well:
         well_ids = [well] + [o["well_id"] for o in offsets_for_well(well, radius_m)]
-    ids = _country_ids(db, country)
-    if ids is not None:
-        well_ids = [w for w in well_ids if w in ids] if well_ids is not None else list(ids)
-    L = ledger_fn(db, hazard, formation, well_ids)
+    L = ledger_fn(db, hazard, formation, well_ids, country)
     L["country"] = country
     L["formation_label"] = pretty(formation)
     return L

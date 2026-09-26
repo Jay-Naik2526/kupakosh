@@ -13,3 +13,5 @@ data/api.log
 frontend/out/
 .DS_Store
 frontend/public/maplibre/
+data/bootstrap.log
+frontend/test-results/

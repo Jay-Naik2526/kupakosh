@@ -9,7 +9,7 @@ All data is public and used as a **stand-in** for Oil India data. Nothing is syn
 |---|---|---|---|
 | **Sodir FactPages** (Norwegian Offshore Directorate), CSV table exports | `wellbore_all_long`, `wellbore_formation_top`, `wellbore_casing_and_lot`, `wellbore_mud`, `wellbore_history`, `wellbore_document` | NLOD 2.0 | 9,840 wellbores (138 fields), 41,418 formation/group tops, 8,741 casing rows, 3,750 LOT/FIT (3,047 LOT + 703 FIT), 35,783 mud-weight checks, 1,979 well-history narratives → 50,453 sentences |
 | **Utah FORGE 16A(78)-32** — GDR submission 1283 | daily drilling reports (PDF, WellEz), survey (xlsx), Pason 10-second sensor data (csv) | CC-BY 4.0 | 77 unique DDRs (duplicates removed by content hash), 623 time-breakdown activities, 422 survey stations, 101,204 sensor samples (1-min, 25 Oct 2020 → 5 Jan 2021) |
-| **Utah FORGE 16B(78)-32** — GDR submission 1516 | daily drilling reports (PDF, RIMBase), survey (txt), Pason 10-second data (zip, 1.8 GB) | CC-BY 4.0 | 88 unique DDRs, 1,383 activities, 850 survey stations, 248,968 sensor samples (30-s, 26 Apr → 21 Jul 2023) |
+| **Utah FORGE 16B(78)-32** — GDR submission 1516 | daily drilling reports (PDF, RIMBase), survey (txt), Pason 10-second data (zip, 1.8 GB) | CC-BY 4.0 | 88 unique DDRs, 760 activities, 428 survey stations, 248,968 sensor samples (30-s, 26 Apr → 21 Jul 2023) |
 
 ## Added on 24 Sept 2026 (second pass)
 
@@ -22,6 +22,30 @@ All data is public and used as a **stand-in** for Oil India data. Nothing is syn
 
 With these, the 16B replay has 5 offset wells within 1.3 km: the look-ahead now reports probabilities
 (e.g. stuck pipe in basin fill 55 %, range 29–80 %, n_eff 4.8) instead of "insufficient evidence".
+
+## Added on 26 Sept 2026: all-country build (plug-ins in `backend/app/ingest/ext/`)
+
+Each source keeps its own raw folder with `MANIFEST.csv` (file, URL, licence, date) and `REPORT.md`.
+
+| Country | Source (licence) | Loaded | Text for events? |
+|---|---|---|---|
+| India | Baghjan-5 NGT/High Court orders, PIB releases, papers, Wikipedia incidents/fields (`india_more`) | 32 documents, 5,834 sentences; 4 field centroids (labelled, not well locations) | yes |
+| United Kingdom | NSTA open data (OGL v3) | 13,382 wellbores (ED50→WGS84), 80 linked legacy reports | reports are geochemistry, few drilling events |
+| Netherlands | NLOG / TNO (open data) | 6,737 wells, 109,042 lithostratigraphic tops, 102 end-of-well reports (6 scanned) | yes |
+| Australia | SARIG (SA) + GSQ (QLD) open data (CC BY 4.0) | 4,082 wells, 93 well completion reports (34 scanned, 2 unreadable) | yes |
+| USA | BSEE Gulf of Mexico (public domain) | 55,567 boreholes (NAD27→WGS84); OCS incident narratives 1991–2000 and CY2020–24 incident workbooks (42,502 sentences; 1956–90 volume scanned, not read) | incidents are not yet linked to single wells |
+| Norway | FORCE 2020 lithology competition (NLOD 2.0) | 111 wells matched to Sodir, 3,459 log-derived lithology intervals, 367 caliper washout indicators | evidence only (kind OTHER) |
+| New Zealand | NZP&M petroleum wells (CC BY 4.0) | 1,267 wells | headers only (reports need a RealMe login) |
+| Canada | CNSOPB, C-NLOPB, Saskatchewan open data | 5,472 wells (Saskatchewan: a documented subset of 4,705) | headers only |
+
+**Totals after the rebuild (26 Sept 2026):**
+- 96,422 wells
+- 2,748 documents
+- 215,830 citable sentences
+- 154,058 formation tops
+- 2,450 events (823 trusted, 1,627 flagged for review)
+- 606 compiled wiki pages
+- The rebuild takes about 11 minutes; PDF text is cached in `data/processed/pdf_text/`.
 
 ## Sources in SPEC.md that were NOT used, and why
 

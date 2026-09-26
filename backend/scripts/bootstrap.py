@@ -24,7 +24,7 @@ def main():
     _reset_wiki()
     from app.ingest import sodir
     from app.extract import pipeline
-    from app.engines import episodes
+    from app.engines import auditor, episodes, post
     with SessionLocal() as db:
         sodir.ingest(db)
         db.commit()
@@ -57,7 +57,7 @@ def main():
         db.commit()
         episodes.run(db)
         db.commit()
-        from app.engines import post, auditor
+
         post.run(db)
         db.commit()
         auditor.run(db)

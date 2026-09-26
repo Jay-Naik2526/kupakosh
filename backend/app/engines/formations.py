@@ -59,4 +59,6 @@ class TopIndex:
         lv = self.by_well.get(well_id)
         if not lv:
             return set()
-        return {t.formation for lst in lv.values() for t in lst}
+        # only stratigraphic units: MEMBER (NLOG) and LITHOLOGY (FORCE 2020 log-derived rock types) are finer
+        # descriptions and would inflate well-to-well similarity if they counted as formations
+        return {t.formation for level in ("FORMATION", "GROUP") for t in lv.get(level, [])}
