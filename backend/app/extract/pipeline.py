@@ -23,10 +23,16 @@ def source_ref(doc: Document, p: Passage, well: Well) -> str:
 
 def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF", "DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT",
                                                          "JUDGMENT", "PAPER", "BASIN_REPORT", "WCR_PDF", "EOWR_PDF",
-                                                         "INCIDENT_REPORT")) -> dict:
+                                                         "INCIDENT_REPORT"), doc_ids: set[int] | None = None) -> dict:
+    """Full run (doc_ids=None) replaces all events/actions; an incremental run (upload) replaces only those of `doc_ids`."""
     c = cfg()["extract"]
-    db.execute(delete(Action))
-    db.execute(delete(Event))
+    if doc_ids is None:
+        db.execute(delete(Action))
+        db.execute(delete(Event))
+    else:
+        pids = select(Passage.id).where(Passage.document_id.in_(doc_ids))
+        db.execute(delete(Action).where(Action.passage_id.in_(pids)))
+        db.execute(delete(Event).where(Event.passage_id.in_(pids)))
     db.flush()
     tops = TopIndex(db)
     wells = {w.id: w for w in db.scalars(select(Well))}
@@ -36,7 +42,10 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
 
     act_by_passage = {a.passage_id: a for a in db.scalars(select(Activity)) if a.passage_id}
     n_ev = n_act = n_rev = n_dup = 0
-    docs = db.scalars(select(Document).where(Document.kind.in_(kinds))).all()
+    dq = select(Document).where(Document.kind.in_(kinds))
+    if doc_ids is not None:
+        dq = dq.where(Document.id.in_(doc_ids))
+    docs = db.scalars(dq).all()
     for doc in docs:
         well = wells.get(doc.well_id)
         passages = db.scalars(select(Passage).where(Passage.document_id == doc.id).order_by(Passage.seq)).all()

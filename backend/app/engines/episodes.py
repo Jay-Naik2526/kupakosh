@@ -31,11 +31,17 @@ def _after_trigger(text: str, hazard: str) -> str:
     return text
 
 
-def run(db: Session, log=print) -> dict:
+def run(db: Session, log=print, well_ids: set[int] | None = None) -> dict:
+    """Full run, or (well_ids given) re-link only the episodes of those wells (used after an upload)."""
     c = cfg()["episodes"]
-    db.execute(delete(Episode))
+    eq = select(Event).order_by(Event.well_id, Event.passage_id)
+    if well_ids is None:
+        db.execute(delete(Episode))
+    else:
+        db.execute(delete(Episode).where(Episode.well_id.in_(well_ids)))
+        eq = eq.where(Event.well_id.in_(well_ids))
     db.flush()
-    events = db.scalars(select(Event).order_by(Event.well_id, Event.passage_id)).all()
+    events = db.scalars(eq).all()
     passages = {p.id: p for p in db.scalars(select(Passage).where(Passage.id.in_({e.passage_id for e in events if e.passage_id})))}
     doc_ids = {p.document_id for p in passages.values()}
     by_doc: dict[int, list[Passage]] = defaultdict(list)

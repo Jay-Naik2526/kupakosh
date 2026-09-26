@@ -13,9 +13,9 @@ Every phase uses real public data only. The state column is updated as work land
 | E1e | USA: BSEE Gulf of Mexico boreholes and well-control incidents | agent (sonnet) | |
 | E1f | New Zealand and Canada: open well headers and reports | agent (sonnet) | |
 | E1g | Norway: FORCE 2020 logs and lithology | agent (sonnet) | |
-| E2 | Country-wise filter: `?country=` on API and country chips in the UI | main | |
+| E2 | Country-wise filter: `?country=` on API and country chips in the UI | main | done |
 | E3 | Integrate the ingesters, rebuild, extract, compile wiki, run evals, update docs, commit | main | |
-| E4 | Upload endpoint `POST /api/ingest` with jobs and incremental wiki recompile | main | |
+| E4 | Upload endpoint `POST /api/ingest` with jobs and incremental wiki recompile | main | done (Accuracy → "Add a report") |
 | E5 | LLM pass 2 (Gemini/Groq), only when a key is set; Pydantic-validated | main | |
 | E6 | Local embeddings (bge-small) + hybrid search in the copilot | main | |
 | E7 | `/dev/components`, Playwright smoke test, contrast check, vitest | main | |

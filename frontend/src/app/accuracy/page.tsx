@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { get } from "@/lib/api";
 import { Register } from "@/components/kk/Register";
+import { Drawer } from "@/components/kk/Drawer";
+import { UploadReport } from "@/components/kk/UploadReport";
 
 const EXPECTED = [
   { name: "extraction", metric: "event precision", how: "events_gold.csv: labelled real report lines vs rule extraction" },
@@ -26,7 +28,8 @@ const LIMITS = [
 
 export default function Accuracy() {
   const [s, setS] = useState<any>(null);
-  useEffect(() => { get("/api/status").then(setS); }, []);
+  const [up, setUp] = useState(false);
+  useEffect(() => { get("/api/status").then(setS); }, [up]);
   if (!s) return <p className="label">Loading…</p>;
   const c = s.counts;
   const HOW: Record<string, string> = Object.fromEntries(EXPECTED.map((e) => [e.name + "|" + e.metric, e.how]));
@@ -44,7 +47,11 @@ export default function Accuracy() {
 
       {/* Zone B — data sources */}
       <section aria-label="data sources">
-        <h2 className="font-semibold mb-2">Data sources</h2>
+        <div className="flex items-baseline justify-between mb-2">
+          <h2 className="font-semibold">Data sources</h2>
+          <button className="btn" onClick={() => setUp(true)}>Add a report ▸</button>
+        </div>
+        <Drawer open={up} onClose={() => setUp(false)} title="Add a report" width={560}><UploadReport /></Drawer>
         <Register rows={s.sources} cols={[
           { key: "n", head: "Source", cell: (r: any) => <a className="link" href={r.url} target="_blank" rel="noreferrer">{r.name}</a> },
           { key: "l", head: "Licence", cell: (r: any) => r.licence },
