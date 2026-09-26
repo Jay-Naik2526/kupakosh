@@ -39,8 +39,24 @@ copilot:
   # quantities / topics the records do not contain; questions about them are refused (SPEC.md §11.7)
   unsupported_terms: [ucs, compressive strength, friction angle, young's modulus, poisson, geomechanic, price, cost of, salary,
                       share price, stock, chairman, ceo, managing director, weather forecast]
-llm: {provider: gemini, fallback: groq, max_retries: 1, temperature: 0}
-embeddings: {model: BAAI/bge-small-en-v1.5, dim: 384}
+llm:
+  provider: gemini
+  fallback: groq
+  max_retries: 1
+  temperature: 0
+  gemini_model: gemini-2.5-flash
+  groq_model: llama-3.3-70b-versatile
+  timeout_s: 30
+  max_calls: 2000            # cap per extraction run (cost control)
+  agree_bonus: 0.15          # confidence added when rules and the LLM agree on the hazard
+embeddings:
+  model: BAAI/bge-small-en-v1.5
+  dim: 384
+  batch: 128
+  query_prefix: "Represent this sentence for searching relevant passages: "   # bge retrieval instruction
+  rrf_k: 60                 # reciprocal-rank fusion constant (keyword rank + semantic rank)
+  candidates: 200           # top-N from each retriever entering the fusion
+  min_cos: 0.78             # a passage found only by meaning (little word overlap) must be at least this similar
 ingest: {max_upload_mb: 50}
 ui: {max_zones: 3, file_prefix: "KPK", default_lang: en}
 demo:

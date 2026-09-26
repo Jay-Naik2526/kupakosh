@@ -45,7 +45,15 @@ def main():
                 db.rollback()
                 print(f"ext {mod.__name__}: FAILED {e!r}")
         post.assign_countries(db)
+        db.commit()
+        try:
+            from app.search import embeddings
+            embeddings.build(db)
+        except Exception as e:  # noqa: BLE001 — search falls back to keyword-only and the UI says so
+            print(f"embeddings: FAILED {e!r} (copilot uses keyword search only)")
         pipeline.run(db)
+        from app.extract import llm_extract
+        llm_extract.run(db)  # pass 2; skipped (and stated) when no LLM key is configured
         db.commit()
         episodes.run(db)
         db.commit()

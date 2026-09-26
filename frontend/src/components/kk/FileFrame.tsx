@@ -37,7 +37,7 @@ export function FileFrame({ children }: { children: ReactNode }) {
               <Wordmark />
               <div>
                 <h1 className="h-title leading-tight">{lang === "hi" ? tab.hi : tab.en} <span className="text-ink2 text-base font-normal deva">{lang === "hi" ? tab.en : tab.hi}</span></h1>
-                <div className="label">{tab.q}</div>
+                <div className={lang === "hi" ? "label deva" : "label"}>{lang === "hi" ? tab.qhi : tab.q}</div>
               </div>
               <div className="ml-auto flex items-center gap-2 flex-wrap small">
                 <button className="chip" aria-pressed={lang === "hi"} onClick={() => setLang(lang === "en" ? "hi" : "en")} aria-label="Toggle language">EN / हिं</button>

@@ -119,31 +119,73 @@ def find_basins(q: str) -> list[tuple[int, str, int]]:
     return found
 
 
+@lru_cache(maxsize=1)
+def _dense_map():
+    """Row position in the BM25 index -> row in the embedding matrix (-1 = not embedded)."""
+    from app.search import embeddings
+    ix = embeddings.index()
+    if ix is None:
+        return None
+    pos = {int(p): i for i, p in enumerate(ix[0])}
+    _, rows, _ = _index()
+    return np.array([pos.get(r[0], -1) for r in rows], dtype=np.int64)
+
+
+def _dense_scores(q: str) -> np.ndarray | None:
+    """Cosine similarity of every indexed passage to the question, aligned to the BM25 rows (None = no embeddings)."""
+    from app.search import embeddings
+    m = _dense_map()
+    if m is None:
+        return None
+    ids, vec = embeddings.index()
+    c = cfg()["embeddings"]
+    qv = embeddings.model().encode([c["query_prefix"] + q], normalize_embeddings=True)[0].astype(np.float32)
+    s = vec @ qv
+    return np.where(m >= 0, s[np.maximum(m, 0)], -1.0)
+
+
+def retrieval_mode() -> str:
+    return "hybrid (keyword BM25 + meaning, bge-small)" if _dense_map() is not None else "keyword (BM25)"
+
+
 def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = None, doc_ids: set[int] | None = None,
                     min_overlap: float | None = None) -> list[dict]:
-    c = cfg()["copilot"]
+    """Hybrid retrieval: keyword (BM25) and meaning (embeddings) ranks fused by reciprocal rank.
+    A passage is kept only if it shares enough of the question's words, or — found by meaning alone — is very similar."""
+    c, ce = cfg()["copilot"], cfg()["embeddings"]
     bm, rows, docs = _index()
     qt = [t for t in tok(q) if t not in STOP]
     if not qt:
         return []
-    scores = bm.get_scores(qt)
+    mask = np.ones(len(rows), dtype=bool)
     if well_ids:
-        mask = np.array([r[4] in well_ids for r in rows])
-        scores = np.where(mask, scores, 0)
+        mask &= np.array([r[4] in well_ids for r in rows])
     if doc_ids is not None:
-        mask = np.array([r[2] in doc_ids for r in rows])
-        scores = np.where(mask, scores, 0)
-    top = np.argsort(-scores)[: (k or c["top_k"]) * 3]
+        mask &= np.array([r[2] in doc_ids for r in rows])
+    kw = np.where(mask, bm.get_scores(qt), 0)
+    ncand = ce["candidates"]
+    kw_top = [i for i in np.argsort(-kw)[:ncand] if kw[i] > 0]
+    dense = _dense_scores(q)
+    de_top = []
+    if dense is not None:
+        dm = np.where(mask, dense, -1.0)
+        de_top = [i for i in np.argsort(-dm)[:ncand] if dm[i] > 0]
+    fused: dict[int, float] = {}
+    for rank_list in (kw_top, de_top):
+        for r, i in enumerate(rank_list):
+            fused[i] = fused.get(i, 0.0) + 1.0 / (ce["rrf_k"] + r + 1)
+    kw_set, de_set = set(kw_top), set(de_top)
+    need = min_overlap if min_overlap is not None else c["min_overlap"]
     out = []
-    for i in top:
-        if scores[i] <= 0:
-            break
+    for i in sorted(fused, key=lambda i: -fused[i]):
         overlap = len(set(qt) & set(docs[i])) / len(set(qt))
-        if overlap < (min_overlap if min_overlap is not None else c["min_overlap"]):
+        cos = float(dense[i]) if dense is not None else None
+        if overlap < need and not (cos is not None and cos >= ce["min_cos"]):
             continue
         r = rows[i]
-        out.append({"passage_id": r[0], "text": r[1], "source_ref": f"doc:{r[2]}#{r[3]}", "well_id": r[4], "score": round(float(scores[i]), 2),
-                    "overlap": round(overlap, 2)})
+        how = "both" if i in kw_set and i in de_set else "keyword" if i in kw_set else "meaning"
+        out.append({"passage_id": r[0], "text": r[1], "source_ref": f"doc:{r[2]}#{r[3]}", "well_id": r[4], "score": round(fused[i], 4),
+                    "overlap": round(overlap, 2), "cos": round(cos, 3) if cos is not None else None, "retrieved_by": how})
         if len(out) >= (k or c["top_k"]):
             break
     return out
@@ -167,7 +209,7 @@ def answer(db: Session, question: str, context_well: int | None = None, country:
     if bad:
         steps.append({"tool": "scope_check", "args": {"terms": bad}, "result": "not in the records"})
         return {"question": question, "refused": True, "answer": REFUSAL + f" (Kupakosh does not hold data on: {', '.join(bad)}.)",
-                "method": steps, "sources": [], "parsed": _jsonable(P), "mode": "extractive (no LLM configured)"}
+                "method": steps, "sources": [], "parsed": _jsonable(P), "mode": f"extractive (no LLM configured) · retrieval: {retrieval_mode()}"}
 
     def cite(ref: str, label: str | None = None) -> str:
         if ref not in [s["ref"] for s in sources]:
@@ -313,10 +355,10 @@ def answer(db: Session, question: str, context_well: int | None = None, country:
 
     if not paras:
         return {"question": question, "refused": True, "answer": REFUSAL, "method": steps, "sources": [], "parsed": _jsonable(P),
-                "mode": "extractive (no LLM configured)"}
+                "mode": f"extractive (no LLM configured) · retrieval: {retrieval_mode()}"}
     return {"question": question, "refused": False, "answer": "\n\n".join(paras), "method": steps, "sources": sources,
             "wiki": [{"slug": p.slug, "title": p.title, "status": p.status} for p in wiki_hits], "parsed": _jsonable(P),
-            "mode": "extractive (no LLM configured)"}
+            "mode": f"extractive (no LLM configured) · retrieval: {retrieval_mode()}"}
 
 
 def _jsonable(P):

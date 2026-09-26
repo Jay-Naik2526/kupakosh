@@ -1,15 +1,15 @@
 export type Lang = "en" | "hi";
 type S = { en: string; hi: string };
-export const TABS: { href: string; no: string; en: string; hi: string; q: string }[] = [
-  { href: "/", no: "01", en: "Command", hi: "कमान", q: "What's coming next and what should I do?" },
-  { href: "/offsets", no: "02", en: "Offsets", hi: "निकट कूप", q: "What happened in nearby wells, by layer?" },
-  { href: "/wiki", no: "03", en: "Wiki", hi: "ज्ञानकोश", q: "What do we know, and who approved it?" },
-  { href: "/fixes", no: "04", en: "Fixes", hi: "उपाय", q: "What actually worked?" },
-  { href: "/mudwindow", no: "05", en: "Mud Window", hi: "मड सीमा", q: "Which mud weight is safe, by formation?" },
-  { href: "/checker", no: "06", en: "Checker", hi: "मिलान", q: "Where do the reports disagree?" },
-  { href: "/copilot", no: "07", en: "Copilot", hi: "सहायक", q: "Ask the records." },
-  { href: "/brief", no: "08", en: "Brief", hi: "सार", q: "What should the pre-drill brief say?" },
-  { href: "/accuracy", no: "09", en: "Accuracy", hi: "सटीकता", q: "How much can you trust this?" },
+export const TABS: { href: string; no: string; en: string; hi: string; q: string; qhi: string }[] = [
+  { href: "/", no: "01", en: "Command", hi: "कमान", q: "What's coming next and what should I do?", qhi: "आगे क्या आने वाला है और मुझे क्या करना चाहिए?" },
+  { href: "/offsets", no: "02", en: "Offsets", hi: "निकट कूप", q: "What happened in nearby wells, by layer?", qhi: "निकट के कूपों में, परत-दर-परत, क्या हुआ?" },
+  { href: "/wiki", no: "03", en: "Wiki", hi: "ज्ञानकोश", q: "What do we know, and who approved it?", qhi: "हम क्या जानते हैं, और इसे किसने अनुमोदित किया?" },
+  { href: "/fixes", no: "04", en: "Fixes", hi: "उपाय", q: "What actually worked?", qhi: "वास्तव में क्या कारगर रहा?" },
+  { href: "/mudwindow", no: "05", en: "Mud Window", hi: "मड सीमा", q: "Which mud weight is safe, by formation?", qhi: "प्रत्येक संरचना के लिए कौन-सा मड भार सुरक्षित है?" },
+  { href: "/checker", no: "06", en: "Checker", hi: "मिलान", q: "Where do the reports disagree?", qhi: "रिपोर्टें कहाँ असहमत हैं?" },
+  { href: "/copilot", no: "07", en: "Copilot", hi: "सहायक", q: "Ask the records.", qhi: "अभिलेखों से पूछें।" },
+  { href: "/brief", no: "08", en: "Brief", hi: "सार", q: "What should the pre-drill brief say?", qhi: "वेधन-पूर्व सार में क्या होना चाहिए?" },
+  { href: "/accuracy", no: "09", en: "Accuracy", hi: "सटीकता", q: "How much can you trust this?", qhi: "इस पर कितना भरोसा किया जा सकता है?" },
 ];
 export const T: Record<string, S> = {
   footer: { en: "Decision support only – the engineer decides. Data: public NDR/DGH India basin summaries, and Sodir (Norway) and Utah FORGE (USA) well records used as stand-ins for well-level data; no Oil India well data.",

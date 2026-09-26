@@ -5,9 +5,11 @@ from __future__ import annotations
 def reset_all():
     from app.copilot import agent
     from app.engines import context, hazard, lookahead
+    from app.search import embeddings
 
     context.reset()
+    embeddings.index.cache_clear()
     hazard.base_rate.cache_clear()
     lookahead._profile.cache_clear()
-    for f in (agent._index, agent._names, agent._basin_names):
+    for f in (agent._index, agent._names, agent._basin_names, agent._dense_map):
         f.cache_clear()

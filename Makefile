@@ -3,7 +3,7 @@ PY      := backend/.venv/bin/python
 DYLD    := DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 API_PORT ?= 8010
 
-.PHONY: setup data bootstrap api web test eval up share
+.PHONY: setup data bootstrap api web test e2e eval up share
 
 setup:            ## python 3.11 venv + backend deps + frontend deps
 	cd backend && uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements.txt
@@ -12,7 +12,7 @@ setup:            ## python 3.11 venv + backend deps + frontend deps
 data:             ## download the real public datasets (Sodir, Utah FORGE) into data/raw
 	bash backend/scripts/download_data.sh
 
-bootstrap:        ## rebuild DB + wiki + evals from data/raw (about 30 s)
+bootstrap:        ## rebuild DB + embeddings + wiki + evals from data/raw (all countries; several minutes)
 	cd backend && $(DYLD) .venv/bin/python -m scripts.bootstrap
 
 api:              ## FastAPI on :$(API_PORT)  (do not wrap in nohup: macOS strips DYLD_* and PDF export then fails)
@@ -21,9 +21,12 @@ api:              ## FastAPI on :$(API_PORT)  (do not wrap in nohup: macOS strip
 web:              ## Next.js on :3000 (expects the API on :$(API_PORT))
 	cd frontend && NEXT_PUBLIC_API=http://localhost:$(API_PORT) npm run dev
 
-test:             ## backend tests + frontend type-check
+test:             ## backend tests + frontend type-check + frontend unit tests
 	cd backend && $(DYLD) .venv/bin/python -m pytest -q tests
-	cd frontend && npx tsc --noEmit
+	cd frontend && npx tsc --noEmit && npm test
+
+e2e:              ## Playwright smoke test of all screens (needs `make api` + `make web` running; first run: npx playwright install chromium)
+	cd frontend && npx playwright test
 
 eval:             ## re-run evaluations only
 	cd backend && .venv/bin/python -c "from app.db.session import SessionLocal; from app.eval.run import run_all; db=SessionLocal(); run_all(db); db.commit()"

@@ -122,6 +122,11 @@ def _run(job: dict, path: Path, kind: str, well: str | None, country: str | None
             if w and new_events:
                 episodes.run(db, log=lambda m: _step(job, m), well_ids={w.id})
             db.commit()
+            try:
+                from app.search import embeddings
+                embeddings.build(db, log=lambda m: _step(job, m))
+            except Exception as e:  # noqa: BLE001
+                _step(job, f"embeddings not updated ({e!r}); keyword search still covers this document")
             reset_all()
             targets = [("well", w.id)] if w and new_events else []
             targets += [("hazard", h) for h in sorted({e.hazard for e in new_events})]
