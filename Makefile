@@ -3,14 +3,17 @@ PY      := backend/.venv/bin/python
 DYLD    := DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 API_PORT ?= 8010
 
-.PHONY: setup data bootstrap api web test e2e eval up share
+.PHONY: setup data data-core bootstrap api web test e2e eval up share
 
 setup:            ## python 3.11 venv + backend deps + frontend deps
 	cd backend && uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements.txt
 	cd frontend && npm install
 
-data:             ## download the real public datasets (Sodir, Utah FORGE) into data/raw
-	bash backend/scripts/download_data.sh
+data:             ## download EVERY public dataset (all countries) into data/raw — idempotent, several minutes to ~1h on a slow line
+	bash backend/scripts/download_world.sh
+
+data-core:        ## fast path: Sodir (Norway) + Utah FORGE + India only — enough for `make bootstrap` to produce a working demo
+	bash backend/scripts/download_world.sh core
 
 bootstrap:        ## rebuild DB + embeddings + wiki + evals from data/raw (all countries; several minutes)
 	cd backend && $(DYLD) .venv/bin/python -m scripts.bootstrap
