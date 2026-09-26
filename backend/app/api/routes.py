@@ -29,6 +29,10 @@ def _well(db: Session, well_id: int) -> Well:
     return w
 
 
+# rows that are locations, not wells: BSEE block aggregates, field centroids (never counted as wells)
+NOT_WELLS = ("block_aggregate", "field_centroid")
+
+
 def _country_ids(db: Session, country: str | None) -> set[int] | None:
     """Well ids of one country (None = no filter). Country names are the English names stored on well.country."""
     if not country:
@@ -61,7 +65,8 @@ def status(db: Session = Depends(get_db)):
              for e in db.scalars(select(EvalResult).order_by(EvalResult.id))]
     return {
         "counts": {
-            "wells": n(Well), "documented_wells": len(ctx().documented), "formation_tops": n(FormationTop),
+            "wells": n(Well, Well.well_type.is_(None) | Well.well_type.not_in(NOT_WELLS)),
+            "aggregate_locations": n(Well, Well.well_type.in_(NOT_WELLS)), "documented_wells": len(ctx().documented), "formation_tops": n(FormationTop),
             "documents": n(Document), "report_entries": n(Passage), "ddr_reports": n(Document, Document.kind == "DDR_PDF"),
             "history_documents": n(Document, Document.kind == "WELL_HISTORY"), "events": n(Event),
             "events_trusted": n(Event, Event.needs_review.is_(False)), "events_needs_review": n(Event, Event.needs_review.is_(True)),
@@ -85,7 +90,8 @@ def countries(db: Session = Depends(get_db)):
     """Per-country record counts (drives the country filter chips)."""
     def per(stmt):
         return {c: k for c, k in db.execute(stmt)}
-    wells_n = per(select(Well.country, func.count()).group_by(Well.country))
+    real = Well.well_type.is_(None) | Well.well_type.not_in(NOT_WELLS)
+    wells_n = per(select(Well.country, func.count()).where(real).group_by(Well.country))
     located = per(select(Well.country, func.count()).where(Well.lat.is_not(None)).group_by(Well.country))
     docs = per(select(Well.country, func.count(func.distinct(Passage.document_id))).join(Passage, Passage.well_id == Well.id)
                .group_by(Well.country))

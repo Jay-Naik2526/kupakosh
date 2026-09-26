@@ -4,7 +4,7 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 - **Part A** is the content of every slide, text ready to paste.
 - **Part B** is copy-paste prompts for ChatGPT or Gemini to make each infographic panel in the same visual style.
 
-> **Values below were filled from the live database on 26 Sept 2026** (all-country rebuild). If the data changes,
+> **Values below were filled from the live database on 27 Sept 2026** (final all-country rebuild with OCR). If the data changes,
 > re-copy them from the **09 Accuracy** page.
 >
 > **Numbers rule (same as the product):** every number in this deck is measured from our database or
@@ -80,7 +80,7 @@ Four blocks, same positions as NiyamKosh slide 2.
 
 | Big number | Text |
 |---|---|
-| **89.7 %** | of extracted drilling events were correct (n = 39 labelled report lines) |
+| **92.1 %** | of extracted drilling events were correct (n = 38 labelled report lines) |
 | **92.1 %** | of labelled drilling problems were found (n = 38) |
 | **78.9 %** | of problem → fix → outcome chains were linked correctly (n = 19) |
 | 0 | answers without a source: every copilot sentence cites a report line |
@@ -125,10 +125,10 @@ Four blocks, same positions as NiyamKosh slide 2.
 
 | Number | Label |
 |---|---|
-| **96,422** | WELLS INDEXED (8 countries) |
-| **2,15,830** (215,830) | REPORT SENTENCES, EACH CITABLE |
+| **96,418** | WELLS INDEXED (8 countries) |
+| **2,24,016** (224,016) | REPORT SENTENCES, EACH CITABLE |
 | **1,54,058** (154,058) | FORMATION TOPS |
-| **2,450** | DRILLING EVENTS EXTRACTED (823 trusted, the rest flagged for review) |
+| **2,623** | DRILLING EVENTS EXTRACTED (772 trusted, the rest in the review queue) |
 
 **DEPLOYMENT MODEL: "Runs beside eRTMAC, inside Oil India"** (replaces NiyamKosh's business model)
 - **Value proposition (dark bar):** "Fewer lost rig days: know the next layer before the bit does."
@@ -152,7 +152,7 @@ Four blocks, same positions as NiyamKosh slide 2.
 | Risk | Mitigation |
 |---|---|
 | **Well data is restricted.** Oil India and NDR well files need authorisation. | **Same schema, swap the data.** Built on public stand-ins from 8 countries. Oil India data loads with no code change (upload or bulk). |
-| **Scanned old reports.** Many old DDRs are images. | **Flagged, never guessed.** Scans are stored and marked. An OCR stage with confidence per page is planned; low confidence goes to review. |
+| **Scanned old reports.** Many old DDRs are images. | **Read with OCR, confidence kept.** Tesseract reads scanned pages and stores a confidence for each page. Events from low-quality scans get lower confidence and go to the review queue. |
 | **AI might invent facts.** | **Cite or stay silent.** Evidence must be a verbatim quote. Uncited sentences are rejected. The copilot refuses when there's no record. |
 | **Engineers must trust it.** | **Engineer approves.** A noting-sheet review, a git history for every change, and a probability with its range and "insufficient evidence". |
 
@@ -172,7 +172,7 @@ Four blocks, same positions as NiyamKosh slide 2.
 - **Honest risk:** A probability with its range and evidence count, or "insufficient evidence", never a false certainty.
 - **What actually worked:** Fixes are ranked by success rate with a lower bound. Fixes that made things worse are shown.
 
-**Bottom line (bold):** "96,422 wells, 2,15,830 report sentences, 8 countries. The challenge isn't data, it's remembering it at the right depth. Kupakosh turns old drilling reports into a warning before the bit reaches the danger layer."
+**Bottom line (bold):** "96,418 wells, 2,24,016 report sentences, 8 countries. The challenge isn't data, it's remembering it at the right depth. Kupakosh turns old drilling reports into a warning before the bit reaches the danger layer."
 
 ---
 
@@ -298,7 +298,7 @@ Five rows. Each row has a big bold burnt-orange number on a pale peach block at 
 "[N5]" — "out-of-scope questions correctly refused"
 At the bottom, a pale grey pill with italic text: "Every figure recomputed from the database on load".
 ```
-(Use [N1] = "89.7%", [N2] = "92.1%", [N3] = "78.9%", [N5] = "30 of 30".)
+(Use [N1] = "92.1%", [N2] = "92.1%", [N3] = "78.9%", [N5] = "30 of 30".)
 
 ### Prompt 6: Slide 3 "KUPAKOSH SYSTEM ARCHITECTURE"
 ```
@@ -333,8 +333,8 @@ A pale blue pill at the bottom in bold navy capitals: "REAL DATA • REAL WELLS 
 [Style block]
 Top: a white card with an orange top rule. Left cell: "CURRENT SCALE" in bold spaced capitals, with grey text "Measured from the
 live database, not estimated". Four cells, each with a line icon above a big burnt-orange number and grey caps caption:
-(oil-well icon) "96,422" "WELLS INDEXED"; (document stack) "2,15,830" "REPORT SENTENCES"; (rock layers) "1,54,058" "FORMATION TOPS";
-(warning triangle) "2,450" "DRILLING EVENTS".
+(oil-well icon) "96,418" "WELLS INDEXED"; (document stack) "2,24,016" "REPORT SENTENCES"; (rock layers) "1,54,058" "FORMATION TOPS";
+(warning triangle) "2,623" "DRILLING EVENTS".
 Below: title "DEPLOYMENT MODEL" with the grey subtitle "RUNS BESIDE eRTMAC, INSIDE OIL INDIA". A dark navy rounded bar with a small orange
 label "VALUE PROPOSITION" and white bold text "FEWER LOST RIG DAYS" and small text "KNOW THE NEXT LAYER BEFORE THE BIT DOES".
 Left list "USERS" with small icons: "DRILLING ENGINEERS / PRE-DRILL PLANNING", "RIG-SITE SUPERVISORS / LIVE LOOK-AHEAD",
@@ -354,7 +354,7 @@ Four rows. Each row has a peach risk card, then an orange arrow, then a mint mit
 1 Risk "WELL DATA IS RESTRICTED" — "Oil India and NDR well files need authorisation"
   → Mitigation "SAME SCHEMA, SWAP THE DATA" — "Built on public data from 8 countries; Oil India data loads with no code change"
 2 Risk "SCANNED OLD REPORTS" — "Many old daily reports are images with no text"
-  → Mitigation "FLAGGED, NEVER GUESSED" — "Scans are stored and marked; OCR with a confidence per page goes to review"
+  → Mitigation "READ WITH OCR, CONFIDENCE KEPT" — "Scanned pages read by OCR; low-confidence text goes to review"
 3 Risk "AI MIGHT INVENT FACTS" — "A wrong depth or hazard is dangerous"
   → Mitigation "CITE OR STAY SILENT" — "Evidence must be a verbatim quote; uncited sentences are rejected"
 4 Risk "ENGINEERS MUST TRUST IT" — "An alert nobody believes is ignored"

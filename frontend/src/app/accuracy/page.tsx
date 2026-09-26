@@ -45,7 +45,7 @@ export default function Accuracy() {
     <div className="space-y-8">
       {/* Zone A — four figures */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="figures">
-        <Fig v={c.wells} l={t("acWells", lang)} sub={`${c.documented_wells.toLocaleString()} with a report or history text`} />
+        <Fig v={c.wells} l={t("acWells", lang)} sub={`${c.documented_wells.toLocaleString()} with a report or history text${c.aggregate_locations ? ` · ${c.aggregate_locations.toLocaleString()} block/field locations not counted as wells` : ""}`} />
         <Fig v={c.report_entries} l={t("acReportEntries", lang)} sub={`${c.history_documents} well histories · ${c.ddr_reports} daily reports`} />
         <Fig v={c.events} l={t("acExtractedEvents", lang)} sub={`${c.events_trusted} trusted · ${c.events_needs_review} need review · method: ${s.extraction_method}`} />
         <Fig v={c.wiki_approved} l={t("acApprovedWiki", lang)} sub={`of ${c.wiki_pages} compiled (drafts need a reviewer)`} />

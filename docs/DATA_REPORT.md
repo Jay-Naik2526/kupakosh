@@ -38,14 +38,26 @@ Each source keeps its own raw folder with `MANIFEST.csv` (file, URL, licence, da
 | New Zealand | NZP&M petroleum wells (CC BY 4.0) | 1,267 wells | headers only (reports need a RealMe login) |
 | Canada | CNSOPB, C-NLOPB, Saskatchewan open data | 5,472 wells (Saskatchewan: a documented subset of 4,705) | headers only |
 
-**Totals after the rebuild (26 Sept 2026):**
-- 96,422 wells
-- 2,748 documents
-- 215,830 citable sentences
-- 154,058 formation tops
-- 2,450 events (823 trusted, 1,627 flagged for review)
-- 606 compiled wiki pages
-- The rebuild takes about 11 minutes; PDF text is cached in `data/processed/pdf_text/`.
+**Totals after the final rebuild (27 Sept 2026, with OCR and linked US incidents):**
+- 96,418 wells, plus 730 aggregate locations: 726 BSEE block aggregates and 4 Indian field centroids. These are never counted as wells.
+- 2,749 documents and 224,016 citable sentences.
+- 154,058 formation tops.
+- 2,623 events: 772 trusted, 1,851 in the review queue.
+- 609 compiled wiki pages.
+
+**OCR (Tesseract):**
+- 63 Australian reports and 29 Dutch reports now have OCR-read pages.
+- The 1956–1990 BSEE incident volume (331 pages, mean OCR confidence 91 %) is read, giving 1,368 historical incident records.
+- Event confidence is multiplied by the document's OCR confidence.
+- 8 Australian reports remain unreadable even after OCR.
+
+**US incident linking:**
+- 14 records linked by API number.
+- 129 linked to a unique lease and block.
+- 3,675 linked to a block aggregate.
+- 2,897 ambiguous records left unlinked, never guessed.
+
+**Rebuild time:** the first run is about 55 min (one-time OCR). Later runs take about 12 min, because OCR text is cached in `data/processed/pdf_text/`.
 
 ## Sources in SPEC.md that were NOT used, and why
 

@@ -19,7 +19,7 @@ Every phase uses real public data only. The state column is updated as work land
 | E5 | LLM pass 2 (Gemini/Groq), only when a key is set; Pydantic-validated | main | done (off: no key here; tested with fake model) |
 | E6 | Local embeddings (bge-small) + hybrid search in the copilot | main | done |
 | E7 | `/dev/components`, Playwright smoke test, contrast check, vitest | main | done (11/11 e2e, 5/5 unit) |
-| E8 | Hindi body text, polish, screenshots, docs | main | started (screen questions in Hindi) |
+| E8 | Hindi body text, polish, screenshots, docs | main | done (≈150 Hindi strings, screenshots, docs) |
 | E9 | Postgres/PostGIS docker scripts (target stack; not runnable here) | main | compose + Dockerfiles exist; unverified (no Docker) |
 
 ## Rules for data agents
@@ -28,3 +28,20 @@ Every phase uses real public data only. The state column is updated as work land
 - Every Well gets `country`, `source`, and `position_source` (when lat/lon are set).
 - Every Document gets a `url` and a `licence`. Text is split into Passages so events can be extracted and cited.
 - Test against a scratch SQLite DB, never `data/kupakosh.db`.
+
+## Follow-up round (27 Sept 2026)
+All done:
+- USA incidents linked to wells.
+- Event review queue; decisions are replayed after every rebuild.
+- OCR (Tesseract), including the 1956–1990 BSEE volume.
+- Auditor R5, and R2/R3 widened to more report types.
+- `download_world.sh`.
+- An independent eval-label second pass.
+- Hindi UI.
+- Final rebuild: 96,418 wells, 224,016 sentences, 2,623 events. All tests green.
+
+Left for people:
+- Approve the demo wiki pages.
+- Verify the gold labels.
+- Add an LLM key (optional).
+- Fill the portal fields in the deck.
