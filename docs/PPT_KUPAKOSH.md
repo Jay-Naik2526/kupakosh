@@ -203,6 +203,13 @@ Four blocks, same positions as NiyamKosh slide 2.
 
 ---
 
+### Ready-made screenshots (real app, 26 Sept 2026)
+All in `docs/screenshots/`, regenerated with `cd frontend && node scripts/screenshots.mjs` (API and web must be running):
+- `01-command-replay.png`: Slide 2, "One alert" panel (stuck pipe, basin fill, 55 %, range 29–80 %, 4.8 wells)
+- `02-offsets.png` and `02-offsets-map.png`: Slide 3, "Technical validation"
+- `07-copilot.png`: one cited answer and one refusal
+- `03-wiki.png`, `04-fixes.png`, `05-mudwindow.png`, `06-checker.png`, `08-brief.png`, `09-accuracy.png`: backups or appendix
+
 ## Part B: prompts for ChatGPT or Gemini (to make the panels look like NiyamKosh)
 
 ### How to use (read once)
