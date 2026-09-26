@@ -479,6 +479,41 @@ def _parse_91_94_date(s: str) -> date | None:
         return None
 
 
+# 1956-1990 volume: a scanned multi-column table read by OCR. A record starts with a Gulf of Mexico OCS area name
+# followed by its date (MM-DD-YY); block and lease follow inside the record. OCR interleaves the table columns, so a
+# record's text is kept whole (not re-ordered) and cited by page, area, block and date.
+_GOM_AREAS = ("South Marsh Island", "South Timbalier", "South Pass", "Eugene Island", "West Cameron", "East Cameron",
+              "Ship Shoal", "West Delta", "Main Pass", "Vermilion", "Grand Isle", "High Island", "Galveston",
+              "Matagorda Island", "Mustang Island", "Brazos", "Viosca Knoll", "Mississippi Canyon", "Green Canyon",
+              "Garden Banks", "Ewing Bank", "East Breaks", "Breton Sound", "Chandeleur", "Mobile", "Sabine Pass", "Pelto")
+_REC_56_90 = re.compile(r"\b(" + "|".join(re.escape(a) for a in _GOM_AREAS) + r")\s+(\d{2}-\d{2}-\d{2})\b")
+_BLOCK_RX = re.compile(r"\bBlock\s+(\d{1,4})\b")
+_LEASE_RX = re.compile(r"\bOCS(?:-G)?[ -]?(\d{3,5}[A-Z]?)\b")
+
+
+def _parse_56_90_page(text: str) -> list[dict]:
+    text = " ".join(text.split())
+    ms = list(_REC_56_90.finditer(text))
+    out = []
+    for i, m in enumerate(ms):
+        body = text[m.start(): ms[i + 1].start() if i + 1 < len(ms) else len(text)]
+        b, l = _BLOCK_RX.search(body), _LEASE_RX.search(body)
+        out.append({"area": m.group(1), "date_raw": m.group(2), "block": b.group(1) if b else "",
+                    "lease": ("OCS " + l.group(1)) if l else "", "remarks_text": body})
+    return out
+
+
+def _parse_mdy(s: str) -> date | None:
+    m = re.match(r"(\d{2})-(\d{2})-(\d{2})", s.strip())
+    if not m:
+        return None
+    mm, dd, yy = (int(x) for x in m.groups())
+    try:
+        return date(1900 + yy, mm, dd)  # this volume covers 1956-1990 only
+    except ValueError:
+        return None
+
+
 _PDF_TITLES = {
     "ocsincidents1991to1994-pdf.pdf": "BSEE/MMS: Accidents Associated with Oil and Gas Operations, OCS, 1991-1994",
     "incidentsassociatedwithoilandgasoperationsocs95-96-pdf.pdf": "BSEE/MMS: Accidents Associated with Oil and Gas Operations, OCS, 1995-1996",
@@ -530,9 +565,25 @@ def _ingest_incident_pdfs(db: Session, log) -> tuple[list[dict], Counter]:
         return records, stats
     old_scanned = REPORTS_DIR / "ocsincidents1956to1990-pdf.pdf"
     if old_scanned.exists():
-        stats["skipped_no_ocr"] += 1
-        log("us_bsee: ocsincidents1956to1990-pdf.pdf is a scanned volume with no text layer; "
-            "no tesseract/OCR is installed in this environment, so it is left un-ingested (raw file kept).")
+        from app.ingest.pdftext import pdf_pages_with_conf
+        pages, confs = pdf_pages_with_conf(old_scanned)  # OCR (Tesseract); cached after the first run
+        full = "\n".join(pages)
+        doc = _make_document(db, "INCIDENT_REPORT", "BSEE/MMS: Accidents Associated with Oil and Gas Operations, OCS, 1956-1990 (OCR)",
+                             _URL_BASE + "incident-statisticssummaries-fatalities/exploration-and-production/ocsincidents1956to1990-pdf.pdf",
+                             hashlib.sha256(full.encode()).hexdigest(), len(pages))
+        if doc is not None:
+            oc = [c for c in confs if c is not None]
+            doc.is_scanned, doc.ocr_mean_conf = bool(oc), (round(sum(oc) / len(oc), 1) if oc else None)
+            n56 = 0
+            for pgi, txt in enumerate(pages, start=1):
+                for r in _parse_56_90_page(txt):
+                    records.append({"doc": doc, "locator": f"p{pgi}, {r['area']} Blk {r['block']}, {r['date_raw']}",
+                                    "text": r["remarks_text"], "rdate": _parse_mdy(r["date_raw"]), "lease": r["lease"],
+                                    "area": r["area"], "block": r["block"]})
+                    n56 += 1
+            stats["incident_records_1956_1990_ocr"] += n56
+            log(f"us_bsee: ocsincidents1956to1990-pdf.pdf -> {n56} incident records parsed from OCR text "
+                f"(mean OCR confidence {doc.ocr_mean_conf})")
     for fname, title in _PDF_TITLES.items():
         p = REPORTS_DIR / fname
         if not p.exists():
@@ -699,7 +750,7 @@ def ingest(db: Session, log=print) -> dict:
                    notes="API number, spud date, MD/TVD, water depth, well type, surface+bottom-hole position; NAD27->WGS84 reprojected"),
         DataSource(name="BSEE/MMS OCS incident-summary reports (1991-2000, narrative PDFs)", url="https://www.bsee.gov/stats-facts/offshore-incident-statistics",
                    licence=LICENCE, records=stats.get("incident_records", 0),
-                   notes="blowout/kick/lost-circulation/fire/collision narratives with Area/Block/Lease/Cause; 1956-1990 volume excluded (scanned, no OCR available)"),
+                   notes="blowout/kick/lost-circulation/fire/collision narratives with Area/Block/Lease/Cause; 1956-1990 volume read by OCR (Tesseract), confidence stored on the document"),
         DataSource(name="BSEE Offshore Incident Statistics workbooks (CY2020-2024)", url="https://www.bsee.gov/stats-facts/offshore-incident-statistics",
                    licence=LICENCE, records=stats.get("incident_rows", 0),
                    notes=f"free-text incident narratives incl. Loss-of-Well-Control flags ({stats.get('lwc_rows', 0)} rows flagged LWC)"),
