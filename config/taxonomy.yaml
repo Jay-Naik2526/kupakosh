@@ -33,8 +33,10 @@ hazards:
       - '\bblow[ -]?outs?\b(?![ -]preventer)|\buncontrolled (flow|release) of (gas|oil|well fluids?)|\bwell (fire|was on fire)\b|\bcratering\b'
     exclude:
       - 'kick(ed)?[- ]off'
+      - 'kick[- ]?plates?'
       - 'kick-?off point'
       - '\bno (kick|influx)'
+      - 'shut[ -]in (at|during) (the )?time of|at (the )?time of (the )?(accident|incident)|shut[ -]in for (maintenance|repairs?|the storm|hurricane)'
   stuck_pipe:
     label: Stuck pipe
     include:
@@ -46,6 +48,7 @@ hazards:
       - '\bjarr(ed|ing)\b|\bjars? (was|were) (fired|used)'
     exclude:
       - '(break\w*|broke) off (the )?core|check\w* (for )?overpull|every \d+.{0,5} to check'
+      - '\b(cranes?|whip ?lines?|slings?|shackles?|headache ball|personnel basket|rigging)\b'
       - 'stuck (logging |wireline )?tool|\b(RFT|FMT|MDT|RCI|DST|logging|wireline|MWD|LWD)[- ]?(tool|string)s?\b.{0,30}\bstuck|stuck.{0,20}\b(RFT|FMT|MDT|RCI|logging tool|wireline)'
   torque_spike:
     label: Torque spike
@@ -73,12 +76,13 @@ hazards:
     label: Fishing / junk
     include:
       - '\bfishing\b|\bthe fish\b|\ba fish\b|\bfish (at|was|left)\b'
-      - '\btwisted off\b|\bleft in (the )?hole\b|\bjunk\b(?! (the )?well)|\bparted\b|\bdropped [\d/" -]*(casing|pipe|string|bha)'
+      - '\btwisted off\b|\bleft in (the )?hole\b|\bjunk\b(?! (the )?well)|\b(drill ?pipe|drill ?string|string|pipe|casing|tubing|sand ?line|wire ?line|slickline|bha|collars?)\b[^.]{0,30}\bparted\b|\bparted\b[^.]{0,20}\b(drill ?pipe|drill ?string|string|casing|tubing|bha)\b|\bdropped [\d/" -]*(casing|pipe|string|bha)'
       - '\blost (in hole|the bha|hole opener|bha|bit)\b'
     exclude:
       - 'fishing (vessel|boat|fleet|activity|ground)'
       - '\bfish(ing|ery|eries|ermen)?\b.{0,20}\b(communit(y|ies)|folk|livelihoods?|villagers?|villages?|nets?|ponds?|wetlands?|dolphins?|species|population)\b|\bfishermen\b|\bfisheries\b'
       - 'junk (slot|throat|basket|sub|mill)'
+      - '\b(cranes?|slings?|shackles?|whip ?lines?|headache ball|lifting spear|rigging|personnel basket|load (fell|dropped)|off[- ]tour|recreational)\b'
   wellbore_instability:
     label: Wellbore instability
     include:

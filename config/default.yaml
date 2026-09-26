@@ -13,6 +13,10 @@ extract:
   mud_table_max_gap_m: 150    # use Sodir mud-table MW only if a reading lies this close to the event depth
   min_depth_ft: 100           # feet numbers below this in DDR text are footage/rates, not depths
   dedup_depth_m: 30           # same hazard within this depth in one document = same event
+  # Incident reports (e.g. BSEE) are mostly injuries and equipment failures: a hazard counts only when the same
+  # sentence also has drilling / well-operations context
+  context_required_kinds: [INCIDENT_REPORT]
+  drilling_context: '\b(drill\w*|trip(ping|ped)?|mud|circulat\w*|bop|blow[ -]?out|casing|cement\w*|hole|string|workover|completion|wellbore|kick|influx|well control|coiled tubing|wireline|bha|bit)\b'
 
 episodes: {window_h: 72, window_sentences: 4}
 ledger: {min_n_display: 3, z: 1.96, partial_credit: 0.5}

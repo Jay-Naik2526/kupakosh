@@ -18,11 +18,18 @@ Sources actually downloaded (see data/raw/usa/MANIFEST.csv for URLs + retrieval 
     (data/raw/usa/bsee_incidents/cy20NN.xlsx) -- one row per incident with a free-text narrative
     ("Incident Summary" / "Redacted Incident Summary") and Loss-of-Well-Control flag columns.
 
-What this does NOT do: it does not attempt to join an incident's Lease/Area/Block back to a
-specific Borehole row (that join is many-to-many and not reliable from public fields alone), so
-incident Documents/Passages are stored with well_id=None. Nothing here is invented: every field
-comes from the published files; anything we could not confidently map from the raw column layout
-(no official record-layout page was reachable -- see REPORT.md) is left out rather than guessed.
+Incident-record linking (Lease/Area/Block -> Borehole well): an incident record is linked to a
+specific well only when the record's evidence pins down exactly one borehole -- an explicit API
+number quoted in the narrative text, or a lease (+ area/block, when given) that resolves to a
+single Borehole row. When a lease/block instead resolves to several boreholes (the common case --
+a lease or a block is usually drilled by many wellbores/sidetracks), the passage is attached to a
+synthetic "block well" (canonical_name "US-BLOCK: <area> <block>", well_type "block_aggregate")
+representing that whole area/block, never to one of the candidate boreholes picked at random. The
+two-letter BSEE area code used to key that lookup (e.g. "ST" for South Timbalier, "SM" for South
+Marsh Island) is never hand-typed from memory: it is learned at ingest time by joining incident
+records that carry both a lease and an area name against the Borehole file's own lease->area-code
+data, and only kept when every such joined record agrees on one code (see `_learn_area_codes`).
+Records whose lease/area/block cannot be resolved at all keep well_id=None, same as before.
 """
 from __future__ import annotations
 
@@ -30,7 +37,7 @@ import csv
 import hashlib
 import re
 import zipfile
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import date, datetime
 from pathlib import Path
 
@@ -172,6 +179,161 @@ def _ingest_boreholes(db: Session, log) -> Counter:
             db.flush()
     log(f"us_bsee: boreholes -> {stats['wells']} wells ({reproj_ok} reprojected NAD27->WGS84)")
     return stats
+
+
+# ------------------------------------------------------------------ incident -> well linking
+
+_AB_ALIAS_RE = re.compile(r"^([A-Z]{2,4})\s*0*([0-9]{1,4})$")  # e.g. "ST 0299" / "HIA0072" -> ("ST"/"HIA","0299"/"0072")
+_API_IN_TEXT = re.compile(r"\bAPI[:#]?\s*(\d{8,14})\b", re.I)
+
+
+def _norm_area(s) -> str | None:
+    """'Main Pass Area, South And East Addition' -> 'main pass'; 'South Timbalier' -> 'south timbalier'."""
+    s = str(s or "").strip().lower()
+    if not s:
+        return None
+    s = s.split(",")[0]
+    s = re.sub(r"\s+area$", "", s).strip()
+    s = re.sub(r"\s+", " ", s)
+    return s or None
+
+
+def _norm_block(v) -> str | None:
+    s = str(v or "").strip()
+    m = re.match(r"^0*([0-9]{1,4})$", s)
+    return f"{int(m.group(1)):04d}" if m else None
+
+
+def _norm_lease(v) -> str | None:
+    s = str(v or "").strip().upper()
+    return s or None
+
+
+def _bsee_well_index(db: Session) -> dict:
+    """Index the just-ingested Borehole wells for linking, from their own `aliases` (lease number,
+    lease-area-block code, surface-block code -- see `_ingest_boreholes`). An alias of the form
+    "XX 0299" / "XXA0072" (2-4 letters, then digits) is a BSEE area/block code; anything else is
+    treated as a lease number. This is derived straight from the data already loaded, not typed
+    in from memory."""
+    by_api: dict[str, int] = {}
+    lease_wells: dict[str, set] = defaultdict(set)
+    lease_codes: dict[str, set] = defaultdict(set)
+    ab_wells: dict[tuple, set] = defaultdict(set)
+    latlon: dict[int, tuple] = {}
+    q = db.query(Well.id, Well.external_id, Well.aliases, Well.lat, Well.lon).filter(Well.source == "bsee")
+    for wid, api, aliases, lat, lon in q:
+        if api:
+            by_api[api] = wid
+        if lat is not None and lon is not None:
+            latlon[wid] = (lat, lon)
+        codes_for_well: set = set()
+        leases_for_well: set = set()
+        for a in (aliases or []):
+            a = (a or "").strip()
+            if not a:
+                continue
+            m = _AB_ALIAS_RE.match(a)
+            if m:
+                code, block = m.group(1), f"{int(m.group(2)):04d}"
+                ab_wells[(code, block)].add(wid)
+                codes_for_well.add(code)
+            else:
+                leases_for_well.add(a)
+        for lease in leases_for_well:
+            lease_wells[lease].add(wid)
+            lease_codes[lease] |= codes_for_well
+    return {"by_api": by_api, "lease_wells": lease_wells, "lease_codes": lease_codes,
+            "ab_wells": ab_wells, "latlon": latlon}
+
+
+def _learn_area_codes(records: list[dict], lease_codes: dict) -> tuple[dict, dict]:
+    """Learn area-name -> BSEE 2-4-letter area-code from records that carry BOTH a lease and an
+    area name, by joining that lease against the Borehole file's own lease->area-code data (see
+    `_bsee_well_index`). Kept only where every joined record agrees on a single code for that
+    lease -- ambiguous or unseen leases are skipped rather than guessed. This never uses a
+    hardcoded BOEM area-code table."""
+    votes: dict[str, Counter] = defaultdict(Counter)
+    display: dict[str, str] = {}
+    for r in records:
+        area_raw = r.get("area")
+        area = _norm_area(area_raw)
+        lease = _norm_lease(r.get("lease"))
+        if not area or not lease:
+            continue
+        codes = lease_codes.get(lease)
+        if not codes or len(codes) != 1:
+            continue
+        (code,) = codes
+        votes[area][code] += 1
+        if code not in display:
+            display[code] = str(area_raw).strip().split(",")[0]
+    learned = {area: c.most_common(1)[0][0] for area, c in votes.items() if len(c) == 1}
+    return learned, display
+
+
+def _get_or_create_block_well(db: Session, ab_key: tuple, ab_set: set, idx: dict,
+                              area_display: dict, cache: dict) -> int:
+    if ab_key in cache:
+        return cache[ab_key]
+    code, block = ab_key
+    name = f"US-BLOCK: {area_display.get(code, code)} {int(block)}"
+    existing = db.query(Well.id).filter(Well.canonical_name == name).scalar()
+    if existing:
+        cache[ab_key] = existing
+        return existing
+    coords = [idx["latlon"][wid] for wid in ab_set if wid in idx["latlon"]]
+    lat = round(sum(c[0] for c in coords) / len(coords), 6) if coords else None
+    lon = round(sum(c[1] for c in coords) / len(coords), 6) if coords else None
+    w = Well(
+        canonical_name=name,
+        aliases=[f"{code} {block}"],
+        country="USA",
+        lat=lat, lon=lon,
+        source="bsee_block",
+        position_source=f"mean of {len(coords)} BSEE borehole surface locations in this block",
+        well_type="block_aggregate",
+        purpose="incident records that name a block but not a single well",
+    )
+    db.add(w)
+    db.flush()
+    cache[ab_key] = w.id
+    return w.id
+
+
+def _resolve_well(r: dict, idx: dict, learned_codes: dict, area_display: dict,
+                  db: Session, block_well_cache: dict, stats: Counter) -> int | None:
+    m = _API_IN_TEXT.search(r["text"])
+    if m and m.group(1) in idx["by_api"]:
+        stats["linked_by_api"] += 1
+        return idx["by_api"][m.group(1)]
+
+    lease = _norm_lease(r.get("lease"))
+    area = _norm_area(r.get("area"))
+    block = _norm_block(r.get("block"))
+    code = learned_codes.get(area) if area else None
+    ab_key = (code, block) if code and block else None
+
+    lease_set = idx["lease_wells"].get(lease) if lease else None
+    ab_set = idx["ab_wells"].get(ab_key) if ab_key else None
+
+    if lease_set is not None and ab_set is not None:
+        candidates = lease_set & ab_set or ab_set
+    elif ab_set is not None:
+        candidates = ab_set
+    elif lease_set is not None:
+        candidates = lease_set
+    else:
+        candidates = set()
+
+    if len(candidates) == 1:
+        stats["linked_unique_lease_block"] += 1
+        return next(iter(candidates))
+    if len(candidates) > 1 and ab_set is not None:  # several wells in one named block -> block aggregate
+        # (a lease alone that matches several wells is ambiguous with no block to aggregate on -> left unlinked)
+        stats["linked_to_block_aggregate"] += 1
+        return _get_or_create_block_well(db, ab_key, ab_set, idx, area_display, block_well_cache)
+    stats["unlinked"] += 1
+    return None
 
 
 # ------------------------------------------------------------------ incident narrative PDFs (1991-2000)
@@ -347,20 +509,25 @@ def _make_document(db: Session, kind: str, title: str, url: str | None, sha256: 
     return doc
 
 
-def _add_passages(db: Session, doc: Document, seq_start: int, text: str, locator_prefix: str, report_date) -> int:
+def _add_passages(db: Session, doc: Document, seq_start: int, text: str, locator_prefix: str, report_date,
+                  well_id: int | None = None) -> int:
     n = 0
     for si, sent in enumerate(split_sentences(text), start=1):
-        db.add(Passage(document_id=doc.id, well_id=None, locator=f"{locator_prefix}, s{si}",
+        db.add(Passage(document_id=doc.id, well_id=well_id, locator=f"{locator_prefix}, s{si}",
                        seq=seq_start + n, text=sent, md_m=None, report_date=report_date))
         n += 1
     return n
 
 
-def _ingest_incident_pdfs(db: Session, log) -> Counter:
+def _ingest_incident_pdfs(db: Session, log) -> tuple[list[dict], Counter]:
+    """Parses the PDFs and creates the Document rows, but does NOT write Passages yet -- the
+    returned records are linked to wells (see `_resolve_well`) after ALL incident sources
+    (PDFs + workbooks) have been parsed, so `_learn_area_codes` can learn from the full set."""
     stats: Counter = Counter()
+    records: list[dict] = []
     if not REPORTS_DIR.exists():
         log("us_bsee: no data/raw/usa/bsee_reports -- skipping incident PDFs")
-        return stats
+        return records, stats
     old_scanned = REPORTS_DIR / "ocsincidents1956to1990-pdf.pdf"
     if old_scanned.exists():
         stats["skipped_no_ocr"] += 1
@@ -380,8 +547,8 @@ def _ingest_incident_pdfs(db: Session, log) -> Counter:
         if doc is None:
             stats["duplicate_doc"] += 1
             continue
-        seq = 0
         old_format = fname == "ocsincidents1991to1994-pdf.pdf"
+        n_file_records = 0
         for pgi, txt in enumerate(pages_text, start=1):
             if not txt:
                 continue
@@ -390,13 +557,14 @@ def _ingest_incident_pdfs(db: Session, log) -> Counter:
                 rdate = _parse_91_94_date(r["date_raw"]) if old_format else _parse_incident_date(r["date_raw"])
                 area = r.get("area", "?")
                 block = r.get("block", "")
+                lease = r.get("lease", "")
                 locator = f"p{pgi}, {area} Blk {block}, {r['date_raw']}".strip()
-                added = _add_passages(db, doc, seq, r["remarks_text"], locator, rdate)
-                seq += added
+                records.append({"doc": doc, "locator": locator, "text": r["remarks_text"], "rdate": rdate,
+                                "lease": lease, "area": area, "block": block})
+                n_file_records += 1
                 stats["incident_records"] += 1
-                stats["passages"] += added
-        log(f"us_bsee: {fname} -> {seq} passages")
-    return stats
+        log(f"us_bsee: {fname} -> {n_file_records} incident records parsed")
+    return records, stats
 
 
 # ------------------------------------------------------------------ CY20NN incident-statistics workbooks
@@ -425,11 +593,14 @@ def _flag_true(v) -> bool:
     return str(v).strip().upper() == "Y"
 
 
-def _ingest_incident_xlsx(db: Session, log) -> Counter:
+def _ingest_incident_xlsx(db: Session, log) -> tuple[list[dict], Counter]:
+    """Parses the workbooks and creates the Document rows, but does NOT write Passages yet -- see
+    `_ingest_incident_pdfs` docstring."""
     stats: Counter = Counter()
+    records: list[dict] = []
     if not INCIDENTS_DIR.exists():
         log("us_bsee: no data/raw/usa/bsee_incidents -- skipping incident workbooks")
-        return stats
+        return records, stats
     for p in sorted(INCIDENTS_DIR.glob("cy*.xlsx")):
         year = p.stem.replace("cy", "")
         wb = load_workbook(p, read_only=True, data_only=True)
@@ -456,7 +627,7 @@ def _ingest_incident_xlsx(db: Session, log) -> Counter:
         if doc is None:
             stats["duplicate_doc"] += 1
             continue
-        seq = 0
+        n_file_rows = 0
         for ri, row in enumerate(rows[2:], start=3):
             narrative = row[narr_i] if narr_i < len(row) else None
             if not narrative or not str(narrative).strip():
@@ -469,14 +640,37 @@ def _ingest_incident_xlsx(db: Session, log) -> Counter:
             lwc_flags = [header[i] for i in lwc_idx if i < len(row) and _flag_true(row[i])]
             tag = f" [LWC: {', '.join(lwc_flags)}]" if lwc_flags else ""
             locator = f"row {ri}, {area} Blk {block} Lease {lease}, {rdate or ''}".strip()
-            added = _add_passages(db, doc, seq, str(narrative).strip() + tag, locator, rdate)
-            seq += added
+            records.append({"doc": doc, "locator": locator, "text": str(narrative).strip() + tag, "rdate": rdate,
+                            "lease": lease, "area": area, "block": block})
+            n_file_rows += 1
             stats["incident_rows"] += 1
-            stats["passages"] += added
             if lwc_flags:
                 stats["lwc_rows"] += 1
         wb.close()
-        log(f"us_bsee: {p.name} -> {seq} passages (narrative col='{header[narr_i]}', operator col present={operator_i is not None})")
+        log(f"us_bsee: {p.name} -> {n_file_rows} incident rows parsed (narrative col='{header[narr_i]}', operator col present={operator_i is not None})")
+    return records, stats
+
+
+def _write_linked_passages(db: Session, records: list[dict], idx: dict, learned_codes: dict,
+                           area_display: dict, log) -> Counter:
+    """Second pass: resolve each record's well (see `_resolve_well`) and only now write the
+    Passage rows, in the same per-document seq order as before."""
+    stats: Counter = Counter()
+    seq_by_doc: dict[int, int] = defaultdict(int)
+    block_well_cache: dict = {}
+    for r in records:
+        well_id = _resolve_well(r, idx, learned_codes, area_display, db, block_well_cache, stats)
+        doc = r["doc"]
+        seq = seq_by_doc[doc.id]
+        added = _add_passages(db, doc, seq, r["text"], r["locator"], r["rdate"], well_id)
+        seq_by_doc[doc.id] += added
+        stats["passages"] += added
+    db.flush()
+    log(f"us_bsee: linked {stats.get('linked_by_api', 0)} passages by API, "
+        f"{stats.get('linked_unique_lease_block', 0)} by a unique lease/area/block match, "
+        f"{stats.get('linked_to_block_aggregate', 0)} to a block-aggregate well "
+        f"({len(block_well_cache)} distinct blocks); {stats.get('unlinked', 0)} left unlinked "
+        f"(well_id=None) for lack of unambiguous evidence.")
     return stats
 
 
@@ -485,8 +679,18 @@ def _ingest_incident_xlsx(db: Session, log) -> Counter:
 def ingest(db: Session, log=print) -> dict:
     stats: Counter = Counter()
     stats.update(_ingest_boreholes(db, log))
-    stats.update(_ingest_incident_pdfs(db, log))
-    stats.update(_ingest_incident_xlsx(db, log))
+
+    pdf_records, pdf_stats = _ingest_incident_pdfs(db, log)
+    stats.update(pdf_stats)
+    xlsx_records, xlsx_stats = _ingest_incident_xlsx(db, log)
+    stats.update(xlsx_stats)
+
+    idx = _bsee_well_index(db)
+    all_records = pdf_records + xlsx_records
+    learned_codes, area_display = _learn_area_codes(all_records, idx["lease_codes"])
+    log(f"us_bsee: learned {len(learned_codes)} area-name -> BSEE area-code mappings from "
+        f"lease joins against the Borehole file (never a hardcoded table)")
+    stats.update(_write_linked_passages(db, all_records, idx, learned_codes, area_display, log))
 
     n_pdf_docs = db.query(Document).filter(Document.kind == "INCIDENT_REPORT", Document.url.like("%bsee.gov/sites%")).count()
     db.add_all([

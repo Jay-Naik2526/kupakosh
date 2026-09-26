@@ -34,6 +34,8 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
         db.execute(delete(Action).where(Action.passage_id.in_(pids)))
         db.execute(delete(Event).where(Event.passage_id.in_(pids)))
     db.flush()
+    import re
+    ctx_rx = re.compile(c["drilling_context"], re.I)
     tops = TopIndex(db)
     wells = {w.id: w for w in db.scalars(select(Well))}
     mud: dict[int, list[MudCheck]] = defaultdict(list)
@@ -54,6 +56,8 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
             well = wells.get(p.well_id or doc.well_id)
             if well is None:
                 continue  # Indian public documents: only sentences that name a well can yield events
+            if doc.kind in c["context_required_kinds"] and not ctx_rx.search(p.text):
+                continue  # incident text with no drilling context (injury, crane, equipment) is not a drilling hazard
             hits = extract_sentence(p.text, well.td_md_m if well else None)
             for h in hits:
                 if _is_duplicate(seen, h.hazard, h.md_m, p.seq, c["dedup_depth_m"], cfg()["episodes"]["window_sentences"]):
