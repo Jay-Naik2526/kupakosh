@@ -39,7 +39,7 @@ from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
 
-from app.ingest.pdftext import pdf_pages
+from app.ingest.pdftext import pdf_pages_with_conf
 from sqlalchemy.orm import Session
 
 from app.config import RAW_DIR
@@ -214,13 +214,16 @@ def ingest(db: Session, log=print) -> dict:
                 stats["duplicate_docs"] += 1
                 continue
             try:
-                pages = pdf_pages(pdf_path)
+                pages, confs = pdf_pages_with_conf(pdf_path)
             except Exception as e:  # noqa: BLE001 - corrupt/unreadable PDF must not stop the whole run
                 stats["unreadable_pdf"] += 1
                 log(f"nl_nlog: could not read {pdf_path.name}: {e!r}")
                 continue
             text_len = sum(len(p) for p in pages)
-            is_scanned = text_len < 200
+            ocr = [c for c in confs if c is not None]
+            is_scanned = bool(ocr)  # at least one page read by OCR
+            ocr_conf = round(sum(ocr) / len(ocr), 1) if ocr else None
+            no_text = text_len < 200  # still unreadable after OCR
             title_lower = full_title.lower()
             kind = ("EOWR_PDF" if ("final well report" in title_lower or "end of well" in title_lower
                                     or "geological well summary" in title_lower or "geosummary" in title_lower
@@ -232,7 +235,7 @@ def ingest(db: Session, log=print) -> dict:
                 well_id=w.id if w else None, kind=kind, title=f"NLOG report — {sanitised_name.replace('_', ' ')} — {full_title}",
                 path=str(pdf_path.relative_to(RAW_DIR.parent)),
                 url=DOCUMENT_URL.format(bfile=bfile) if bfile else None, report_date=None,
-                pages=len(pages), is_scanned=is_scanned, ocr_mean_conf=None, sha256=sha, licence=LICENCE,
+                pages=len(pages), is_scanned=is_scanned, ocr_mean_conf=ocr_conf, sha256=sha, licence=LICENCE,
             )
             db.add(doc)
             db.flush()
@@ -240,6 +243,7 @@ def ingest(db: Session, log=print) -> dict:
             n_pages += len(pages)
             if is_scanned:
                 n_scanned += 1
+            if no_text:
                 continue
             seq = 0
             for pi, page in enumerate(pages, start=1):

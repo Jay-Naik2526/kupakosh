@@ -27,7 +27,7 @@ from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
 
-from app.ingest.pdftext import pdf_pages
+from app.ingest.pdftext import pdf_pages_with_conf
 from sqlalchemy.orm import Session
 
 from app.config import RAW_DIR, cfg
@@ -198,7 +198,7 @@ def ingest_gsq(db: Session, wells: dict[str, Well], log=print) -> Counter:
             wells[key] = w
             ws["gsq_wells"] += 1
         try:
-            pages = pdf_pages(path)
+            pages, confs = pdf_pages_with_conf(path)
         except Exception as e:  # noqa: BLE001
             log(f"au_wells gsq: cannot read {path.name}: {e}")
             ws["unreadable_pdf"] += 1
@@ -209,7 +209,11 @@ def ingest_gsq(db: Session, wells: dict[str, Well], log=print) -> Counter:
             continue
         full_text = "\n".join(pages)
         avg_chars = sum(len(t) for t in pages) / max(1, len(pages))
-        is_scanned = avg_chars < 150  # near-empty extract per page -> image-only (scanned); Tesseract not installed
+        # scanned = at least one page was read by OCR; its mean word confidence lowers event confidence downstream
+        ocr = [c for c in confs if c is not None]
+        is_scanned = bool(ocr)
+        ocr_conf = round(sum(ocr) / len(ocr), 1) if ocr else None
+        no_text = avg_chars < 150  # still near-empty after OCR -> nothing readable
         report_date = None
         if m.get("open_file_date"):
             try:
@@ -218,11 +222,13 @@ def ingest_gsq(db: Session, wells: dict[str, Well], log=print) -> Counter:
                 pass
         doc = Document(well_id=w.id, kind="WCR_PDF", title=title[:250], path=str(path.relative_to(RAW_DIR.parent)),
                        url=f"https://geoscience.data.qld.gov.au/data/report/{m['report_id']}", report_date=report_date,
-                       pages=len(pages), is_scanned=is_scanned, ocr_mean_conf=None, sha256=sha, licence=GSQ_LICENCE)
+                       pages=len(pages), is_scanned=is_scanned, ocr_mean_conf=ocr_conf, sha256=sha, licence=GSQ_LICENCE)
         db.add(doc)
         db.flush()
         ws["wcr_docs"] += 1
         if is_scanned:
+            ws["ocr_docs"] += 1
+        if no_text:
             ws["scanned_no_text"] += 1
         else:
             seq = 0

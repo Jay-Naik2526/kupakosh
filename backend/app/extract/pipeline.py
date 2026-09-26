@@ -62,6 +62,8 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
                 seen.append((h.hazard, h.md_m, p.seq))
                 formation = tops.at(well.id, h.md_m) if well else None
                 conf = h.confidence + (c["conf_formation_bonus"] if formation else 0)
+                if doc.ocr_mean_conf is not None:  # text read by OCR: scale by the document's mean word confidence (§9.1)
+                    conf *= doc.ocr_mean_conf / 100
                 mw, mw_src = h.mud_weight_ppg, "text" if h.mud_weight_ppg else None
                 if mw is None and h.md_m is not None and well:
                     mw = _mud_at(mud[well.id], h.md_m, c["mud_table_max_gap_m"])
