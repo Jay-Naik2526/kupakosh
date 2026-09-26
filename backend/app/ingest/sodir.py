@@ -86,7 +86,7 @@ def ingest(db: Session, log=print) -> dict:
         w = Well(
             canonical_name=name,
             aliases=[r.wlbWellboreName] + ([r.wlbAliasName] if r.wlbAliasName else []),
-            field_id=fid, field_name=fname, lat=lat, lon=lon,
+            field_id=fid, field_name=fname, country="Norway", lat=lat, lon=lon,
             kb_elev_m=to_float(r.wlbKellyBushElevation), water_depth_m=to_float(r.wlbWaterDepth),
             spud_date=_date(r.wlbEntryDate), td_md_m=to_float(r.wlbTotalDepth), td_tvd_m=to_float(r.wlbFinalVerticalDepth),
             status=r.wlbStatus or None, purpose=r.wlbPurpose or None, well_type=r.wlbWellType or None,

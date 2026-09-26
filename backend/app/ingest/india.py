@@ -138,7 +138,7 @@ def ingest(db: Session, log=print) -> dict:
                 wname = f"IN-{key.upper()[:6]}: {row[wi]}"
                 if db.query(Well).filter(Well.canonical_name == wname).first():
                     continue
-                db.add(Well(canonical_name=wname, aliases=[row[wi]], field_id=fld_cache[key].id, field_name=f"{name} (India)",
+                db.add(Well(canonical_name=wname, aliases=[row[wi]], field_id=fld_cache[key].id, field_name=f"{name} (India)", country="India",
                             lat=None, lon=None, td_md_m=_num(row[di]) if di is not None and di < len(row) else None,
                             operator=row[oi] if oi is not None and oi < len(row) else None, source="ndr_india",
                             position_source=None, fact_url=url, purpose="listed in NDR basin summary"))

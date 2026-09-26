@@ -35,6 +35,7 @@ class Well(Base):
     aliases: Mapped[list] = mapped_column(JSON, default=list)
     field_id: Mapped[int | None] = mapped_column(ForeignKey("field.id"))
     field_name: Mapped[str | None] = mapped_column(String, index=True)
+    country: Mapped[str | None] = mapped_column(String, index=True)  # ISO-style English name, e.g. "India", "Norway"
     lat: Mapped[float | None] = mapped_column(Float, index=True)
     lon: Mapped[float | None] = mapped_column(Float, index=True)
     kb_elev_m: Mapped[float | None]
@@ -96,6 +97,7 @@ class Document(Base):
     sha256: Mapped[str | None] = mapped_column(String, unique=True)
     licence: Mapped[str | None]
     report_md_m: Mapped[float | None]  # depth printed on the report header (DDRs)
+    country: Mapped[str | None] = mapped_column(String, index=True)  # set by engines.post.assign_countries
 
 
 class Passage(Base):

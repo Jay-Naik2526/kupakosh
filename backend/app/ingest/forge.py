@@ -294,7 +294,7 @@ def ingest(db: Session, log=print, with_realtime: bool = True) -> dict:
             log(f"forge {name}: no report files found — skipped (run scripts/download_data.sh)")
             continue
         lat, lon = location(wm["location"])
-        w = Well(canonical_name=name, aliases=[f"FORGE {name}"] + wm.get("aliases", []), field_id=fld.id, field_name="Utah FORGE",
+        w = Well(canonical_name=name, aliases=[f"FORGE {name}"] + wm.get("aliases", []), field_id=fld.id, field_name="Utah FORGE", country="USA",
                  lat=lat, lon=lon, kb_elev_m=ft_to_m(wm["kb_elev_ft"]) if wm.get("kb_elev_ft") else None, spud_date=wm.get("spud_date"),
                  status="COMPLETED", purpose="GEOTHERMAL (EGS)", well_type="DEVELOPMENT", operator="University of Utah",
                  source="forge", parent_well=name, position_source=wm["location"]["src"], fact_url=wm["source_url"])

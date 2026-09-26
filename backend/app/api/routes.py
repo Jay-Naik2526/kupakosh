@@ -29,9 +29,16 @@ def _well(db: Session, well_id: int) -> Well:
     return w
 
 
+def _country_ids(db: Session, country: str | None) -> set[int] | None:
+    """Well ids of one country (None = no filter). Country names are the English names stored on well.country."""
+    if not country:
+        return None
+    return set(db.scalars(select(Well.id).where(Well.country == country)))
+
+
 def _w(w: Well) -> dict:
     cx = ctx()
-    return {"id": w.id, "name": w.canonical_name, "field": w.field_name, "lat": w.lat, "lon": w.lon, "td_md_m": w.td_md_m,
+    return {"id": w.id, "name": w.canonical_name, "field": w.field_name, "country": w.country, "lat": w.lat, "lon": w.lon, "td_md_m": w.td_md_m,
             "td_tvd_m": w.td_tvd_m, "spud_date": w.spud_date.isoformat() if w.spud_date else None, "status": w.status,
             "purpose": w.purpose, "type": w.well_type, "operator": w.operator, "source": w.source,
             "documented": w.id in cx.documented, "n_events": len(cx.events.get(w.id, [])), "fact_url": w.fact_url,
@@ -69,13 +76,35 @@ def status(db: Session = Depends(get_db)):
         "evals": evals,
         "extraction_method": "rule" if not db.scalar(select(func.count()).select_from(Event).where(Event.method != "rule")) else "rule+llm",
         "demo_users": cfg()["demo"]["users"],
+        "by_country": countries(db),
     }
+
+
+@router.get("/countries")
+def countries(db: Session = Depends(get_db)):
+    """Per-country record counts (drives the country filter chips)."""
+    def per(stmt):
+        return {c: k for c, k in db.execute(stmt)}
+    wells_n = per(select(Well.country, func.count()).group_by(Well.country))
+    located = per(select(Well.country, func.count()).where(Well.lat.is_not(None)).group_by(Well.country))
+    docs = per(select(Well.country, func.count(func.distinct(Passage.document_id))).join(Passage, Passage.well_id == Well.id)
+               .group_by(Well.country))
+    evs = per(select(Well.country, func.count()).join(Event, Event.well_id == Well.id).group_by(Well.country))
+    eps = per(select(Well.country, func.count()).join(Episode, Episode.well_id == Well.id).group_by(Well.country))
+    out = [{"country": c or "unknown", "wells": k, "located_wells": located.get(c, 0), "documents_linked": docs.get(c, 0),
+            "events": evs.get(c, 0), "episodes": eps.get(c, 0)} for c, k in wells_n.items()]
+    out.sort(key=lambda r: (r["country"] != "India", -r["events"], -r["wells"]))
+    return out
 
 
 @router.get("/wells")
 def wells(q: str | None = None, bbox: str | None = None, documented: bool = False, field: str | None = None,
-          limit: int = 200, db: Session = Depends(get_db)):
-    s = select(Well).where(Well.lat.is_not(None))
+          country: str | None = None, located: bool = True, limit: int = 200, db: Session = Depends(get_db)):
+    s = select(Well)
+    if located:
+        s = s.where(Well.lat.is_not(None))
+    if country:
+        s = s.where(Well.country == country)
     if q:
         s = s.where(or_(Well.canonical_name.ilike(f"%{q}%"), Well.field_name.ilike(f"%{q}%")))
     if field:
@@ -112,9 +141,14 @@ def well(well_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/wells/{well_id}/offsets")
-def offsets(well_id: int, radius_m: float | None = None, documented_only: bool = False, db: Session = Depends(get_db)):
+def offsets(well_id: int, radius_m: float | None = None, documented_only: bool = False, country: str | None = None,
+            db: Session = Depends(get_db)):
     _well(db, well_id)
-    return {"radius_m": radius_m or cfg()["offsets"]["default_radius_m"], "offsets": offsets_for_well(well_id, radius_m, documented_only)}
+    offs = offsets_for_well(well_id, radius_m, documented_only)
+    ids = _country_ids(db, country)
+    if ids is not None:
+        offs = [o for o in offs if o["well_id"] in ids]
+    return {"radius_m": radius_m or cfg()["offsets"]["default_radius_m"], "offsets": offs}
 
 
 @router.get("/wells/{well_id}/section")
@@ -152,8 +186,10 @@ def hazard_at(lat: float, lon: float, formation: str, hazard: str, radius_m: flo
 
 @router.get("/events")
 def events(well: int | None = None, hazard: str | None = None, formation: str | None = None, include_review: bool = True,
-           limit: int = 200, db: Session = Depends(get_db)):
-    s = select(Event, Well.canonical_name).join(Well, Well.id == Event.well_id)
+           country: str | None = None, limit: int = 200, db: Session = Depends(get_db)):
+    s = select(Event, Well.canonical_name, Well.country).join(Well, Well.id == Event.well_id)
+    if country:
+        s = s.where(Well.country == country)
     if well:
         s = s.where(Event.well_id == well)
     if hazard:
@@ -163,8 +199,8 @@ def events(well: int | None = None, hazard: str | None = None, formation: str | 
     if not include_review:
         s = s.where(Event.needs_review.is_(False))
     out = []
-    for e, name in db.execute(s.order_by(Event.well_id, Event.md_m).limit(limit)):
-        out.append({"id": e.id, "well_id": e.well_id, "well": name, "hazard": e.hazard, "md_m": e.md_m, "formation": e.formation,
+    for e, name, cc in db.execute(s.order_by(Event.well_id, Event.md_m).limit(limit)):
+        out.append({"id": e.id, "well_id": e.well_id, "well": name, "country": cc, "hazard": e.hazard, "md_m": e.md_m, "formation": e.formation,
                     "formation_label": pretty(e.formation), "t": e.t.isoformat() if e.t else None, "severity": e.severity,
                     "quantity": e.quantity, "quantity_unit": e.quantity_unit, "mud_weight_ppg": e.mud_weight_ppg,
                     "mud_weight_source": e.mud_weight_source, "confidence": e.confidence, "method": e.method,
@@ -174,8 +210,10 @@ def events(well: int | None = None, hazard: str | None = None, formation: str | 
 
 @router.get("/episodes")
 def episodes(hazard: str | None = None, formation: str | None = None, action: str | None = None, ids: str | None = None,
-             limit: int = 100, db: Session = Depends(get_db)):
+             country: str | None = None, limit: int = 100, db: Session = Depends(get_db)):
     s = select(Episode, Event, Well.canonical_name).join(Event, Event.id == Episode.event_id).join(Well, Well.id == Episode.well_id)
+    if country:
+        s = s.where(Well.country == country)
     if ids:
         s = s.where(Episode.id.in_([int(x) for x in ids.split(",") if x]))
     if hazard:
@@ -203,23 +241,30 @@ def episodes(hazard: str | None = None, formation: str | None = None, action: st
 
 @router.get("/ledger")
 def ledger(hazard: str | None = None, formation: str | None = None, well: int | None = None, radius_m: float | None = None,
-           db: Session = Depends(get_db)):
+           country: str | None = None, db: Session = Depends(get_db)):
     well_ids = None
     if well:
         well_ids = [well] + [o["well_id"] for o in offsets_for_well(well, radius_m)]
+    ids = _country_ids(db, country)
+    if ids is not None:
+        well_ids = [w for w in well_ids if w in ids] if well_ids is not None else list(ids)
     L = ledger_fn(db, hazard, formation, well_ids)
+    L["country"] = country
     L["formation_label"] = pretty(formation)
     return L
 
 
 @router.get("/formations")
-def formations(hazard: str | None = None, min_wells: int = 3, db: Session = Depends(get_db)):
+def formations(hazard: str | None = None, min_wells: int = 3, country: str | None = None, db: Session = Depends(get_db)):
     cx = ctx()
+    ids = _country_ids(db, country)
     out = []
     for f, ws in cx.penetrated.items():
+        if ids is not None:
+            ws = {w for w in ws if w in ids}
         if len(ws) < min_wells:
             continue
-        n_ev = sum(1 for (w, ff, h) in cx.ev_wf if ff == f and (hazard is None or h == hazard))
+        n_ev = sum(1 for (w, ff, h) in cx.ev_wf if ff == f and (hazard is None or h == hazard) and (ids is None or w in ids))
         out.append({"formation": f, "label": pretty(f), "n_wells": len(ws), "n_well_events": n_ev})
     out.sort(key=lambda r: (-r["n_well_events"], -r["n_wells"]))
     return out
@@ -236,8 +281,11 @@ def mudwindow(well: int, formation: str | None = None, radius_m: float | None = 
 
 
 @router.get("/audit")
-def audit(well: int | None = None, status: str | None = None, rule: str | None = None, db: Session = Depends(get_db)):
+def audit(well: int | None = None, status: str | None = None, rule: str | None = None, country: str | None = None,
+          db: Session = Depends(get_db)):
     s = select(AuditFlag, Well.canonical_name).join(Well, Well.id == AuditFlag.well_id, isouter=True)
+    if country:
+        s = s.where(Well.country == country)
     if well:
         s = s.where(AuditFlag.well_id == well)
     if status:

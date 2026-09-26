@@ -194,7 +194,7 @@ def _india_well(db: Session, wells: dict, raw: str, doc: Document, stats: Counte
         return wells[key]
     w = db.query(Well).filter(Well.canonical_name == key).first()
     if not w:
-        w = Well(canonical_name=key, aliases=[raw], field_name="India (named in public reports)", source="india_text",
+        w = Well(canonical_name=key, aliases=[raw], field_name="India (named in public reports)", country="India", source="india_text",
                  lat=None, lon=None, position_source=None, fact_url=doc.url, purpose=f"named in: {doc.title[:120]}")
         db.add(w)
         db.flush()

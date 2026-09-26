@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { post } from "@/lib/api";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
+import { CountryFilter } from "@/components/kk/CountryFilter";
+import { useApp } from "@/lib/state";
 
 const SUGGEST = [
   "Which wells were drilled in the Himalayan foreland basin and how deep?",
@@ -16,6 +18,7 @@ const SUGGEST = [
 ];
 
 export default function Copilot() {
+  const { country } = useApp();
   const [q, setQ] = useState("");
   const [thread, setThread] = useState<any[]>([]);
   const [busy, setBusy] = useState(false);
@@ -23,7 +26,7 @@ export default function Copilot() {
     if (!question.trim()) return;
     setBusy(true);
     try {
-      const r = await post("/api/copilot", { question, context_well: null });
+      const r = await post("/api/copilot", { question, context_well: null, country });
       setThread((t) => [r, ...t]);
     } catch (e: any) { setThread((t) => [{ question, refused: true, answer: `Error: ${e.message}`, method: [], sources: [] }, ...t]); }
     setBusy(false); setQ("");
@@ -38,6 +41,7 @@ export default function Copilot() {
           <input className="input flex-1" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask the records, e.g. what worked against losses in the Utsira Formation?" aria-label="question" />
           <button className="btn btn-primary" disabled={busy}>{busy ? "Searching…" : "Ask"}</button>
         </form>
+        <div className="mt-2"><CountryFilter label="Search records from" /></div>
         <p className="label mt-1">Mode: extractive — answers are assembled only from tool outputs and quoted report lines; no language model is configured. Numbers come from the database.</p>
         <div className="mt-6 space-y-8">
           {thread.length === 0 && <p className="text-ink2">Ask a question, or pick one on the right.</p>}

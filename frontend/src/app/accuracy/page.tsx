@@ -52,6 +52,19 @@ export default function Accuracy() {
           { key: "d", head: "Loaded", num: true, cell: (r: any) => r.loaded_at?.slice(0, 10) },
           { key: "x", head: "Notes", cell: (r: any) => <span className="text-ink2">{r.notes}</span> },
         ]} />
+        {s.by_country?.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-1">By country</h3>
+            <Register rows={s.by_country} cols={[
+              { key: "c", head: "Country", cell: (r: any) => r.country },
+              { key: "w", head: "Wells", num: true, cell: (r: any) => r.wells.toLocaleString() },
+              { key: "l", head: "With location", num: true, cell: (r: any) => r.located_wells.toLocaleString() },
+              { key: "d", head: "Documents linked to a well", num: true, cell: (r: any) => r.documents_linked.toLocaleString() },
+              { key: "e", head: "Events", num: true, cell: (r: any) => r.events.toLocaleString() },
+              { key: "p", head: "Episodes", num: true, cell: (r: any) => r.episodes.toLocaleString() },
+            ]} />
+          </div>
+        )}
         <p className="label mt-2">Also loaded: {c.formation_tops.toLocaleString()} formation tops · {c.lot_fit.toLocaleString()} LOT/FIT · {c.casing_strings.toLocaleString()} casing rows · {c.mud_checks.toLocaleString()} mud checks · {c.survey_stations.toLocaleString()} survey stations · {c.realtime_samples.toLocaleString()} sensor samples · {c.audit_open} open report conflicts.</p>
       </section>
 

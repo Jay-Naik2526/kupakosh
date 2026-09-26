@@ -11,12 +11,13 @@ import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
+import { CountryFilter } from "@/components/kk/CountryFilter";
 
 const H = 560, COLW = 120, GAP = 44;
 const HAZ = Object.keys(hazardLabel);
 
 export default function Offsets() {
-  const { wellId, setWellId, ready } = useApp();
+  const { wellId, setWellId, ready, country } = useApp();
   const [radius, setRadius] = useState(10000);
   const [align, setAlign] = useState<"md" | "formation">("md");
   const [flatOn, setFlatOn] = useState<string>("");
@@ -32,8 +33,8 @@ export default function Offsets() {
     if (!wellId) return;
     setLoading(true);
     get(`/api/wells/${wellId}/section`, { radius_m: radius, n: 6 }).then((s) => { setSec(s); setLoading(false); });
-    get(`/api/wells/${wellId}/offsets`, { radius_m: radius }).then((o) => setMapWells(o.offsets));
-  }, [wellId, radius]);
+    get(`/api/wells/${wellId}/offsets`, { radius_m: radius, country: country ?? undefined }).then((o) => setMapWells(o.offsets));
+  }, [wellId, radius, country]);
 
   const cols = sec?.columns ?? [];
   const commonTops: string[] = useMemo(() => {
@@ -56,6 +57,7 @@ export default function Offsets() {
     <div>
       {/* Zone A — toolbar */}
       <section aria-label="toolbar" className="flex flex-wrap items-center gap-x-5 gap-y-2 rule-b pb-3">
+        <CountryFilter />
         <WellPicker label="Active well" />
         <label className="label" htmlFor="rad">Radius</label>
         <select id="rad" className="input" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>

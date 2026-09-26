@@ -22,7 +22,8 @@ def source_ref(doc: Document, p: Passage, well: Well) -> str:
 
 
 def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF", "DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT",
-                                                         "JUDGMENT", "PAPER", "BASIN_REPORT")) -> dict:
+                                                         "JUDGMENT", "PAPER", "BASIN_REPORT", "WCR_PDF", "EOWR_PDF",
+                                                         "INCIDENT_REPORT")) -> dict:
     c = cfg()["extract"]
     db.execute(delete(Action))
     db.execute(delete(Event))

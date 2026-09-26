@@ -13,8 +13,9 @@ router = APIRouter(prefix="/api")
 class Ask(BaseModel):
     question: str
     context_well: int | None = None
+    country: str | None = None
 
 
 @router.post("/copilot")
 def copilot(body: Ask, db: Session = Depends(get_db)):
-    return answer(db, body.question, body.context_well)
+    return answer(db, body.question, body.context_well, body.country)

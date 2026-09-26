@@ -36,6 +36,15 @@ def main():
         india.ingest(db)
         india_docs.ingest(db)
         db.commit()
+        from app.ingest import ext
+        for mod in ext.modules():
+            try:
+                mod.ingest(db)
+                db.commit()
+            except Exception as e:  # one broken source must not stop the rebuild
+                db.rollback()
+                print(f"ext {mod.__name__}: FAILED {e!r}")
+        post.assign_countries(db)
         pipeline.run(db)
         db.commit()
         episodes.run(db)

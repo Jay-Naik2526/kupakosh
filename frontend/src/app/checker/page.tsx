@@ -4,6 +4,7 @@ import { get, post } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { Register } from "@/components/kk/Register";
 import { EmptyState } from "@/components/kk/EmptyState";
+import { CountryFilter } from "@/components/kk/CountryFilter";
 
 const RULE: Record<string, string> = {
   R1_ddr_loss_vs_pit: "DDR losses vs sensor pit volume",
@@ -14,7 +15,7 @@ const RULE: Record<string, string> = {
 };
 
 export default function Checker() {
-  const { user } = useApp();
+  const { user, country } = useApp();
   const [flags, setFlags] = useState<any[]>([]);
   const [status, setStatus] = useState<string>("open");
   const [sel, setSel] = useState<number | null>(null);
@@ -22,8 +23,9 @@ export default function Checker() {
   const [b, setB] = useState<any>(null);
   const [note, setNote] = useState("");
   const [trust, setTrust] = useState<number | null>(null);
-  const load = () => get("/api/audit").then(setFlags);
-  useEffect(() => { load(); get("/api/wiki").then((p) => { const v = p.map((x: any) => x.trust).filter((x: any) => x !== null); setTrust(v.length ? v.reduce((s: number, x: number) => s + x, 0) / v.length : null); }); }, []);
+  const load = () => get("/api/audit", { country: country ?? undefined }).then(setFlags);
+  useEffect(() => { load(); get("/api/wiki").then((p) => { const v = p.map((x: any) => x.trust).filter((x: any) => x !== null); setTrust(v.length ? v.reduce((s: number, x: number) => s + x, 0) / v.length : null); }); }, []); // eslint-disable-line
+  useEffect(() => { setSel(null); load(); }, [country]); // eslint-disable-line
   const rows = flags.filter((f) => (status === "open" ? f.status === "open" : f.status !== "open"));
   const cur = sel !== null ? rows[sel] : null;
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function Checker() {
         <div><span className="label">Open</span> <span className="num text-2xl">{open}</span></div>
         <div><span className="label">Resolved</span> <span className="num text-2xl">{flags.length - open}</span></div>
         <div><span className="label">Avg trust (wiki pages)</span> <span className="num text-2xl">{trust === null ? "—" : `${Math.round(trust * 100)}%`}</span></div>
+        <CountryFilter />
         <div className="ml-auto flex gap-1">
           <button className="chip" aria-pressed={status === "open"} onClick={() => { setStatus("open"); setSel(null); }}>Open</button>
           <button className="chip" aria-pressed={status !== "open"} onClick={() => { setStatus("done"); setSel(null); }}>Resolved</button>

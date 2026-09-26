@@ -130,7 +130,7 @@ def search_evidence(q: str, well_ids: set[int] | None = None, k: int | None = No
     if well_ids:
         mask = np.array([r[4] in well_ids for r in rows])
         scores = np.where(mask, scores, 0)
-    if doc_ids:
+    if doc_ids is not None:
         mask = np.array([r[2] in doc_ids for r in rows])
         scores = np.where(mask, scores, 0)
     top = np.argsort(-scores)[: (k or c["top_k"]) * 3]
@@ -156,8 +156,10 @@ def well_events(db: Session, well_ids: set[int], hazards: list[str]) -> list[Eve
     return db.scalars(q.order_by(Event.well_id, Event.md_m)).all()
 
 
-def answer(db: Session, question: str, context_well: int | None = None) -> dict:
+def answer(db: Session, question: str, context_well: int | None = None, country: str | None = None) -> dict:
     cx = ctx()
+    from app.db.models import Document
+    cdocs = set(db.scalars(select(Document.id).where(Document.country == country))) if country else None
     P = parse(question)
     steps, paras, sources = [], [], []
     ql = question.lower()
@@ -299,10 +301,11 @@ def answer(db: Session, question: str, context_well: int | None = None) -> dict:
     qwords = question
     for name, _ in P["wells"]:
         qwords = re.sub(re.escape(name), " ", qwords, flags=re.I)
-    ev = search_evidence(qwords, well_ids or None)
+    ev = search_evidence(qwords, well_ids or None, doc_ids=cdocs)
     if not ev and well_ids:
-        ev = search_evidence(question)
-    steps.append({"tool": "search_evidence", "args": {"query": question, "wells": sorted(well_ids)}, "result": f"{len(ev)} passages"})
+        ev = search_evidence(question, doc_ids=cdocs)
+    args = {"query": question, "wells": sorted(well_ids)} | ({"country": country} if country else {})
+    steps.append({"tool": "search_evidence", "args": args, "result": f"{len(ev)} passages"})
     shown = {s["ref"] for s in sources}
     for e in [e for e in ev if e["source_ref"] not in shown][: (2 if P["wells"] else 4)]:
         wname = cx.wells[e["well_id"]].canonical_name if e["well_id"] in cx.wells else _doc_title(db, e["source_ref"])

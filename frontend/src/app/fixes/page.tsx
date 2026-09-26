@@ -7,11 +7,12 @@ import { IntervalBar } from "@/components/kk/IntervalBar";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { useApp } from "@/lib/state";
+import { CountryFilter } from "@/components/kk/CountryFilter";
 
 const OUT_GLYPH: Record<string, string> = { resolved: "✓ resolved", partial: "◐ partial", unresolved: "✕ unresolved", worsened: "▲ worsened", unknown: "? unknown" };
 
 export default function Fixes() {
-  const { wellId } = useApp();
+  const { wellId, country } = useApp();
   const [hazard, setHazard] = useState("stuck_pipe");
   const [formation, setFormation] = useState("");
   const [scope, setScope] = useState<"all" | "offsets">("all");
@@ -20,11 +21,11 @@ export default function Fixes() {
   const [open, setOpen] = useState<number | null>(null);
   const [eps, setEps] = useState<any[]>([]);
 
-  useEffect(() => { get("/api/formations", { hazard, min_wells: 3 }).then((f) => setForms(f.filter((x: any) => x.n_well_events > 0))); }, [hazard]);
+  useEffect(() => { get("/api/formations", { hazard, min_wells: 3, country: country ?? undefined }).then((f) => setForms(f.filter((x: any) => x.n_well_events > 0))); }, [hazard, country]);
   useEffect(() => {
     setOpen(null);
-    get("/api/ledger", { hazard, formation: formation || undefined, well: scope === "offsets" && wellId ? wellId : undefined }).then(setL);
-  }, [hazard, formation, scope, wellId]);
+    get("/api/ledger", { hazard, formation: formation || undefined, well: scope === "offsets" && wellId ? wellId : undefined, country: country ?? undefined }).then(setL);
+  }, [hazard, formation, scope, wellId, country]);
   const expand = (r: any, i: number) => {
     if (open === i) { setOpen(null); return; }
     setOpen(i); setEps([]);
@@ -48,6 +49,7 @@ export default function Fixes() {
         <span className="label">Scope</span>
         <button className="chip" aria-pressed={scope === "all"} onClick={() => setScope("all")}>All records</button>
         <button className="chip" aria-pressed={scope === "offsets"} onClick={() => setScope("offsets")} disabled={!wellId} title={wellId ? "" : "pick a well on Offsets first"}>Active well + offsets</button>
+        <CountryFilter metric="episodes" />
         {L && <span className="ml-auto small">{L.n_episodes} episodes · {L.n_known_outcome} with a stated outcome</span>}
       </section>
 
