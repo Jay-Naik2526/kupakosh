@@ -67,8 +67,13 @@ def pdf_pages_with_conf(path: Path) -> tuple[list[str], list[float | None]]:
         # Sparse/no text layer: OCR this page.
         from app.ingest.ocr import ocr_page
 
-        image = _render_page_to_image(path, i)
-        ocr_text, mean_conf = ocr_page(image)
+        try:
+            image = _render_page_to_image(path, i)
+            ocr_text, mean_conf = ocr_page(image)
+        except Exception:  # noqa: BLE001 — e.g. a metres-long log strip Tesseract refuses: keep this page's own text
+            pages.append(text)
+            confs.append(None)
+            continue
         pages.append(ocr_text)
         confs.append(mean_conf)
 
