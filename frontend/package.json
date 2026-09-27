@@ -15,12 +15,16 @@
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
+    "lucide-react": "^1.48.0",
     "maplibre-gl": "^6.11.2",
     "next": "14.2.35",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -30,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/three": "^0.170.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",
