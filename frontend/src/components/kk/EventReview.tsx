@@ -17,7 +17,7 @@ const HAZARDS = Object.keys(hazardLabel);
  * within its 3-zone budget. Filters by hazard and by the app-wide country filter; each row's
  * evidence is shown verbatim with a SourceFootnote, and a reviewer can Confirm / Reject / Relabel.
  */
-export function EventReviewDrawer() {
+export function EventReviewDrawer({ variant = "chip" }: { variant?: "chip" | "tile" }) {
   const { user, country, lang } = useApp();
   const [open, setOpen] = useState(false);
   const [hazard, setHazard] = useState<string>("");
@@ -54,12 +54,20 @@ export function EventReviewDrawer() {
     }
   };
 
+  const label = lang === "hi" ? "समीक्षा हेतु घटनाएँ" : "Events to review";
   return (
     <>
-      <button className="chip" onClick={() => setOpen(true)}>
-        {lang === "hi" ? "समीक्षा हेतु घटनाएँ" : "Events to review"} ({total.toLocaleString()}) ▸
-      </button>
-      <Drawer open={open} onClose={() => { setOpen(false); setSel(null); }} title={lang === "hi" ? "समीक्षा हेतु घटनाएँ" : "Events to review"} width={780}>
+      {variant === "tile" ? (
+        <button className="kk-stat-tile block text-left w-full" onClick={() => setOpen(true)} aria-label={`${label} (${total.toLocaleString()})`}>
+          <div className="kk-stat-value num">{total.toLocaleString()}</div>
+          <div className="kk-stat-label">{label} ▸</div>
+        </button>
+      ) : (
+        <button className="chip" onClick={() => setOpen(true)}>
+          {label} ({total.toLocaleString()}) ▸
+        </button>
+      )}
+      <Drawer open={open} onClose={() => { setOpen(false); setSel(null); }} title={label} width={780}>
         <div className="flex flex-wrap items-center gap-2 mb-3" role="group" aria-label="hazard filter">
           <span className="label">{t("fixHazard", lang)}</span>
           <button className="chip" aria-pressed={hazard === ""} onClick={() => { setHazard(""); setSel(null); }}>{t("allOpt", lang)}</button>

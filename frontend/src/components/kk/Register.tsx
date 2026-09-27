@@ -1,27 +1,40 @@
 import { ReactNode } from "react";
 export type Col<T> = { key: string; head: ReactNode; cell: (r: T) => ReactNode; num?: boolean; width?: string };
-/** Plain ruled government register: thin rules, mono numbers, no zebra stripes. */
+/** Clean table in a bordered, rounded card: subtle header shading, hover rows, mono numbers, no zebra stripes. */
 export function Register<T>({ cols, rows, onRow, selected, empty, caption }: {
   cols: Col<T>[]; rows: T[]; onRow?: (r: T, i: number) => void; selected?: number | null; empty?: ReactNode; caption?: string;
 }) {
   return (
-    <table className="w-full border-collapse small">
-      {caption && <caption className="text-left label pb-1">{caption}</caption>}
-      <thead>
-        <tr className="border-b-2 border-ink">
-          {cols.map((c) => <th key={c.key} scope="col" style={{ width: c.width }} className={`py-1.5 px-2 font-semibold text-left ${c.num ? "text-right" : ""}`}>{c.head}</th>)}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 && <tr><td colSpan={cols.length} className="py-3 px-2 text-ink2">{empty ?? "No rows."}</td></tr>}
-        {rows.map((r, i) => (
-          <tr key={i} className={`rule-b align-top ${onRow ? "cursor-pointer hover:bg-card" : ""}`} style={selected === i ? { background: "var(--card)", outline: "1px solid var(--ink)" } : undefined}
-              onClick={onRow ? () => onRow(r, i) : undefined} tabIndex={onRow ? 0 : undefined}
-              onKeyDown={onRow ? (e) => { if (e.key === "Enter") onRow(r, i); } : undefined}>
-            {cols.map((c) => <td key={c.key} className={`py-1.5 px-2 ${c.num ? "text-right num" : ""}`}>{c.cell(r)}</td>)}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden bg-[var(--surface)] shadow-[var(--shadow-sm)]">
+      {caption && <div className="label px-3.5 py-2 border-b border-[var(--border)] bg-[var(--surface-2)]">{caption}</div>}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse small">
+          <thead>
+            <tr>
+              {cols.map((c) => (
+                <th key={c.key} scope="col" style={{ width: c.width }}
+                    className={`py-2.5 px-3.5 font-semibold text-[0.76rem] uppercase tracking-wide text-[var(--text-2)] bg-[var(--surface-2)] border-b border-[var(--border)] whitespace-nowrap ${c.num ? "text-right" : "text-left"}`}>
+                  {c.head}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr><td colSpan={cols.length} className="py-5 px-3.5 text-[var(--text-2)]">{empty ?? "No rows."}</td></tr>
+            )}
+            {rows.map((r, i) => (
+              <tr key={i}
+                  className={`border-b border-[var(--border)] last:border-b-0 align-top transition-colors ${onRow ? "cursor-pointer hover:bg-[var(--surface-2)]" : ""}`}
+                  style={selected === i ? { background: "color-mix(in srgb, var(--accent) 10%, var(--surface))" } : undefined}
+                  onClick={onRow ? () => onRow(r, i) : undefined} tabIndex={onRow ? 0 : undefined}
+                  onKeyDown={onRow ? (e) => { if (e.key === "Enter") onRow(r, i); } : undefined}>
+                {cols.map((c) => <td key={c.key} className={`py-2.5 px-3.5 ${c.num ? "text-right num" : ""}`}>{c.cell(r)}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
