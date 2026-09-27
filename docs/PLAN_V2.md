@@ -67,11 +67,23 @@ The user asked for a much more user-friendly UI, 3D, proper maps, and USPs that 
 ## Phases
 | Phase | What | Owner | State |
 |---|---|---|---|
-| V1 | Hindsight engine + API + tests + eval metric | agent A | |
-| V2 | Global Analog engine + API + tests | agent B | |
-| V3 | 3D subsurface API + component + page | agent C | |
-| V4 | Well map API (compact geo) + component + page | agent D | |
-| V5 | App shell v2 (sidebar, top bar, tokens, Home "Start here" with a guided tour); Command moves to /command | agent E | |
-| V6 | Hindsight and India Analogs pages; WhyPanel | agents (round 2) | |
-| V7 | Restyle the 9 existing screens to v2 | agents (round 2) | |
-| V8 | Integration, router registration, tests (backend + Playwright), screenshots, deck and docs update, commit | main | |
+| V1 | Hindsight engine + API + tests + eval metric | agent A | done |
+| V2 | Global Analog engine + API + tests | agent B | done |
+| V3 | 3D subsurface API + component + page | agent C | done |
+| V4 | Well map API (compact geo) + component + page | agent D | done |
+| V5 | App shell v2 (sidebar, top bar, tokens, Home "Start here" with a guided tour); Command moves to /command | agent E | done |
+| V6 | Hindsight and India Analogs pages; WhyPanel | agents (round 2) | done |
+| V7 | Restyle the 9 existing screens to v2 | agents (round 2) | done |
+| V8 | Integration, router registration, tests (backend + Playwright), screenshots, deck and docs update, commit | main | done |
+
+## Result (27 Sept 2026)
+All V phases are done.
+- **Backend:** 81 tests.
+- **Frontend:** 18/18 Playwright checks on 12 screens (no console errors, ≤ 3 zones, WCAG AA contrast, Hindi toggle), plus vitest 5/5.
+
+**Hindsight (absolute alert mode, all 299 testable wells, 30,920 formation×hazard cells):**
+- Blind alerts were right 11/14 times (79 %). Where Kupakosh stayed silent, only 1 % of layers had a recorded problem: 81× lift (approx. 95 % interval 49–107×).
+- A fair baseline that alerts on the field base rate alone gets 74×.
+- Only 15/438 problems (3.4 %) were forewarned, with a median lead of 786 m.
+- The stricter "elevated" mode flags nothing on this data yet.
+- All of this is shown on the Hindsight page and the Accuracy page.

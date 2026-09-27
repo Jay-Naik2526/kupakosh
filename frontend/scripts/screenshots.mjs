@@ -30,7 +30,7 @@ for (const [path, name, wait] of [["/offsets", "02-offsets", 5000], ["/wiki?page
 
 // 02 Offsets map view
 await go("/offsets", 4000);
-await page.getByRole("button", { name: /Map view/i }).click().catch(() => console.log("no map toggle"));
+await page.getByRole("tab", { name: /Map view/ }).click().catch(() => page.getByRole("button", { name: /^Map$/ }).click()).catch(() => console.log("no map tab"));
 await page.waitForTimeout(5000);
 await shot("02-offsets-map");
 
@@ -43,8 +43,8 @@ for (const q of ["What worked against stuck pipe in the Draupne Formation?", "Wh
 await shot("07-copilot");
 
 // New v2 screens (owned by other agents building in parallel; skip gracefully if not shipped yet)
-await goSafe("/map", "10-map", 5000);
-await goSafe("/subsurface", "11-subsurface", 5000);
+await goSafe("/map", "10-map", 9000);
+await goSafe("/subsurface", "11-subsurface", 9000);
 await goSafe("/analogs", "12-analogs", 4000);
 await goSafe("/hindsight", "13-hindsight", 4000);
 

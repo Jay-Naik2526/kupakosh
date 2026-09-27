@@ -3,7 +3,7 @@ import type { Lang } from "@/lib/i18n";
 import { Register, type Col } from "@/components/kk/Register";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { Badge } from "@/components/v2/ui";
-import { hazardText } from "@/lib/format";
+import { hazardText, pct } from "@/lib/format";
 import { RangeBar } from "./RangeBar";
 import { tr } from "./trLocal";
 
@@ -24,8 +24,8 @@ export function AnalogEvidence({ result, lang }: { result: AnalogResult; lang: L
 
   const cols: Col<HazardRow>[] = [
     { key: "h", head: t("Hazard", "खतरा"), cell: (r) => hazardText(r.hazard, lang) },
-    { key: "s", head: t("Status", "स्थिति"), cell: (r) => (r.status === "ok" ? "" : <Badge kind="caution">{t("insufficient evidence", "अपर्याप्त साक्ष्य")}</Badge>) },
-    { key: "m", head: t("Mean", "औसत"), num: true, cell: (r) => (r.status === "ok" ? `${Math.round(r.mean * 100)}%` : "—") },
+    { key: "s", head: t("Status", "स्थिति"), cell: (r) => (r.status === "ok" ? <span className="label">{t("enough evidence", "पर्याप्त साक्ष्य")}</span> : <Badge kind="caution">{t("insufficient evidence", "अपर्याप्त साक्ष्य")}</Badge>) },
+    { key: "m", head: t("Mean", "औसत"), num: true, cell: (r) => (r.status === "ok" ? pct(r.mean) : "—") },
     { key: "r", head: `${Math.round(ciLevel * 100)}% range`, cell: (r) => (r.status === "ok" ? <RangeBar mean={r.mean} ci={r.ci} /> : <span className="label">—</span>) },
     { key: "n", head: t("n wells", "n कूप"), num: true, cell: (r) => r.n_wells },
     { key: "e", head: t("with event", "घटना सहित"), num: true, cell: (r) => r.n_with_event },

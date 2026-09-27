@@ -1,5 +1,15 @@
 # Progress: Kupakosh prototype
 
+> **v2 (27 Sept 2026, user-requested redesign).** New features:
+> - a sidebar UI, light/dark theme and a guided tour;
+> - a world map of 97k wells with 3D terrain;
+> - a 3D subsurface room;
+> - the **Hindsight test** (blind replay proof);
+> - **India Analogs**;
+> - a "Why this number?" panel.
+>
+> Tests: 81 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
+
 Status as of **27 Sept 2026** (end-to-end build). Phases are those of SPEC.md §15, plus the extension plan in `docs/PLAN.md`.
 
 | Phase | Status | Notes |

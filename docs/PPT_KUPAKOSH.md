@@ -14,6 +14,49 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 
 ---
 
+## v2 update (27 Sept 2026): use these where they differ from Part A
+
+**New headline USPs (put them on slide 2, "The idea", and the comparison table):**
+1. **Hindsight Test: it proves itself on real history.**
+   - Each real well is replayed *blind*: its own reports are hidden and alerts come from other wells only. Then the page reveals what really happened.
+   - When Kupakosh alerted, a problem was recorded in that layer **11 of 14 times (79 %)**, versus **1 %** where it stayed silent: **81× lift**.
+   - A fair baseline that alerts on the field average alone gets 74×.
+   - Honest line: it forewarned **15 of 438** problems (3.4 %) and stays silent when the evidence is thin.
+   - No public PS 26121 project shows blind, measured proof (`docs/COMPETITORS.md`).
+2. **India Analogs.**
+   - For an Indian basin, the rock types are taken from its NDR summary (cited). Kupakosh then finds the same rock at the same depth in **thousands of public wells worldwide** and shows what went wrong and what fixed it.
+   - It is labelled "analogue evidence, not Indian wells", and it is usable on day one, before Oil India loads its own data.
+3. **3D subsurface and world map.**
+   - All **97,078** located wells on the map.
+   - Offset wells in 3D with formation tops and problem markers; click a marker to open its source.
+4. **"Why this number?"** on every probability: the evidence wells, the field average, n_eff and the range. This answers the explainability that competitors show with SHAP.
+
+**Comparison table: add these rows**
+| Feature | eRTMAC | PDF search / RAG | Manual review | KUPAKOSH |
+|---|---|---|---|---|
+| Blind proof on real history (Hindsight) | ✗ | ✗ | ✗ | ✓ |
+| Indian basins answered from global analogues | ✗ | ✗ | ✗ | ✓ |
+| 3D subsurface + world map of wells | ✗ | ✗ | ✗ | ✓ |
+| "Why this number?" on every risk | ✗ | ✗ | ✗ | ✓ |
+
+**Screenshots for v2** (`docs/screenshots/`):
+- 00-home.png
+- 13-hindsight.png: slide 2, "One alert" alternative, or slide 3, "Technical validation"
+- 10-map.png
+- 11-subsurface.png
+- 12-analogs.png
+- 01-command-replay.png
+
+**Image prompt: Hindsight panel (add to Part B)**
+```
+[Style block]
+Title in bold navy: "HINDSIGHT TEST". Subtitle in grey: "Each real well replayed blind — its own reports hidden".
+Left: a tall vertical depth strip (0 m at the top, down to 3,000 m) with two lanes labelled "ALERTS (blind)" and "WHAT REALLY HAPPENED".
+The alerts lane has red dots with small labels. The real lane has markers joined to the alerts by dashed brackets labelled "lead".
+Right: two stat cards. The first: big "11 / 14" and "alerts matched a recorded problem (79%)", then "81× lift vs silent layers · fair baseline 74×".
+The second, with an amber border: big "15 / 438" and "problems forewarned — it stays silent when evidence is thin".
+```
+
 ## Part A: slide content
 
 ### Slide 1: Title (same template as NiyamKosh slide 1)
