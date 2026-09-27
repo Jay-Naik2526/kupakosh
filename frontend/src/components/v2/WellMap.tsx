@@ -35,6 +35,7 @@ export function WellMap({
   const basinsRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [satOn, setSatOn] = useState(false);
   const [n, setN] = useState(0);
@@ -119,7 +120,7 @@ export function WellMap({
     Promise.all([
       get<any>("/api/geo/wells").then((r) => { wellsRef.current = decodeGeoWells(r); }),
       get<any>("/api/geo/basins").then((r) => { basinsRef.current = r; }),
-    ]).then(() => { if (m.isStyleLoaded()) draw(); }).catch((e) => setErr(String(e?.message ?? e)));
+    ]).then(() => { if (m.isStyleLoaded()) draw(); setDataLoaded(true); }).catch((e) => setErr(String(e?.message ?? e)));
 
     return () => { m.remove(); map.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,14 +138,15 @@ export function WellMap({
     m.setStyle(theme === "dark" ? MAP_STYLES.dark : MAP_STYLES.light);
   }, [theme, loaded]);
 
-  // Fit bounds when the country filter changes.
+  // Fit bounds to the data: once all wells are in (open fitted to every located well, not centred on India),
+  // and again whenever the country filter changes (fit to that country's wells).
   useEffect(() => {
     const m = map.current;
-    if (!m || !loaded) return;
+    if (!m || !loaded || !dataLoaded) return;
     const wells = wellsRef.current.filter((w) => !country || w.country === country);
     const b = bboxOf(wells);
-    if (b) m.fitBounds(b, { padding: 40, duration: 600, maxZoom: 8 });
-  }, [country, loaded]);
+    if (b) m.fitBounds(b, { padding: 48, duration: 600, maxZoom: 8 });
+  }, [country, loaded, dataLoaded]);
 
   // Fly to a searched well and open its popup context (selection itself is left to the caller via onSelectWell).
   useEffect(() => {
@@ -171,9 +173,14 @@ export function WellMap({
         <MapButton active={is3D} onClick={toggle3D} label="3D terrain toggle">3D</MapButton>
         {canSatellite && <MapButton active={satOn} onClick={toggleSat} label="satellite imagery toggle">SAT</MapButton>}
       </div>
-      <div style={{ position: "absolute", left: 12, bottom: 28, fontSize: 12, color: "var(--text-2, #5E5A50)",
-                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 6, padding: "3px 8px" }}>
-        {loaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}
+      <div style={{ position: "absolute", left: 12, bottom: 28, zIndex: 1, fontSize: 12, color: "var(--text, #1B1A17)",
+                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 8,
+                    padding: "8px 10px", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,.08))" }}>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>{loaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}</div>
+        <LegendRow color="#DC2626" ring="#7F1D1D" shape="circle" label="Wells with recorded events" />
+        <LegendRow color="#94A3B8" ring="#475569" shape="circle" label="Other wells" />
+        <LegendRow color="#64748B" shape="square" label="Block / field aggregates" />
+        <LegendRow color="transparent" ring="#0F766E" shape="dashed" label="Indian sedimentary basins" />
       </div>
       {err && <div role="alert" style={{ position: "absolute", left: 12, right: 12, top: 52, background: "#FEF2F2", color: "#991B1B",
                                           border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>{err}</div>}
@@ -190,6 +197,23 @@ function MapButton({ active, onClick, label, children }: { active: boolean; onCl
                color: active ? "#FFFFFF" : "var(--text, #1B1A17)" }}>
       {children}
     </button>
+  );
+}
+
+function LegendRow({ color, ring, shape, label }: { color: string; ring?: string; shape: "circle" | "square" | "dashed"; label: string }) {
+  const swatch =
+    shape === "square" ? (
+      <span style={{ width: 9, height: 9, background: color, display: "inline-block", flex: "0 0 auto" }} />
+    ) : shape === "dashed" ? (
+      <span style={{ width: 12, height: 8, border: `1.5px dashed ${ring}`, borderRadius: 2, display: "inline-block", flex: "0 0 auto" }} />
+    ) : (
+      <span style={{ width: 10, height: 10, borderRadius: 999, background: color, border: ring ? `1.5px solid ${ring}` : undefined, display: "inline-block", flex: "0 0 auto" }} />
+    );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, whiteSpace: "nowrap" }}>
+      {swatch}
+      <span style={{ color: "var(--text-2, #5E5A50)" }}>{label}</span>
+    </div>
   );
 }
 

@@ -17,9 +17,9 @@ export function ensureWellsSource(map: maplibregl.Map, data: GeoJSON.FeatureColl
   map.addLayer({
     id: "well-clusters", type: "circle", source: "wells", filter: ["has", "point_count"],
     paint: {
-      "circle-color": ["step", ["get", "point_count"], "#93C5FD", 50, "#60A5FA", 500, ACCENT, 5000, "#0B4F49"],
+      "circle-color": ["step", ["get", "point_count"], "#3B82F6", 50, "#2563EB", 500, ACCENT, 5000, "#0B4F49"],
       "circle-radius": ["step", ["get", "point_count"], 14, 50, 18, 500, 24, 5000, 32],
-      "circle-stroke-width": 1.5, "circle-stroke-color": "#FFFFFF",
+      "circle-stroke-width": 2, "circle-stroke-color": "#FFFFFF",
     },
   });
   map.addLayer({

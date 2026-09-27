@@ -5,6 +5,9 @@ import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { CountryFilter } from "@/components/kk/CountryFilter";
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
+import { Card } from "@/components/v2/ui";
+
+const tr = (lang: string, en: string, hi: string) => (lang === "hi" ? hi : en);
 
 const SUGGEST = [
   "Which wells were drilled in the Himalayan foreland basin and how deep?",
@@ -35,19 +38,28 @@ export default function Copilot() {
   const last = thread[0];
 
   return (
-    <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0,7fr) minmax(0,3fr)" }}>
-      {/* Zone A — Q&A as document text */}
-      <section aria-label="questions and answers">
-        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
-          <input className="input flex-1" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("cpQuestionPlaceholder", lang)} aria-label="question" />
-          <button className="btn btn-primary" disabled={busy}>{busy ? t("cpSearching", lang) : t("cpAsk", lang)}</button>
-        </form>
-        <div className="mt-2"><CountryFilter label={t("searchRecordsFrom", lang)} /></div>
-        <p className="label mt-1">{t("cpModeNote", lang)}</p>
-        <div className="mt-6 space-y-8">
-          {thread.length === 0 && <p className="text-ink2">{t("cpAskOrPick", lang)}</p>}
+    <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,7fr) minmax(0,3fr)" }}>
+      {/* Zone A — question box + suggested-question chips + answers as document-style cards */}
+      <section aria-label="questions and answers" className="space-y-4">
+        <Card>
+          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); ask(q); }}>
+            <input className="input flex-1" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("cpQuestionPlaceholder", lang)} aria-label="question" />
+            <button className="btn btn-primary" disabled={busy}>{busy ? t("cpSearching", lang) : t("cpAsk", lang)}</button>
+          </form>
+          <div className="mt-3"><CountryFilter label={t("searchRecordsFrom", lang)} /></div>
+          <p className="label mt-2">{t("cpModeNote", lang)}</p>
+          {thread.length === 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {SUGGEST.map((s) => <button key={s} type="button" className="chip" onClick={() => ask(s)}>{s}</button>)}
+            </div>
+          )}
+        </Card>
+
+        {thread.length === 0 && <p className="text-ink2 label">{t("cpAskOrPick", lang)}</p>}
+
+        <div className="space-y-4">
           {thread.map((a, i) => (
-            <article key={i} className={i ? "opacity-80" : ""}>
+            <Card key={i} as="article" className={i ? "opacity-80" : ""}>
               <h2 className="font-semibold">Q. {a.question}</h2>
               {a.refused ? (
                 <div className="mt-2 border border-ink rounded-kk p-3">{a.answer}</div>
@@ -56,29 +68,37 @@ export default function Copilot() {
                   {a.answer.split("\n\n").map((p: string, k: number) => <p key={k}>{withCites(p, a.sources)}</p>)}
                 </div>
               )}
-              {a.wiki?.length > 0 && <p className="small mt-2">{t("cpWikiPages", lang)} {a.wiki.map((w: any) => <a key={w.slug} className="link mr-2" href={`/wiki?page=${encodeURIComponent(w.slug)}`}>{w.title} ({w.status})</a>)}</p>}
-              <details className="mt-2 small">
+              {a.wiki?.length > 0 && (
+                <p className="small mt-2">
+                  {t("cpWikiPages", lang)} {a.wiki.map((w: any) => <a key={w.slug} className="link mr-2" href={`/wiki?page=${encodeURIComponent(w.slug)}`}>{w.title} ({w.status})</a>)}
+                </p>
+              )}
+              <details className="mt-3 small">
                 <summary className="cursor-pointer label">{t("cpMethod", lang)} ({a.method?.length ?? 0} {t("cpToolSteps", lang)})</summary>
                 <ol className="list-decimal pl-5 mt-1">
                   {(a.method ?? []).map((s: any, k: number) => <li key={k}><span className="mono">{s.tool}</span>({Object.entries(s.args).map(([x, v]) => `${x}=${JSON.stringify(v)}`).join(", ")}) → {s.result}</li>)}
                 </ol>
               </details>
-            </article>
+            </Card>
           ))}
         </div>
       </section>
-      {/* Zone B — sources used + suggestions */}
-      <aside aria-label="sources and suggestions">
-        <h3 className="font-semibold">{t("cpSourcesUsed", lang)}</h3>
-        {!last || last.refused ? <p className="label mt-1">—</p> : (
-          <ol className="mt-1 small space-y-1">
-            {last.sources.map((s: any, k: number) => <li key={k} className="flex gap-2"><SourceFootnote refId={s.ref} n={k + 1} /><span className="mono break-all">{s.label ? `${s.label} · ` : ""}{s.ref}</span></li>)}
-          </ol>
-        )}
-        <h3 className="font-semibold mt-6">{t("cpSuggestedQuestions", lang)}</h3>
-        <ul className="mt-1 space-y-1">
-          {SUGGEST.map((s) => <li key={s}><button className="text-left link small" onClick={() => ask(s)}>{s}</button></li>)}
-        </ul>
+
+      {/* Zone B — sources used + suggested questions */}
+      <aside aria-label="sources and suggestions" style={{ alignSelf: "start", position: "sticky", top: 12 }}>
+        <Card>
+          <h3 className="font-semibold">{t("cpSourcesUsed", lang)}</h3>
+          {!last || last.refused ? <p className="label mt-1">—</p> : (
+            <ol className="mt-1 small space-y-1">
+              {last.sources.map((s: any, k: number) => <li key={k} className="flex gap-2"><SourceFootnote refId={s.ref} n={k + 1} /><span className="mono break-all">{s.label ? `${s.label} · ` : ""}{s.ref}</span></li>)}
+            </ol>
+          )}
+          <h3 className="font-semibold mt-6">{t("cpSuggestedQuestions", lang)}</h3>
+          <ul className="mt-1 space-y-1">
+            {SUGGEST.map((s) => <li key={s}><button className="text-left link small" onClick={() => ask(s)}>{s}</button></li>)}
+          </ul>
+          <p className="label mt-6">{tr(lang, "Research-style: every claim is cited, and out-of-scope questions are refused rather than guessed.", "अनुसंधान-शैली: हर दावे का उद्धरण है, और दायरे-से-बाहर प्रश्नों को अटकल के बजाय अस्वीकार किया जाता है।")}</p>
+        </Card>
       </aside>
     </div>
   );

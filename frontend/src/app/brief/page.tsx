@@ -6,6 +6,7 @@ import { m, pct, ppg } from "@/lib/format";
 import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { t } from "@/lib/i18n";
+import { Card, PageHeader } from "@/components/v2/ui";
 
 export default function Brief() {
   const { wellId, ready, lang } = useApp();
@@ -45,13 +46,15 @@ export default function Brief() {
   };
 
   return (
-    <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0,35fr) minmax(0,65fr)" }}>
+    <div className="space-y-4">
+      <PageHeader title={t("brPrepareBrief", lang)} subtitle={t("brClickMap", lang)} />
+      <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,35fr) minmax(0,65fr)" }}>
       {/* Zone A — form */}
-      <section aria-label="brief inputs" className="space-y-3">
+      <section aria-label="brief inputs">
+        <Card className="space-y-3">
         <MiniMap center={lat !== "" && lon !== "" ? [Number(lat), Number(lon)] : null} radius_m={radius} height={220}
           wells={near.map((w) => ({ id: w.id, name: w.name, lat: w.lat, lon: w.lon, documented: w.documented, n_events: w.n_events }))}
           onPick={(id) => { const w = near.find((x) => x.id === id); if (w) { setLat(Number(w.lat.toFixed(5))); setLon(Number(w.lon.toFixed(5))); } }} />
-        <p className="label">{t("brClickMap", lang)}</p>
         <div className="grid grid-cols-2 gap-2">
           <label className="small">{t("brLatitude", lang)}<input className="input w-full num" value={lat} onChange={(e) => setLat(e.target.value === "" ? "" : Number(e.target.value))} /></label>
           <label className="small">{t("brLongitude", lang)}<input className="input w-full num" value={lon} onChange={(e) => setLon(e.target.value === "" ? "" : Number(e.target.value))} /></label>
@@ -67,10 +70,12 @@ export default function Brief() {
           <button className="btn" disabled title={t("brNotBuilt", lang)}>{t("brSendForReview", lang)}</button>
         </div>
         {err && <p className="small" style={{ color: "var(--hazard)" }}>✕ {err}</p>}
+        </Card>
       </section>
 
       {/* Zone B — A4 preview */}
-      <section aria-label="A4 preview" className="overflow-x-auto">
+      <section aria-label="A4 preview">
+        <Card className="overflow-x-auto">
         {!b && <div className="bg-card border border-dashed border-rule p-10 text-ink2" style={{ aspectRatio: "210/297", maxWidth: 720 }}>{t("brPreviewPlaceholder", lang)}</div>}
         {b && (
           <div className="bg-white text-ink border border-rule p-10 small" style={{ maxWidth: 760, boxShadow: "none" }}>
@@ -104,7 +109,9 @@ export default function Brief() {
             <p className="mt-6"><b>{b.disclaimer}</b> <span className="label">{b.data_note}</span></p>
           </div>
         )}
+        </Card>
       </section>
+      </div>
     </div>
   );
 }
