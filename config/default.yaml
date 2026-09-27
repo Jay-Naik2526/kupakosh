@@ -68,3 +68,9 @@ demo:
   users:
     - {name: "R. Das", role: "Senior Reviewer"}
     - {name: "A. Sharma", role: "Drilling Engineer"}
+
+hindsight:
+  max_wells: ~        # null = every documented testable well (deterministic: sorted by id); set a number for a faster dev/test sample
+  min_offsets: 3       # a well needs at least this many independent (non-parent/sidetrack) documented offsets to be "testable"
+  alert_mode: absolute # "elevated" (default): posterior lower 80% bound > field base rate AND mean/base >= rr_min. "absolute" (secondary): mean >= hazard.alert_threshold
+  rr_min: 2.0          # minimum mean/base-rate ratio required to flag a cell under "elevated" mode

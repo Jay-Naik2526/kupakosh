@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.config import EVAL_DIR, cfg, taxonomy
 from app.db.models import Episode, EvalResult, Event, Passage
 from app.engines import hazard as hz
+from app.engines import hindsight as hs
 from app.engines.context import ctx, reset
 from app.engines.offsets import offsets_for_well
 
@@ -170,9 +171,42 @@ def copilot(db: Session) -> list[EvalResult]:
     ]
 
 
+def hindsight(db: Session, log=print) -> list[EvalResult]:
+    """USP1 (docs/PLAN_V2.md): blind replay proof, over ALL documented testable wells (no
+    sampling cap by default). Recomputes (bypasses the cache) so the eval always reflects the
+    current DB; the API's cache is then refreshed from this same run."""
+    reset()
+    s = hs.recompute(log=log)
+    m, b, f = s["lift"]["model"], s["lift"]["baseline"], s["forewarned"]
+    note = (f"{s['n_testable']} of {s['n_candidates']} documented wells were testable, {s['n_cells']} (well, formation, "
+            f"hazard) cells walked, alert rule = '{s['alert_mode_config']}' (rr_min={s['rr_min_config']}); {s['method']}")
+    rate_note = (f"flagged rate {m['rate_flagged']} (n={m['n_flagged']}, k={m['k_flagged']}, CI {m['rate_flagged_ci']}) vs "
+                 f"unflagged rate {m['rate_unflagged']} (n={m['n_unflagged']}, k={m['k_unflagged']}, CI {m['rate_unflagged_ci']}); "
+                 f"lift 95% interval (approximate) {m['lift_ci_approx']}; {m['headline']}. " + note)
+    res = [
+        EvalResult(name="hindsight", metric="recorded-event rate, flagged cells", value=m["rate_flagged"], n=m["n_flagged"], notes=rate_note),
+        EvalResult(name="hindsight", metric="recorded-event rate, unflagged cells", value=m["rate_unflagged"], n=m["n_unflagged"], notes=rate_note),
+        EvalResult(name="hindsight", metric="lift (flagged vs unflagged rate)", value=m["lift"], n=m["n_flagged"], notes=rate_note),
+        EvalResult(name="hindsight", metric="lift, baseline (top-k cells by base rate alone)", value=b["lift"], n=b["n_flagged"],
+                   notes=f"same number of flags as the model, chosen by base rate alone — a fair comparison, not 'guessing nothing'; " + note),
+        EvalResult(name="hindsight", metric="forewarned share (secondary)", value=f["forewarned_share"], n=f["events"], notes=note),
+        EvalResult(name="hindsight", metric="median lead, m (secondary)", value=f["median_lead_m"], n=f["forewarned"], notes=note),
+        EvalResult(name="hindsight", metric="alerts with a recorded event share (secondary)", value=f["alerts_with_event_share"], n=f["alerts"],
+                   notes="the rest are 'no recorded event', not false alarms — reports under-record problems; " + note),
+    ]
+    for src, strat in sorted(s["by_source"].items()):
+        if strat["n_wells"] < 3:  # too few wells to report per-source (shown as "Not evaluated" on the Accuracy page)
+            continue
+        L = strat["lift"]
+        res.append(EvalResult(name="hindsight_by_source", metric=f"lift, {src} (n_wells={strat['n_wells']})", value=L["lift"], n=L["n_flagged"],
+                              notes=f"{L['headline']}; flagged {L['rate_flagged']} (n={L['n_flagged']}) vs unflagged {L['rate_unflagged']} "
+                                    f"(n={L['n_unflagged']}); {strat['n_cells']} cells over {strat['n_wells']} wells"))
+    return res
+
+
 def run_all(db: Session, log=print):
     db.execute(delete(EvalResult))
-    res = extraction(db) + episodes(db) + hazard_loo(db, log) + copilot(db)
+    res = extraction(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log)
     db.add_all(res)
     db.flush()
     for r in res:
