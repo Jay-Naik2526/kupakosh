@@ -1,0 +1,117 @@
+# V2 USP: Global Analog Memory for Indian basins (docs/PLAN_V2.md).
+#
+# India has almost no public well-level DDR/WCR data in this database (see app/ingest/india.py —
+# Indian "wells" here are names listed in NDR basin-summary tables, with no coordinates and no
+# daily reports). To still say something useful for an Indian basin, this engine looks worldwide
+# (Norway/Sodir, Netherlands/NLOG, UK/NSTA, USA/FORGE, Australia FORCE-2020-labelled logs) for
+# analog intervals: rock of the same broad lithology class, at a similar depth, and reports what
+# happened there. Every number must trace to real rows — see app/engines/analogs.py.
+#
+# SPEC.md honesty rule: this is ANALOGUE evidence from public wells outside India, never a
+# claim about Indian rock or Indian wells. The API always returns the caveat string below.
+caveat: "Analogue evidence from public wells outside India — not Indian well records."
+
+# The ten broad classes we can currently tell apart from public sources. "mixed" is what we
+# return when a unit's own name/description names more than one of these classes (e.g. FORCE-2020
+# "Sandstone/Shale") — never a class we assign for lack of a better guess.
+classes: [sandstone, shale, claystone, limestone, chalk, marl, coal, salt, basement, mixed]
+
+# Query aliases a user may type -> canonical class above.
+class_aliases:
+  carbonate: limestone
+  carbonates: limestone
+  dolomite: limestone
+  dolostone: limestone
+  evaporite: salt
+  evaporites: salt
+  granite: basement
+  igneous: basement
+  metamorphic: basement
+  claystones: claystone
+  shales: shale
+  sandstones: sandstone
+  mudstone: shale
+  siltstone: shale
+
+# --- Rule 1: Sodir (Norway) formation/group codes -------------------------------------------
+# Sodir codes ("HUGIN FM", "NORDLAND GP") do not spell out their rock type, so we reuse the
+# curated config/lithology.yaml unit map (built from the NPD lithostratigraphic lexicon) and
+# translate its 5 short codes to our 10 classes. A Sodir unit not in that file is left
+# unclassified rather than guessed from its name.
+sodir_code_to_class: {sand: sandstone, shale: shale, lime: limestone, clay: claystone, chalk: chalk}
+
+# --- Rule 2/3/4: NLOG (Netherlands) formation names, NSTA (UK) and FORGE (USA) `lithology`
+# fields, and FORCE-2020 (Australia) log-derived `formation` field (which already holds a class
+# name such as "Sandstone" or "Sandstone/Shale") are all classified the SAME way: take the unit's
+# `lithology` text if the row has one, else its `formation` name, lower-case it, and look for any
+# of the whole words below (regex \b<word>\b, case-insensitive) anywhere in that text.
+#   - no keyword found     -> unclassified (dropped, never guessed)
+#   - exactly one class's keywords found -> that class
+#   - more than one class's keywords found -> "mixed" (e.g. "Sandstone and Shale", "Sandstone/Shale")
+# This also naturally classifies FORCE-2020 rows, since their `formation` field literally reads
+# "Sandstone", "Shale", "Limestone", "Chalk", "Marl", "Coal", "Anhydrite", "Halite", "Dolomite",
+# "Basement" or "Tuff" (Tuff has no clean bucket in the 10 classes above; it matches only
+# "volcanic"/"tuff" below and is folded into "mixed" as an approximation — documented, not hidden).
+keywords:
+  sandstone: [sandstone, sands]
+  shale: [shale, mudstone, siltstone, silt, claystone/shale]
+  claystone: [claystone, clay, "clay-siltstone"]
+  limestone: [limestone, carbonate, dolomite, dolostone, calcareous]
+  chalk: [chalk]
+  marl: [marl, marlstone]
+  coal: [coal]
+  salt: [salt, anhydrite, halite, evaporite, gypsum]
+  basement: [basement, granite, granitoid, granodiorite, basalt, tonalite, gneiss, schist]
+  mixed: [tuff, volcanic, breccia]
+
+# --- Interval overlap ------------------------------------------------------------------------
+# Every FormationTop row used here already has both top_md_m and base_md_m recorded by its
+# source ingester (checked against the live DB before writing this file — NSTA rows have neither
+# and are excluded from analog matching for that reason, not filtered by lithology).
+min_overlap_m: 10          # an interval must share at least this many metres with the query band
+max_examples: 5            # example source_refs returned per hazard, and for basin suggestions
+
+# --- Hazard posterior -------------------------------------------------------------------------
+# Same Beta-posterior shape as app/engines/hazard.py (weak prior from the global recorded rate of
+# that hazard, weighted evidence from documented offset-analog wells, n_eff = (sum w)^2/sum w^2).
+# These numbers are NOT leave-one-well-out tuned for cross-basin analog evidence the way
+# hazard.prior_strength is for same-basin offsets (too few analog cases to validate yet) — treat
+# prior_strength here as a deliberately weak, conservative placeholder, not a measured constant.
+prior_strength: 20
+min_neff: 3
+ci: 0.8
+
+# --- Indian basin suggestions (GET /api/analogs/basins) ---------------------------------------
+# Every suggestion must be grounded in an actual sentence/table row of that basin's NDR summary
+# passages (app.ingest.india — Basin.document_id). We never invent a formation name for a basin;
+# we only report a name from this list if it is literally present in one of that basin's passages,
+# with the passage's own source_ref attached. This list exists purely to know which words to look
+# for — a superset of formation names an engineer might recognise across Indian basins.
+formation_name_hints:
+  - Barail
+  - Tipam
+  - Bokabil
+  - Girujan
+  - Surma
+  - Disang
+  - Namsang
+  - Jaintia
+  - Bhuban
+  - Renji
+  - Cambay Shale
+  - Olpad
+  - Kalol
+  - Ankleshwar
+  - Kopili
+  - Gondwana
+  - Vindhyan
+  - Panna
+  - Bagh
+  - Deccan Trap
+  - Cuddapah
+  - Kadapa
+  - Gaj
+  - Cauvery
+# Depth-hint regex: a decimal number, optional thousands separator, followed by "m"/"metre(s)"
+# (not "sq. km" — excluded), inside the same sentence as a lithology or formation-hint keyword.
+depth_hint_pattern: '(\d[\d,]{2,6}(?:\.\d+)?)\s*(?:m\b|metres?\b|meters?\b)'

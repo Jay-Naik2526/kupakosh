@@ -5,6 +5,7 @@ Built once per process from the DB; call `reset()` after a rebuild.
 from __future__ import annotations
 
 import math
+import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -26,8 +27,21 @@ class Ctx:
     penetrated: dict[str, set[int]] = field(default_factory=dict)  # formation -> documented wells that penetrated it
 
 
-@lru_cache(maxsize=1)
+_LOCK = threading.Lock()
+
+
 def ctx() -> Ctx:
+    """Built once per process; concurrent first requests wait for the single build instead of each building
+    (a cold server hit by many requests at once would otherwise exhaust the DB connection pool)."""
+    c = _build.cache_info()
+    if c.currsize:
+        return _build()
+    with _LOCK:
+        return _build()
+
+
+@lru_cache(maxsize=1)
+def _build() -> Ctx:
     with SessionLocal() as db:
         wells = {w.id: w for w in db.scalars(select(Well))}
         tops = TopIndex(db)
@@ -47,7 +61,7 @@ def ctx() -> Ctx:
 
 
 def reset():
-    ctx.cache_clear()
+    _build.cache_clear()
 
 
 def haversine_m(lat1, lon1, lat2, lon2) -> float:
