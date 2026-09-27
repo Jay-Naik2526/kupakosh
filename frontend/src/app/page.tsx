@@ -23,11 +23,10 @@ type Status = {
 };
 
 type HindsightSummary = {
-  n_wells: number;
-  n_problems: number;
-  n_forewarned: number;
-  median_lead_m: number | null;
-  n_false_alarms: number;
+  n_testable: number;
+  n_candidates: number;
+  lift: { model: { n_flagged: number; k_flagged: number; rate_flagged: number | null; headline: string } };
+  forewarned: { events: number; forewarned: number; forewarned_share: number | null };
   method?: string;
 } | null;
 
@@ -134,15 +133,23 @@ export default function Home() {
             </div>
           )}
           {hindsightState === "ok" && hindsight && (
-            <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-              <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${hindsight.n_forewarned} / ${hindsight.n_problems}`} href="/hindsight" />
-              <StatTile
-                label={t("median lead distance", "माध्यिका अग्रता दूरी")}
-                value={hindsight.median_lead_m !== null ? `${Math.round(hindsight.median_lead_m)} m` : t("unknown", "अज्ञात")}
-                href="/hindsight"
-              />
-              <StatTile label={t("false alarms", "झूठी चेतावनियाँ")} value={hindsight.n_false_alarms} href="/hindsight" />
-              <StatTile label={t("wells tested", "परीक्षित कूप")} value={hindsight.n_wells} href="/hindsight" />
+            <div className="mt-3">
+              <p>
+                {t(
+                  `Alerts right ${hindsight.lift.model.k_flagged}/${hindsight.lift.model.n_flagged} times a blind alert fired (${hindsight.lift.model.rate_flagged !== null ? Math.round(hindsight.lift.model.rate_flagged * 100) : "?"}%) · problems forewarned ${hindsight.forewarned.forewarned}/${hindsight.forewarned.events}.`,
+                  `जब भी अंध चेतावनी दी गई, ${hindsight.lift.model.n_flagged} में से ${hindsight.lift.model.k_flagged} बार सही रही (${hindsight.lift.model.rate_flagged !== null ? Math.round(hindsight.lift.model.rate_flagged * 100) : "?"}%) · ${hindsight.forewarned.events} में से ${hindsight.forewarned.forewarned} समस्याएँ पूर्व-चेतावनी दी गईं।`
+                )}
+              </p>
+              <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+                <StatTile label={t("measured lift", "मापित लिफ्ट")} value={hindsight.lift.model.headline} href="/hindsight" />
+                <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${hindsight.forewarned.forewarned} / ${hindsight.forewarned.events}`} href="/hindsight" />
+                <StatTile
+                  label={t("forewarned share", "पूर्व-चेतावनी अंश")}
+                  value={hindsight.forewarned.forewarned_share !== null ? `${Math.round(hindsight.forewarned.forewarned_share * 100)}%` : t("unknown", "अज्ञात")}
+                  href="/hindsight"
+                />
+                <StatTile label={t("wells tested", "परीक्षित कूप")} value={`${hindsight.n_testable} / ${hindsight.n_candidates}`} href="/hindsight" />
+              </div>
             </div>
           )}
           <div className="mt-3">

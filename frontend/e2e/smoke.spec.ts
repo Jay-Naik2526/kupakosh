@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const SCREENS = ["/", "/command", "/offsets", "/wiki", "/fixes", "/mudwindow", "/checker", "/copilot", "/brief", "/accuracy"];
+const SCREENS = ["/", "/command", "/offsets", "/wiki", "/fixes", "/mudwindow", "/checker", "/copilot", "/brief", "/accuracy", "/hindsight", "/analogs"];
 
 for (const path of SCREENS) {
   test(`screen ${path}: loads, no console errors, ≤ 3 zones, AA contrast`, async ({ page }) => {
