@@ -1,12 +1,15 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Box, Play, Pause } from "lucide-react";
 import { scaleLinear } from "d3-scale";
 import { get, WS } from "@/lib/api";
 import { useApp } from "@/lib/state";
+import { Lang } from "@/lib/i18n";
 import { actionText, m, pct } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { Stamp } from "@/components/kk/Stamp";
+import { Card } from "@/components/v2/ui";
+import { Subsurface3D } from "@/components/v2/Subsurface3D";
 import { NoticeSlip } from "@/components/kk/NoticeSlip";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { CurveTrack, DepthAxis, Pt } from "@/components/kk/CurveTrack";
@@ -20,6 +23,9 @@ type Sample = { t: string; md_m: number | null; bit_md_m: number | null; torque:
 const H = 520;
 const WINDOW_ABOVE = 260, WINDOW_BELOW = 190;
 
+/** Bilingual copy local to this page (docs/PLAN_V2.md scope keeps lib/i18n.ts to nav keys so parallel agents don't collide). */
+const tr = (lang: Lang, en: string, hi: string) => (lang === "hi" ? hi : en);
+
 export default function Command() {
   const { wellId, setWellId, lang, openSource, ready } = useApp();
   const [well, setWell] = useState<any>(null);
@@ -32,6 +38,7 @@ export default function Command() {
   const [la, setLa] = useState<any>(null);
   const [anomaly, setAnomaly] = useState<any>(null);
   const [rig, setRig] = useState(false);
+  const [show3d, setShow3d] = useState(false);
   const [drawer, setDrawer] = useState<null | "offsets" | "alerts">(null);
   const [offsets, setOffsets] = useState<any[]>([]);
   const [ended, setEnded] = useState(false);
@@ -89,49 +96,76 @@ export default function Command() {
   const hazardTarget = top && !top.in_formation ? { md: top.distance_m + (bit ?? 0), text: top.formation_label } : nextTop ? { md: nextTop.top_md_m, text: nextTop.label } : null;
   const jumpTargets: any[] = tops.filter((t: any) => t.top_md_m > 50);
 
+  // step hint: 1 pick a well/depth -> 2 start replay -> 3 watch the alert
+  const step = !wellId ? 1 : running || samples.length > 0 ? 3 : 2;
+
   return (
     <div data-rig={rig ? "on" : "off"}>
-      <div className="rig-scope" style={rig ? { background: "var(--paper)", color: "var(--ink)", padding: 12, borderRadius: 2 } : undefined}>
-        {/* Zone A — status line */}
-        <section aria-label="status" className="flex flex-wrap items-center gap-x-5 gap-y-2 rule-b pb-3">
-          <WellPicker onlyReplay label={t("well", lang)} />
-          <Stamp kind="replay" text={lang === "hi" ? "पुनःचलन · REPLAY" : "REPLAY"} sub={t("cmdReplaySub", lang)} />
-          <div><span className="label">{t("bitDepth", lang)} </span><span className="num" style={{ fontSize: rig ? 26 : 20 }}>{bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"}</span>
-            <span className="label"> · </span><span className="num">{tvd !== null ? `${Math.round(tvd).toLocaleString()} m TVD` : t("tvdUnknown", lang)}</span></div>
-          <div><span className="label">{t("formationLabel", lang)} </span><span className="font-semibold">{la?.current?.label ?? "—"}</span></div>
-          <div className="small label">{last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `recorded ${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : ""}</div>
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <label className="label" htmlFor="startmd">{t("startAt", lang)}</label>
-            <select id="startmd" className="input" value={startMd} onChange={(e) => setStartMd(e.target.value === "" ? "" : Number(e.target.value))}>
-              <option value="">{t("spudOpt", lang)}</option>
-              {jumpTargets.map((jt: any) => <option key={jt.formation} value={Math.max(0, Math.round(jt.top_md_m - 150))}>150 m above {jt.label} ({Math.round(jt.top_md_m - 150)} m)</option>)}
-              {[500, 1000, 1500, 2000, 2500, 3000].map((d) => <option key={d} value={d}>{d} m</option>)}
-            </select>
-            <label className="label" htmlFor="spd">{t("speedLabel", lang)}</label>
-            <select id="spd" className="input" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-              {[30, 60, 120, 300, 600].map((s) => <option key={s} value={s}>{s}×</option>)}
-            </select>
-            {running ? <button className="btn" onClick={stop}>{t("pauseBtn", lang)}</button> : <button className="btn btn-primary" onClick={start} disabled={!wellId}>{t("startReplay", lang)}</button>}
-            <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>{t("rigMode", lang)}</button>
-          </div>
+      <div className="rig-scope" style={rig ? { background: "var(--paper)", color: "var(--ink)", padding: 16, borderRadius: "var(--radius-lg, 12px)" } : undefined}>
+        {/* Zone A — step hint + status + controls */}
+        <section aria-label="status" className="mb-5">
+          <Card>
+            <StepHint step={step} lang={lang} />
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mt-4">
+              <WellPicker onlyReplay label={tr(lang, "Replay well (has sensor data)", "पुनःचलन कूप (सेंसर डेटा सहित)")} />
+              <ReplayBadge label={t("replay", lang)} sub={t("cmdReplaySub", lang)} />
+              <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} />
+              <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : t("tvdUnknown", lang)} rig={rig} />
+              <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} />
+              <div className="small label">{last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `recorded ${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : ""}</div>
+            </div>
+            <div className="flex items-end gap-3 flex-wrap mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+              <div>
+                <label className="label block mb-1" htmlFor="startmd">{t("startAt", lang)}</label>
+                <select id="startmd" className="input" value={startMd} onChange={(e) => setStartMd(e.target.value === "" ? "" : Number(e.target.value))}>
+                  <option value="">{t("spudOpt", lang)}</option>
+                  {jumpTargets.map((jt: any) => <option key={jt.formation} value={Math.max(0, Math.round(jt.top_md_m - 150))}>150 m above {jt.label} ({Math.round(jt.top_md_m - 150)} m)</option>)}
+                  {[500, 1000, 1500, 2000, 2500, 3000].map((d) => <option key={d} value={d}>{d} m</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="label block mb-1" htmlFor="spd">{t("speedLabel", lang)}</label>
+                <select id="spd" className="input" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
+                  {[30, 60, 120, 300, 600].map((s) => <option key={s} value={s}>{s}×</option>)}
+                </select>
+              </div>
+              {running
+                ? <button className="btn" onClick={stop}><Pause size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{t("pauseBtn", lang)}</button>
+                : <button className="btn btn-primary" onClick={start} disabled={!wellId}><Play size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{t("startReplay", lang)}</button>}
+              <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>{t("rigMode", lang)}</button>
+              <button className="chip ml-auto" aria-pressed={show3d} onClick={() => setShow3d((s) => !s)}>
+                <Box size={13} className="inline -mt-0.5 mr-1" aria-hidden="true" />{tr(lang, "3D mini-view", "3D लघु-दृश्य")}
+              </button>
+            </div>
+          </Card>
         </section>
 
-        {!wellId && <div className="mt-6"><EmptyState title={t("cmdNoWellSelected", lang)} why={t("cmdNoWellWhy", lang)} /></div>}
+        {!wellId && <EmptyState title={t("cmdNoWellSelected", lang)} why={t("cmdNoWellWhy", lang)} />}
         {wellId && (
-          <div className="grid gap-8 mt-5" style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}>
-            {/* Zone B — mud-log view */}
-            <section aria-label="mud log" className="overflow-x-auto">
-              <div className="flex gap-3 items-start">
-                <div><div className="small rule-b pb-0.5 mb-1">{t("cmdMdAxis", lang)}</div><DepthAxis y={y} height={H} /></div>
-                <div><div className="small rule-b pb-0.5 mb-1">{t("formationLabel", lang)}</div>
-                  <LithologyColumn intervals={tops} y={y} height={H} width={132} bit={bit} target={hazardTarget} /></div>
-                <CurveTrack title="Torque" unit="kft·lb" pts={trackPts("torque")} y={y} height={H} width={rig ? 150 : 118} />
-                <CurveTrack title="Pit volume" unit="bbl" pts={trackPts("pit_vol")} y={y} height={H} width={rig ? 150 : 118} />
-                <CurveTrack title="Mud weight" unit="ppg" pts={trackPts("mw_ppg")} y={y} height={H} width={rig ? 120 : 96} />
-              </div>
-              <p className="label mt-2">{t("cmdSensorNote1", lang)} {well?.name} {t("cmdSensorNote2", lang)}
-                {anomaly && <> {t("cmdLastAbnormal", lang)} <b>{anomaly.channels.join(", ")}</b> {anomaly.t?.slice(11, 16)}.</>}</p>
-              {ended && <p className="small mt-1">{t("cmdReplayEnded", lang)}</p>}
+          <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}>
+            {/* Zone B — mud-log view (+ optional 3D mini-view) */}
+            <section aria-label="mud log">
+              <Card>
+                {show3d && (
+                  <div className="mb-4">
+                    <div className="label mb-1">{tr(lang, "3D subsurface — bit position live", "3D उपसतह — बिट स्थिति लाइव")}</div>
+                    <Subsurface3D wellId={wellId} radius={10000} bitMd={bit} height={260} />
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <div className="flex gap-3 items-start">
+                    <div><div className="small rule-b pb-0.5 mb-1">{t("cmdMdAxis", lang)}</div><DepthAxis y={y} height={H} /></div>
+                    <div><div className="small rule-b pb-0.5 mb-1">{t("formationLabel", lang)}</div>
+                      <LithologyColumn intervals={tops} y={y} height={H} width={132} bit={bit} target={hazardTarget} /></div>
+                    <CurveTrack title="Torque" unit="kft·lb" pts={trackPts("torque")} y={y} height={H} width={rig ? 150 : 118} />
+                    <CurveTrack title="Pit volume" unit="bbl" pts={trackPts("pit_vol")} y={y} height={H} width={rig ? 150 : 118} />
+                    <CurveTrack title="Mud weight" unit="ppg" pts={trackPts("mw_ppg")} y={y} height={H} width={rig ? 120 : 96} />
+                  </div>
+                </div>
+                <p className="label mt-2">{t("cmdSensorNote1", lang)} {well?.name} {t("cmdSensorNote2", lang)}
+                  {anomaly && <> {t("cmdLastAbnormal", lang)} <b>{anomaly.channels.join(", ")}</b> {anomaly.t?.slice(11, 16)}.</>}</p>
+                {ended && <p className="small mt-1">{t("cmdReplayEnded", lang)}</p>}
+              </Card>
             </section>
 
             {/* Zone C — top look-ahead hazard */}
@@ -142,6 +176,7 @@ export default function Command() {
                 <NoticeSlip level={top.level} title={`${top.label} · ${top.formation_label}`}
                   where={top.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(top.distance_m)} m`}
                   mean={top.mean} ci={top.ci} neff={top.n_eff} nWells={top.n_wells} nWithEvent={top.n_with_event} status={top.status}
+                  posterior={top}
                   actions={<>
                     <button className="btn" onClick={() => { const e = top.evidence.find((x: any) => x.events.length); if (e) openSource(e.events[0].source_ref); }}>{t("sources", lang)}</button>
                     <Link className="btn" href={`/wiki?page=${encodeURIComponent("formations/" + slugF(top.formation))}`}>{t("openWiki", lang)}</Link>
@@ -191,6 +226,60 @@ export default function Command() {
           </div>
         ))}
       </Drawer>
+    </div>
+  );
+}
+
+function StepHint({ step, lang }: { step: 1 | 2 | 3; lang: Lang }) {
+  const steps: { n: 1 | 2 | 3; en: string; hi: string }[] = [
+    { n: 1, en: "Pick a start depth", hi: "प्रारंभ गहराई चुनें" },
+    { n: 2, en: "Start replay", hi: "पुनःचलन प्रारंभ करें" },
+    { n: 3, en: "Watch the alert", hi: "चेतावनी देखें" },
+  ];
+  return (
+    <div className="flex items-center gap-2 flex-wrap" aria-label="steps">
+      {steps.map((s, i) => (
+        <span key={s.n} className="inline-flex items-center gap-2">
+          <span className="small" style={{
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999,
+            border: `1px solid ${s.n === step ? "var(--accent)" : "var(--border)"}`,
+            color: s.n === step ? "var(--accent)" : "var(--text-2)",
+            fontWeight: s.n === step ? 600 : 400,
+            background: s.n === step ? "color-mix(in srgb, var(--accent) 10%, var(--surface))" : "transparent",
+          }}>
+            <span className="num">{s.n}.</span> {tr(lang, s.en, s.hi)}
+          </span>
+          {i < steps.length - 1 && <span className="label" aria-hidden="true">→</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Local REPLAY indicator: kk/Stamp and v2 Badge both use --caution-ink text on a tinted --caution
+ *  background, which measures 4.44:1 (just under the 4.5:1 AA minimum) — a pre-existing token issue
+ *  in shared tokens.css/Stamp.tsx (outside this page's owned files). This keeps the same caution
+ *  colour as an accent (border + dot) but the label text stays --text, which is already AA-safe. */
+function ReplayBadge({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-2 px-3 py-1.5 select-none"
+      style={{ border: "1px solid color-mix(in srgb, var(--caution) 45%, transparent)", background: "var(--surface-2)", borderRadius: "var(--radius-lg, 12px)" }}
+    >
+      <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: "var(--caution)", flex: "0 0 auto" }} />
+      <span className="flex flex-col leading-tight">
+        <span className="text-[0.82rem] font-semibold tracking-wide">{label}</span>
+        {sub && <span className="text-[0.7rem] label">{sub}</span>}
+      </span>
+    </span>
+  );
+}
+
+function StatusFigure({ label, value, rig, mono = true }: { label: string; value: string; rig: boolean; mono?: boolean }) {
+  return (
+    <div>
+      <div className="label">{label}</div>
+      <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15 }}>{value}</div>
     </div>
   );
 }

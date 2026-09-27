@@ -1,20 +1,24 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { pct } from "@/lib/format";
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
+import { Posterior, WhyPanel } from "@/components/v2/WhyPanel";
 
 const TAG: Record<string, { en: string; hi: string }> = {
   escalated: { en: "ESCALATED · live signal matches", hi: "उग्र (ESCALATED) · लाइव संकेत मेल खाता है" },
   alert: { en: "ALERT", hi: "चेतावनी (ALERT)" },
   notice: { en: "NOTICE", hi: "सूचना (NOTICE)" },
 };
+const tr = (lang: string, en: string, hi: string) => (lang === "hi" ? hi : en);
 
-/** Hazard card: 3px left rule (colour = state), title, big mono probability, range + n_eff line, actions. */
-export function NoticeSlip({ level, title, where, mean, ci, neff, nWells, nWithEvent, status, children, actions }: {
+/** Hazard card: 3px left rule (colour = state), title, big mono probability, range + n_eff line, actions.
+ *  `posterior`, when given, is the full backend hazard.posterior() object — powers the "Why this number?" panel. */
+export function NoticeSlip({ level, title, where, mean, ci, neff, nWells, nWithEvent, status, posterior, children, actions }: {
   level: "alert" | "escalated" | "notice"; title: string; where: string; mean: number; ci: [number, number]; neff: number;
-  nWells: number; nWithEvent: number; status: string; children?: ReactNode; actions?: ReactNode;
+  nWells: number; nWithEvent: number; status: string; posterior?: Posterior; children?: ReactNode; actions?: ReactNode;
 }) {
   const { lang } = useApp();
+  const [why, setWhy] = useState(false);
   const color = level === "escalated" ? "var(--hazard)" : level === "alert" ? "var(--hazard)" : "var(--caution)";
   const tag = lang === "hi" ? TAG[level].hi : TAG[level].en;
   const ok = status === "ok";
@@ -34,6 +38,12 @@ export function NoticeSlip({ level, title, where, mean, ci, neff, nWells, nWithE
           <div className="small mt-1">effective evidence {neff.toFixed(1)} well{neff === 1 ? "" : "s"} — below the minimum; {nWithEvent} of {nWells} offset well{nWells === 1 ? "" : "s"} recorded this problem here.</div>
         </>
       )}
+      {posterior && (
+        <button className="btn mt-3" aria-expanded={why} onClick={() => setWhy((w) => !w)}>
+          {why ? tr(lang, "Hide why ▾", "क्यों — छुपाएँ ▾") : tr(lang, "Why this number? ▸", "यह संख्या क्यों? ▸")}
+        </button>
+      )}
+      {posterior && why && <WhyPanel posterior={posterior} />}
       {children && <div className="mt-4">{children}</div>}
       {actions && <div className="mt-4 flex gap-2 flex-wrap">{actions}</div>}
     </section>

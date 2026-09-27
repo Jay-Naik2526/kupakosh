@@ -30,7 +30,7 @@
   --rule: var(--border);
   --ink: var(--text);
   --ink-2: var(--text-2);
-  --caution-ink: #92620A;  /* caution TEXT on light paper (AA); --caution stays for rules/borders/lines */
+  --caution-ink: #7A5200;  /* caution TEXT on light paper (AA); --caution stays for rules/borders/lines */
   --tab-1: #E6F0EE; --tab-2: #EAF1E6; --tab-3: #ECEEF1; --tab-4: #F3EAE6;
   --lith-sand: #E9D8A6; --lith-shale: #A7B0A0; --lith-lime: #B9C6CF; --lith-clay: #B89B7A; --lith-chalk: #EDEBE4; --lith-granite: #D9CFC7;
   --radius: 2px;   /* sharp corners for mud-log style widgets (LithologyColumn, Register, …) */
