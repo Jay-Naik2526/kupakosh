@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Box, Play, Pause } from "lucide-react";
+import { Box, Play, Pause, Gauge, Ruler, Layers, Clock } from "lucide-react";
+import { BRAND, formationColor } from "@/lib/palette";
 import { scaleLinear } from "d3-scale";
 import { get, WS } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -109,10 +110,10 @@ export default function Command() {
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mt-4">
               <WellPicker onlyReplay label={tr(lang, "Replay well (has sensor data)", "पुनःचलन कूप (सेंसर डेटा सहित)")} />
               <ReplayBadge label={t("replay", lang)} sub={t("cmdReplaySub", lang)} />
-              <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} />
-              <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : t("tvdUnknown", lang)} rig={rig} />
-              <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} />
-              <div className="small label">{last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `recorded ${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : ""}</div>
+              <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} icon={Gauge} color={BRAND.from} />
+              <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : t("tvdUnknown", lang)} rig={rig} icon={Ruler} color={BRAND.via} />
+              <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} icon={Layers} color={la?.current?.label ? formationColor(la.current.label) : "var(--text-2)"} />
+              <StatusFigure label={tr(lang, "Time", "समय")} value={last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : "—"} rig={rig} mono={false} icon={Clock} color="var(--text-2)" />
             </div>
             <div className="flex items-end gap-3 flex-wrap mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
               <div>
@@ -176,7 +177,7 @@ export default function Command() {
                 <NoticeSlip level={top.level} title={`${top.label} · ${top.formation_label}`}
                   where={top.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(top.distance_m)} m`}
                   mean={top.mean} ci={top.ci} neff={top.n_eff} nWells={top.n_wells} nWithEvent={top.n_with_event} status={top.status}
-                  posterior={top}
+                  posterior={top} hazard={top.hazard}
                   actions={<>
                     <button className="btn" onClick={() => { const e = top.evidence.find((x: any) => x.events.length); if (e) openSource(e.events[0].source_ref); }}>{t("sources", lang)}</button>
                     <Link className="btn" href={`/wiki?page=${encodeURIComponent("formations/" + slugF(top.formation))}`}>{t("openWiki", lang)}</Link>
@@ -236,22 +237,27 @@ function StepHint({ step, lang }: { step: 1 | 2 | 3; lang: Lang }) {
     { n: 2, en: "Start replay", hi: "पुनःचलन प्रारंभ करें" },
     { n: 3, en: "Watch the alert", hi: "चेतावनी देखें" },
   ];
+  const stepColor = [BRAND.from, BRAND.via, BRAND.to];
   return (
     <div className="flex items-center gap-2 flex-wrap" aria-label="steps">
-      {steps.map((s, i) => (
-        <span key={s.n} className="inline-flex items-center gap-2">
-          <span className="small" style={{
-            display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999,
-            border: `1px solid ${s.n === step ? "var(--accent)" : "var(--border)"}`,
-            color: s.n === step ? "var(--accent)" : "var(--text-2)",
-            fontWeight: s.n === step ? 600 : 400,
-            background: s.n === step ? "color-mix(in srgb, var(--accent) 10%, var(--surface))" : "transparent",
-          }}>
-            <span className="num">{s.n}.</span> {tr(lang, s.en, s.hi)}
+      {steps.map((s, i) => {
+        const c = stepColor[i];
+        const active = s.n === step;
+        return (
+          <span key={s.n} className="inline-flex items-center gap-2">
+            <span className="small" style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999,
+              border: `1px solid ${c}`,
+              color: active ? "#fff" : c,
+              fontWeight: active ? 600 : 500,
+              background: active ? c : `color-mix(in srgb, ${c} 12%, transparent)`,
+            }}>
+              <span className="num" style={{ display: "inline-flex", width: 16, height: 16, borderRadius: 999, alignItems: "center", justifyContent: "center", background: active ? "rgba(255,255,255,0.3)" : c, color: "#fff", fontSize: "0.68rem" }}>{s.n}</span> {tr(lang, s.en, s.hi)}
+            </span>
+            {i < steps.length - 1 && <span className="label" aria-hidden="true">→</span>}
           </span>
-          {i < steps.length - 1 && <span className="label" aria-hidden="true">→</span>}
-        </span>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -275,11 +281,18 @@ function ReplayBadge({ label, sub }: { label: string; sub?: string }) {
   );
 }
 
-function StatusFigure({ label, value, rig, mono = true }: { label: string; value: string; rig: boolean; mono?: boolean }) {
+function StatusFigure({ label, value, rig, mono = true, icon: Icon, color }: { label: string; value: string; rig: boolean; mono?: boolean; icon?: any; color?: string }) {
   return (
-    <div>
-      <div className="label">{label}</div>
-      <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15 }}>{value}</div>
+    <div className="flex items-center gap-2">
+      {Icon && !rig && (
+        <span aria-hidden="true" style={{ display: "inline-flex", width: 28, height: 28, borderRadius: 999, alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${color ?? "var(--text-2)"} 16%, transparent)`, flex: "0 0 auto" }}>
+          <Icon size={15} color={color ?? "var(--text-2)"} />
+        </span>
+      )}
+      <div>
+        <div className="label">{label}</div>
+        <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15 }}>{value}</div>
+      </div>
     </div>
   );
 }

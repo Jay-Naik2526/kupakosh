@@ -1,25 +1,31 @@
 /** Decoding + geometry helpers for the well map (V4). No React here — plain data functions, easy to unit-test. */
 
-export type GeoWellsResponse = { n: number; countries: string[]; kinds: string[]; fields: string[]; rows: (number | string)[][] };
+export type GeoWellsResponse = { n: number; countries: string[]; kinds: string[]; hazards?: string[]; fields: string[]; rows: (number | string)[][] };
 
 export type MapWell = {
   id: number; name: string; country: string; lat: number; lon: number;
   has_events: boolean; n_events: number; documented: boolean; kind: "well" | "block_aggregate" | "field_centroid";
+  topHazard: string | null;
 };
 
 /** Decode the compact index-encoded /api/geo/wells payload into plain per-well objects. */
 export function decodeGeoWells(resp: GeoWellsResponse): MapWell[] {
-  return resp.rows.map((r) => ({
-    id: r[0] as number,
-    name: r[1] as string,
-    country: resp.countries[r[2] as number] ?? "unknown",
-    lat: r[3] as number,
-    lon: r[4] as number,
-    has_events: r[5] === 1,
-    n_events: r[6] as number,
-    documented: r[7] === 1,
-    kind: (resp.kinds[r[8] as number] ?? "well") as MapWell["kind"],
-  }));
+  const hazards = resp.hazards ?? [];
+  return resp.rows.map((r) => {
+    const hi = (r[9] as number) ?? -1;
+    return {
+      id: r[0] as number,
+      name: r[1] as string,
+      country: resp.countries[r[2] as number] ?? "unknown",
+      lat: r[3] as number,
+      lon: r[4] as number,
+      has_events: r[5] === 1,
+      n_events: r[6] as number,
+      documented: r[7] === 1,
+      kind: (resp.kinds[r[8] as number] ?? "well") as MapWell["kind"],
+      topHazard: hi >= 0 ? (hazards[hi] ?? null) : null,
+    };
+  });
 }
 
 export type WellFeatureCollection = {
@@ -37,7 +43,8 @@ export function wellsToGeoJSON(wells: MapWell[], which: "well" | "other"): WellF
       type: "Feature",
       geometry: { type: "Point", coordinates: [w.lon, w.lat] },
       properties: { id: w.id, name: w.name, country: w.country, has_events: w.has_events ? 1 : 0,
-                    n_events: w.n_events, documented: w.documented ? 1 : 0, kind: w.kind },
+                    n_events: w.n_events, documented: w.documented ? 1 : 0, kind: w.kind,
+                    top_hazard: w.topHazard ?? "" },
     })),
   };
 }

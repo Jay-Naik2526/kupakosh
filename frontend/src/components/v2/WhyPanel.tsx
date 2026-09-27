@@ -1,6 +1,7 @@
 "use client";
 import { useApp } from "@/lib/state";
 import { pct, m as fmtM } from "@/lib/format";
+import { hazardColor } from "@/lib/palette";
 
 /** Shape returned by backend engines/hazard.posterior() (see backend/app/engines/hazard.py:posterior),
  *  optionally widened with the extra fields engines/lookahead.py adds (formation_label, label = hazard label). */
@@ -50,6 +51,7 @@ export function WhyPanel({ posterior }: { posterior: Posterior }) {
       );
 
   const maxW = Math.max(0.01, ...p.evidence.map((e) => e.weight));
+  const hc = hazardColor(p.hazard ?? "");
 
   return (
     <div className="kk-card" style={{ padding: 14, marginTop: 10, background: "var(--surface-2)" }} aria-label="Why this number">
@@ -68,13 +70,13 @@ export function WhyPanel({ posterior }: { posterior: Posterior }) {
           {[...withEvent, ...withoutEvent].map((e) => (
             <li key={e.well_id} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "2px 10px", alignItems: "center", padding: "5px 0", borderBottom: "1px solid var(--border)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                <span aria-hidden="true" style={{ color: e.y > 0 ? "var(--hazard)" : "var(--text-2)", fontWeight: 700 }}>{e.y > 0 ? "●" : "○"}</span>
+                <span aria-hidden="true" style={{ color: e.y > 0 ? hc : "var(--text-2)", fontWeight: 700 }}>{e.y > 0 ? "●" : "○"}</span>
                 <span className="small" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.name}</span>
               </div>
               <span className="label num">{fmtM(e.distance_m)}</span>
               <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: "1 1 auto", height: 7, background: "var(--border)", borderRadius: 999, overflow: "hidden" }} title={`weight ${e.weight.toFixed(2)}`}>
-                  <div style={{ width: `${Math.max(3, (e.weight / maxW) * 100)}%`, height: "100%", background: e.y > 0 ? "var(--hazard)" : "var(--text-2)", opacity: e.y > 0 ? 1 : 0.5 }} />
+                  <div style={{ width: `${Math.max(3, (e.weight / maxW) * 100)}%`, height: "100%", background: e.y > 0 ? hc : "var(--text-2)", opacity: e.y > 0 ? 1 : 0.5 }} />
                 </div>
                 <span className="label num" style={{ flex: "0 0 auto" }}>w={e.weight.toFixed(2)}</span>
                 {e.events.length > 0 && (

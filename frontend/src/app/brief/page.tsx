@@ -7,6 +7,7 @@ import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { t } from "@/lib/i18n";
 import { Card, PageHeader } from "@/components/v2/ui";
+import { hazardColor, formationColor } from "@/lib/palette";
 
 export default function Brief() {
   const { wellId, ready, lang } = useApp();
@@ -80,20 +81,26 @@ export default function Brief() {
         {b && (
           <div className="bg-white text-ink border border-rule p-10 small" style={{ maxWidth: 760, boxShadow: "none" }}>
             <div style={{ height: 2, background: "linear-gradient(90deg,#FF9933 33.3%,#fff 33.3% 66.6%,#138808 66.6%)" }} />
-            <div className="flex justify-between border-b border-ink pb-1 mt-2">
-              <span>Kupakosh · {t("board", lang)}</span>
+            <div className="flex justify-between items-center px-3 py-2 mt-2 rounded-kk" style={{ background: "var(--brand-gradient, linear-gradient(100deg,#1D4ED8,#0E7490 55%,#0F766E))", color: "#fff" }}>
+              <span className="font-semibold">Kupakosh · {t("board", lang)}</span>
               <span className="typewriter">No. {b.ref_no} · {t("brDated", lang)} {b.date}</span>
             </div>
             <h2 className="font-semibold mt-3" style={{ fontSize: 16 }}>{t("brSubject", lang)} {b.subject}</h2>
             <p className="label mt-1">{t("brDistribution", lang)} {b.distribution.join(", ")}. {b.n_offsets} {t("brWellsInRadius", lang)} {b.n_documented} {t("brWithReports", lang)} {b.inputs.tops_inferred ? t("brTopsInferred", lang) : t("brTopsPlanned", lang)}</p>
             <Sec n={1} t={t("brSec1", lang)}>
-              <table className="w-full"><tbody>{b.formations.map((f: any) => <tr key={f.formation} className="rule-b"><td className="num w-24">{m(f.top_md_m)}</td><td>{f.label}</td></tr>)}</tbody></table>
+              <table className="w-full"><tbody>{b.formations.map((f: any) => (
+                <tr key={f.formation} className="rule-b">
+                  <td className="num w-24">{m(f.top_md_m)}</td>
+                  <td><span aria-hidden="true" className="inline-block rounded-sm mr-2 align-middle" style={{ width: 10, height: 10, background: formationColor(f.formation, f.lithology) }} />{f.label}</td>
+                </tr>
+              ))}</tbody></table>
             </Sec>
             <Sec n={2} t={t("brSec2", lang)}>
               {b.hazards.length === 0 ? <p>{t("brNoHazard", lang)}</p> : (
                 <table className="w-full"><thead><tr className="border-b border-ink text-left"><th>{t("brTableFormation", lang)}</th><th>{t("brTableHazard", lang)}</th><th className="text-right">{t("brTableRate", lang)}</th><th className="text-right">{t("brTableRange", lang)}</th><th className="text-right">n_eff</th><th>{t("brTableWhatWorked", lang)}</th></tr></thead>
                   <tbody>{b.hazards.map((h: any, i: number) => (
-                    <tr key={i} className="rule-b align-top"><td>{h.formation_label}</td><td>{h.label}{h.sources[0] && <SourceFootnote refId={h.sources[0].source_ref} n="src" />}</td>
+                    <tr key={i} className="rule-b align-top"><td>{h.formation_label}</td>
+                      <td><span aria-hidden="true" className="inline-block rounded-full mr-1.5 align-middle" style={{ width: 8, height: 8, background: hazardColor(h.hazard ?? h.label) }} />{h.label}{h.sources[0] && <SourceFootnote refId={h.sources[0].source_ref} n="src" />}</td>
                       {h.status === "ok" ? <><td className="num text-right">{pct(h.mean)}</td><td className="num text-right">{pct(h.ci[0])}–{pct(h.ci[1])}</td></> : <td colSpan={2} className="text-right italic">{t("insufficient", lang).toLowerCase()}</td>}
                       <td className="num text-right">{h.n_eff.toFixed(1)}</td>
                       <td>{h.fixes.slice(0, 2).map((f: any) => `${f.action} (${f.k}/${f.n})`).join("; ") || "—"}</td></tr>))}</tbody></table>)}

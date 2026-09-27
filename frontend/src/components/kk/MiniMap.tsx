@@ -2,13 +2,15 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { BRAND, countryColor } from "@/lib/palette";
 
 // MapLibre v6 loads its worker as a separate ES module; serve it from /public (copied by `npm run maplibre-worker`).
 if (typeof window !== "undefined") maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
-export type MapWell = { id: number; name: string; lat: number; lon: number; documented?: boolean; n_events?: number; active?: boolean };
+export type MapWell = { id: number; name: string; lat: number; lon: number; country?: string | null; documented?: boolean; n_events?: number; active?: boolean };
 
-/** Muted paper-style map (OSM raster, desaturated) with the radius circle. */
+/** Colourful mini map (OpenFreeMap "liberty", same style family as the full WellMap) with the radius circle
+ * and wells coloured by country — used on Offsets and Brief where a small, quick-loading map is enough. */
 export function MiniMap({ center, radius_m, wells, height = 300, onPick }: {
   center: [number, number] | null; radius_m: number; wells: MapWell[]; height?: number; onPick?: (id: number) => void;
 }) {
@@ -18,9 +20,7 @@ export function MiniMap({ center, radius_m, wells, height = 300, onPick }: {
     if (!el.current || map.current) return;
     map.current = new maplibregl.Map({
       container: el.current,
-      style: { version: 8, sources: { osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap contributors" } },
-               layers: [{ id: "bg", type: "background", paint: { "background-color": "#F3F0E8" } },
-                        { id: "osm", type: "raster", source: "osm", paint: { "raster-saturation": -0.9, "raster-opacity": 0.55, "raster-contrast": -0.2 } }] },
+      style: "https://tiles.openfreemap.org/styles/liberty",
       center: center ? [center[1], center[0]] : [2, 58], zoom: 9, attributionControl: { compact: true },
     });
     return () => { map.current?.remove(); map.current = null; };
@@ -30,17 +30,18 @@ export function MiniMap({ center, radius_m, wells, height = 300, onPick }: {
     if (!m || !center) return;
     const draw = () => {
       const circle = circlePoly(center, radius_m);
-      const fc = { type: "FeatureCollection", features: wells.map((w) => ({ type: "Feature", properties: { id: w.id, name: w.name, doc: w.documented ? 1 : 0, active: w.active ? 1 : 0, ev: w.n_events ?? 0 }, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) } as any;
-      for (const id of ["wells-l", "wells", "radius-l"]) if (m.getLayer(id)) m.removeLayer(id);
+      const fc = { type: "FeatureCollection", features: wells.map((w) => ({ type: "Feature", properties: { id: w.id, name: w.name, doc: w.documented ? 1 : 0, active: w.active ? 1 : 0, ev: w.n_events ?? 0, color: w.active ? BRAND.accent : countryColor(w.country) }, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) } as any;
+      for (const id of ["wells-l", "wells", "radius-l", "radius-f"]) if (m.getLayer(id)) m.removeLayer(id);
       for (const id of ["wells", "radius"]) if (m.getSource(id)) m.removeSource(id);
       m.addSource("radius", { type: "geojson", data: circle as any });
-      m.addLayer({ id: "radius-l", type: "line", source: "radius", paint: { "line-color": "#1B1A17", "line-width": 1.2, "line-dasharray": [3, 2] } });
+      m.addLayer({ id: "radius-f", type: "fill", source: "radius", paint: { "fill-color": BRAND.via, "fill-opacity": 0.08 } });
+      m.addLayer({ id: "radius-l", type: "line", source: "radius", paint: { "line-color": BRAND.via, "line-width": 1.6, "line-dasharray": [3, 2] } });
       m.addSource("wells", { type: "geojson", data: fc });
       m.addLayer({ id: "wells", type: "circle", source: "wells", paint: {
-        "circle-radius": ["case", ["==", ["get", "active"], 1], 7, ["==", ["get", "doc"], 1], 4.5, 2.5],
-        "circle-color": ["case", ["==", ["get", "active"], 1], "#B23A1E", ["==", ["get", "doc"], 1], "#1B1A17", "#FBFAF6"],
-        "circle-stroke-color": "#1B1A17", "circle-stroke-width": 1 } });
-      m.addLayer({ id: "wells-l", type: "symbol", source: "wells", filter: [">", ["get", "ev"], 0], layout: { "text-field": ["get", "name"], "text-size": 11, "text-offset": [0, 1.1], "text-font": ["Open Sans Regular"] }, paint: { "text-color": "#1B1A17", "text-halo-color": "#F3F0E8", "text-halo-width": 1.5 } });
+        "circle-radius": ["case", ["==", ["get", "active"], 1], 8, ["==", ["get", "doc"], 1], 5, 3],
+        "circle-color": ["get", "color"],
+        "circle-stroke-color": "#FFFFFF", "circle-stroke-width": ["case", ["==", ["get", "active"], 1], 2.5, 1.4] } });
+      m.addLayer({ id: "wells-l", type: "symbol", source: "wells", filter: [">", ["get", "ev"], 0], layout: { "text-field": ["get", "name"], "text-size": 11, "text-offset": [0, 1.1], "text-font": ["Noto Sans Regular"] }, paint: { "text-color": "#1B1A17", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5 } });
       const b = new maplibregl.LngLatBounds();
       circle.features[0].geometry.coordinates[0].forEach((c: number[]) => b.extend(c as [number, number]));
       m.fitBounds(b, { padding: 20, duration: 0 });

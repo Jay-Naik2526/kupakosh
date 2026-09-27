@@ -66,8 +66,11 @@ export function UploadReport() {
       <button className="btn btn-primary" disabled={!file || busy} onClick={send}>{busy ? (lang === "hi" ? "अपलोड हो रहा है…" : "Uploading…") : (lang === "hi" ? "अपलोड करें व संसाधित करें" : "Upload and process")}</button>
       {err && <div className="border rounded-kk p-2" style={{ borderColor: "var(--hazard)" }}>✕ {err}</div>}
       {job && (
-        <div className="border border-rule rounded-kk p-3 bg-card">
-          <div className="font-semibold">Job {job.id} · <span className="mono">{job.status}</span>{job.status === "failed" ? " ✕" : job.status === "done" ? " ✓" : " …"}</div>
+        <div className="border rounded-kk p-3" style={{
+          borderColor: `color-mix(in srgb, ${job.status === "failed" ? "var(--hazard)" : job.status === "done" ? "var(--ok)" : "var(--caution)"} 45%, var(--border))`,
+          background: `color-mix(in srgb, ${job.status === "failed" ? "var(--hazard)" : job.status === "done" ? "var(--ok)" : "var(--caution)"} 8%, var(--card))`,
+        }}>
+          <div className="font-semibold">Job {job.id} · <span className="mono" style={{ color: job.status === "failed" ? "var(--hazard)" : job.status === "done" ? "#166534" : "var(--caution-ink)" }}>{job.status}</span>{job.status === "failed" ? " ✕" : job.status === "done" ? " ✓" : " …"}</div>
           <ol className="list-decimal pl-5 mt-1 space-y-0.5">{job.steps.map((s: any, i: number) => <li key={i} className="break-words">{s.msg}</li>)}</ol>
           {job.error && <p style={{ color: "var(--hazard)" }}>{job.error}</p>}
           {job.result?.document_id && <p className="mt-1">{lang === "hi" ? "इस रूप में संग्रहीत" : "Stored as"} <span className="mono">doc:{job.result.document_id}</span>{job.result.duplicate_of ? (lang === "hi" ? " (पहले से लोड — कुछ नहीं जोड़ा गया)" : " (already loaded — nothing added)") : ""}.</p>}

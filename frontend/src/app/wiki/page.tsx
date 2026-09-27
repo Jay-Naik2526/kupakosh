@@ -9,6 +9,29 @@ import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { t } from "@/lib/i18n";
+import { hazardColor } from "@/lib/palette";
+
+// One colour + glyph per wiki page kind, so the document type reads before you read the title.
+// A hazard page's chip uses that hazard's own colour (from its slug, hazards/<key>) so it matches the same hue everywhere else in the app.
+// KIND_COLOR/HAZARD_TEXT are darker ("-700") variants of the same hues, used only as TEXT so small labels clear AA (4.5:1) on a light tint —
+// hazardColor()/the "-600" hues stay for decoration (dots, bars) where contrast rules don't apply.
+const KIND_COLOR: Record<string, string> = { formation: "#0E7490", well: "var(--info)", lesson: "#A16207", basin: "#6D28D9" };
+const HAZARD_TEXT: Record<string, string> = {
+  lost_circulation: "#BE123C", kick: "#B91C1C", stuck_pipe: "#C2410C", torque_spike: "#B45309",
+  overpressure: "#6D28D9", cementing_issue: "#0E7490", fishing: "#4338CA", wellbore_instability: "#A16207",
+};
+const KIND_GLYPH: Record<string, string> = { hazard: "⚠", formation: "▤", well: "◎", lesson: "✎", basin: "◈" };
+function KindChip({ kind, slug }: { kind: string; slug: string }) {
+  const key = slug.split("/")[1] ?? "";
+  const bg = kind === "hazard" ? hazardColor(key) : KIND_COLOR[kind] ?? "#64748B";
+  const c = kind === "hazard" ? (HAZARD_TEXT[key] ?? "#64748B") : KIND_COLOR[kind] ?? "#64748B";
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-kk text-[0.72rem] font-semibold uppercase tracking-wide"
+          style={{ background: `color-mix(in srgb, ${bg} 14%, var(--surface))`, border: `1px solid color-mix(in srgb, ${bg} 45%, transparent)`, color: c }}>
+      <span aria-hidden="true">{KIND_GLYPH[kind] ?? "●"}</span>{kind}
+    </span>
+  );
+}
 
 export default function WikiPageWrap() { return <Suspense><Wiki /></Suspense>; }
 
@@ -70,8 +93,11 @@ function Wiki() {
               <div className="flex justify-between items-start gap-4 flex-wrap border-b border-[var(--border)] pb-4">
                 <div>
                   <div className="typewriter small text-[var(--text-2)]">{page.ref_no} · v{page.version}</div>
-                  <h2 className="text-xl font-semibold mt-1">{page.title}</h2>
-                  <div className="label mt-0.5">{page.kind} {t("wikiPageSuffix", lang)} · {page.n_sources} {t("wikiSourcesSuffix", lang)} · {t("wikiCommit", lang)} <span className="mono">{page.git_commit?.slice(0, 8)}</span></div>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <KindChip kind={page.kind} slug={slug} />
+                    <h2 className="text-xl font-semibold">{page.title}</h2>
+                  </div>
+                  <div className="label mt-0.5">{page.n_sources} {t("wikiSourcesSuffix", lang)} · {t("wikiCommit", lang)} <span className="mono">{page.git_commit?.slice(0, 8)}</span></div>
                   <TrustBar v={page.trust} lang={lang} />
                 </div>
                 {page.status === "approved" && <Stamp kind="approved" round text="APPROVED" sub={`${page.approved_by} · ${page.approved_at?.slice(0, 10)}`} />}
@@ -123,7 +149,7 @@ function Wiki() {
                 <li key={p.slug}>
                   <button className="w-full text-left small flex justify-between gap-2 px-2 py-2 rounded-[var(--radius-md)] hover:bg-[var(--surface-2)]"
                     onClick={() => { router.push(`/wiki?page=${encodeURIComponent(p.slug)}`); setDrawer(null); }}>
-                    <span>{p.title}</span><span className="label mono">{p.status}</span>
+                    <span className="flex items-center gap-2"><KindChip kind={p.kind} slug={p.slug} /><span>{p.title}</span></span><span className="label mono">{p.status}</span>
                   </button>
                 </li>
               ))}</ul>
@@ -152,7 +178,7 @@ function TrustBar({ v, lang }: { v: number | null; lang: "en" | "hi" }) {
     <div className="flex items-center gap-2 mt-2 small" title="share of cited report lines with no open report conflict">
       <span className="label">{t("wikiTrust", lang)}</span>
       <span className="inline-block h-2 w-40 rounded-full bg-[var(--surface-2)] border border-[var(--border)] overflow-hidden">
-        <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: "var(--accent)" }} />
+        <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: "linear-gradient(90deg, var(--hazard), var(--caution), var(--ok))" }} />
       </span>
       <span className="num">{Math.round(v * 100)}%</span>
     </div>

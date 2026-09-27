@@ -7,6 +7,9 @@ import { UploadReport } from "@/components/kk/UploadReport";
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/v2/ui";
+import { countryColor } from "@/lib/palette";
+
+const FIG_COLORS = ["var(--info)", "#0891B2", "#8B5CF6", "var(--ok)"];
 
 const tr = (lang: string, en: string, hi: string) => (lang === "hi" ? hi : en);
 
@@ -46,15 +49,30 @@ export default function Accuracy() {
   const c = s.counts;
   const HOW: Record<string, string> = Object.fromEntries(EXPECTED.map((e) => [e.name + "|" + e.metric, e.how]));
   const rows = [...s.evals, ...EXPECTED.filter((e) => !s.evals.some((x: any) => x.name === e.name && x.metric === e.metric)).map((e) => ({ ...e, value: null, n: null }))];
-  const fmt = (r: any) => r.value === null || r.value === undefined ? <span className="text-ink2">Not evaluated</span> : r.metric.startsWith("Brier") ? r.value.toFixed(5) : `${(r.value * 100).toFixed(1)}%`;
+  const fmt = (r: any) => {
+    if (r.value === null || r.value === undefined) return <span className="text-ink2">Not evaluated</span>;
+    if (r.metric.startsWith("Brier")) return r.value.toFixed(5);
+    const pctv = r.value * 100;
+    // "#166534" is a darker green than the --ok token: --ok reads well as a fill/bar but is only ~3.3:1 on white, short of AA for small text.
+    const textC = pctv >= 70 ? "#166534" : pctv >= 40 ? "var(--caution-ink)" : "var(--hazard)";
+    const barC = pctv >= 70 ? "var(--ok)" : pctv >= 40 ? "var(--caution)" : "var(--hazard)";
+    return (
+      <span className="inline-flex items-center gap-2 justify-end w-full">
+        <span className="num" style={{ color: textC }}>{pctv.toFixed(1)}%</span>
+        <span style={{ width: 48, height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
+          <span style={{ display: "block", height: "100%", width: `${Math.min(100, pctv)}%`, background: barC }} />
+        </span>
+      </span>
+    );
+  };
   return (
     <div className="space-y-8">
       {/* Zone A — four figures */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="figures">
-        <Fig v={c.wells} l={t("acWells", lang)} sub={`${c.documented_wells.toLocaleString()} with a report or history text${c.aggregate_locations ? ` · ${c.aggregate_locations.toLocaleString()} block/field locations not counted as wells` : ""}`} />
-        <Fig v={c.report_entries} l={t("acReportEntries", lang)} sub={`${c.history_documents} well histories · ${c.ddr_reports} daily reports`} />
-        <Fig v={c.events} l={t("acExtractedEvents", lang)} sub={`${c.events_trusted} trusted · ${c.events_needs_review} need review · method: ${s.extraction_method}`} />
-        <Fig v={c.wiki_approved} l={t("acApprovedWiki", lang)} sub={`of ${c.wiki_pages} compiled (drafts need a reviewer)`} />
+        <Fig v={c.wells} l={t("acWells", lang)} c={FIG_COLORS[0]} sub={`${c.documented_wells.toLocaleString()} with a report or history text${c.aggregate_locations ? ` · ${c.aggregate_locations.toLocaleString()} block/field locations not counted as wells` : ""}`} />
+        <Fig v={c.report_entries} l={t("acReportEntries", lang)} c={FIG_COLORS[1]} sub={`${c.history_documents} well histories · ${c.ddr_reports} daily reports`} />
+        <Fig v={c.events} l={t("acExtractedEvents", lang)} c={FIG_COLORS[2]} sub={`${c.events_trusted} trusted · ${c.events_needs_review} need review · method: ${s.extraction_method}`} />
+        <Fig v={c.wiki_approved} l={t("acApprovedWiki", lang)} c={FIG_COLORS[3]} sub={`of ${c.wiki_pages} compiled (drafts need a reviewer)`} />
       </section>
 
       {/* Zone B — data sources */}
@@ -75,8 +93,24 @@ export default function Accuracy() {
           <div className="mt-4">
             <h3 className="font-semibold mb-1">{t("acByCountry", lang)}</h3>
             <Register rows={s.by_country} cols={[
-              { key: "c", head: t("acCol_country", lang), cell: (r: any) => r.country },
-              { key: "w", head: t("acWells", lang), num: true, cell: (r: any) => r.wells.toLocaleString() },
+              { key: "c", head: t("acCol_country", lang), cell: (r: any) => (
+                <span className="inline-flex items-center gap-2">
+                  <span aria-hidden="true" className="inline-block rounded-full" style={{ width: 9, height: 9, background: countryColor(r.country) }} />
+                  {r.country}
+                </span>
+              ) },
+              { key: "w", head: t("acWells", lang), num: true, cell: (r: any) => {
+                const max = Math.max(1, ...s.by_country.map((x: any) => x.wells));
+                const c = countryColor(r.country);
+                return (
+                  <span className="inline-flex items-center gap-2 justify-end w-full">
+                    <span className="num">{r.wells.toLocaleString()}</span>
+                    <span style={{ width: 48, height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden", display: "inline-block" }}>
+                      <span style={{ display: "block", height: "100%", width: `${(r.wells / max) * 100}%`, background: c }} />
+                    </span>
+                  </span>
+                );
+              } },
               { key: "l", head: t("acCol_withLocation", lang), num: true, cell: (r: any) => r.located_wells.toLocaleString() },
               { key: "d", head: t("acCol_docsLinked", lang), num: true, cell: (r: any) => r.documents_linked.toLocaleString() },
               { key: "e", head: t("acCol_events", lang), num: true, cell: (r: any) => r.events.toLocaleString() },
@@ -105,6 +139,15 @@ export default function Accuracy() {
           {!hsErr && !hs && <p className="label">{t("loading", lang)}</p>}
           {hs && (
             <>
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <HsTile v={`${hs.lift.model.lift.toFixed(1)}x`} l={tr(lang, "lift over silence", "मौन पर लाभ")} good={hs.lift.model.lift > hs.lift.baseline.lift} />
+                {hs.watchlist?.rows?.length ? (() => { const w = hs.watchlist.rows.find((r: any) => r.k === 5) ?? hs.watchlist.rows[0]; return (
+                  <HsTile v={`${w.hits}/${w.events}`} l={tr(lang, `on blind top-${w.k} watch-list (${w.x_random}× chance)`, `अंध शीर्ष-${w.k} सूची में (${w.x_random}× संयोग)`)} good={w.x_random > 2} />
+                ); })() : (
+                  <HsTile v={`${(hs.forewarned.forewarned_share * 100).toFixed(0)}%`} l={tr(lang, "problems forewarned", "पूर्व-चेतावनी समस्याएँ")} good={hs.forewarned.forewarned_share >= 0.3} />
+                )}
+                <HsTile v={`${hs.forewarned.median_lead_m.toFixed(0)} m`} l={tr(lang, "median lead", "माध्यिका अग्रता")} good={hs.forewarned.median_lead_m >= 50} />
+              </div>
               <Register rows={hindsightRows(hs)} cols={[
                 { key: "m", head: t("acCol_metric", lang), cell: (r: any) => r.metric },
                 { key: "v", head: t("acCol_value", lang), num: true, cell: (r: any) => r.value },
@@ -113,7 +156,7 @@ export default function Accuracy() {
               ]} />
               <p className="small mt-2">
                 {tr(lang,
-                  `Each of ${hs.n_testable.toLocaleString()} documented wells was replayed as if brand new, offset evidence from every other well only. Where the model raised an alert 150 m ahead of a formation, it was right ${(hs.lift.model.rate_flagged * 100).toFixed(0)}% of the time (${hs.lift.model.k_flagged}/${hs.lift.model.n_flagged}), against a background rate of ${(hs.lift.model.rate_unflagged * 100).toFixed(1)}% when nothing was flagged — a ${hs.lift.model.lift.toFixed(1)}x lift over staying silent. Most problems still go unforewarned: only ${hs.forewarned.forewarned}/${hs.forewarned.events} (${(hs.forewarned.forewarned_share * 100).toFixed(1)}%), at a median lead of ${hs.forewarned.median_lead_m.toFixed(0)} m. The base-rate-only baseline scores close behind (${hs.lift.baseline.lift.toFixed(1)}x), so most of the lift comes from simply flagging rare hazards at all, not from offset-well similarity.`,
+                  `Each of ${hs.n_testable.toLocaleString()} documented wells was replayed as if brand new, offset evidence from every other well only. Where the model raised an alert 150 m ahead of a formation, it was right ${(hs.lift.model.rate_flagged * 100).toFixed(0)}% of the time (${hs.lift.model.k_flagged}/${hs.lift.model.n_flagged}), against a background rate of ${(hs.lift.model.rate_unflagged * 100).toFixed(1)}% when nothing was flagged — a ${hs.lift.model.lift.toFixed(1)}x lift over staying silent. Strict alerts are rare, so most problems are not forewarned by them: ${hs.forewarned.forewarned}/${hs.forewarned.events} (${(hs.forewarned.forewarned_share * 100).toFixed(1)}%), at a median lead of ${hs.forewarned.median_lead_m.toFixed(0)} m. The base-rate-only baseline scores close behind (${hs.lift.baseline.lift.toFixed(1)}x), so most of the lift comes from simply flagging rare hazards at all, not from offset-well similarity.${hs.watchlist?.rows?.length ? ` As a ranked watch-list, though, the blind top-5 per well already held ${(hs.watchlist.rows.find((r: any) => r.k === 5) ?? hs.watchlist.rows[0]).hits}/${hs.forewarned.events} real problems.` : ""}`,
                   `${hs.n_testable.toLocaleString()} दस्तावेज़ीकृत कूपों में से प्रत्येक को नए जैसा मानकर, केवल अन्य सभी कूपों के साक्ष्य के आधार पर पुनःचलाया गया। जहाँ मॉडल ने किसी संरचना से 150 मीटर पहले चेतावनी दी, वह ${(hs.lift.model.rate_flagged * 100).toFixed(0)}% बार सही थी (${hs.lift.model.k_flagged}/${hs.lift.model.n_flagged}), जबकि बिना चेतावनी की पृष्ठभूमि दर ${(hs.lift.model.rate_unflagged * 100).toFixed(1)}% थी — चुप रहने की तुलना में ${hs.lift.model.lift.toFixed(1)}x लाभ। अधिकांश समस्याएँ अब भी पूर्व-चेतावनी रहित हैं: केवल ${hs.forewarned.forewarned}/${hs.forewarned.events} (${(hs.forewarned.forewarned_share * 100).toFixed(1)}%), माध्यिका अग्रता ${hs.forewarned.median_lead_m.toFixed(0)} मी पर। आधार-दर-मात्र आधाररेखा भी करीब है (${hs.lift.baseline.lift.toFixed(1)}x), अतः अधिकांश लाभ दुर्लभ खतरों को केवल चिह्नित करने से आता है, ऑफसेट-कूप समानता से नहीं।`
                 )}
               </p>
@@ -136,15 +179,28 @@ function hindsightRows(hs: any) {
     { metric: "alerts right vs silent (model)", value: `${(m.rate_flagged * 100).toFixed(0)}% vs ${(m.rate_unflagged * 100).toFixed(1)}%`, n: `${m.k_flagged}/${m.n_flagged}`, how: "leave-one-well-out replay; rate an alerted cell had the hazard, vs an unflagged cell" },
     { metric: "lift over staying silent (model)", value: `${m.lift.toFixed(1)}x`, n: hs.n_testable, how: "model rate_flagged / rate_unflagged, 95% CI ±" + `${((m.lift_ci_approx?.[1] - m.lift_ci_approx?.[0]) / 2).toFixed(0)}x` },
     { metric: "lift over staying silent (base-rate baseline)", value: `${b.lift.toFixed(1)}x`, n: hs.n_testable, how: "same cells, predicting only the field/formation base rate — honesty check on how much offset-similarity adds" },
-    { metric: "problems forewarned", value: `${(f.forewarned_share * 100).toFixed(1)}%`, n: `${f.forewarned}/${f.events}`, how: "share of recorded hazard events that had an alert at least 150 m ahead" },
+    ...((hs.watchlist?.rows ?? []) as any[]).map((w) => ({ metric: `on blind top-${w.k} watch-list`, value: `${(w.share * 100).toFixed(1)}%`, n: `${w.hits}/${w.events}`, how: `per well, its own layer×hazard cells ranked by blind posterior; top ${w.k} (${(w.share_of_cells_flagged * 100).toFixed(1)}% of cells). Random pick: ${(w.random_share * 100).toFixed(1)}%; field base-rate ranking alone: ${(w.base_rate_share * 100).toFixed(1)}%` })),
+    { metric: "problems forewarned (strict alerts)", value: `${(f.forewarned_share * 100).toFixed(1)}%`, n: `${f.forewarned}/${f.events}`, how: "share of recorded hazard events that had a strict (posterior ≥ alert threshold) alert at least 150 m ahead" },
     { metric: "median lead distance", value: `${f.median_lead_m.toFixed(0)} m`, n: f.forewarned, how: "median along-hole distance between the alert and the event, when forewarned" },
   ];
 }
 
-function Fig({ v, l, sub }: { v: number; l: string; sub: string }) {
+function HsTile({ v, l, good }: { v: string; l: string; good: boolean }) {
+  // "#166534" (not --ok) so the big number clears AA as text; the tint background still uses the brighter --ok hue for the vivid card colour.
+  const tint = good ? "var(--ok)" : "var(--caution)";
+  const textC = good ? "#166534" : "var(--caution-ink)"; // green-800: #166534 was 4.499:1 on this tinted background, just under AA
   return (
-    <div className="border border-ink rounded-kk p-4 bg-card">
-      <div className="num" style={{ fontSize: 34, lineHeight: 1.1 }}>{v.toLocaleString("en-IN")}</div>
+    <div className="rounded-kk p-3 text-center" style={{ border: `1px solid color-mix(in srgb, ${tint} 40%, var(--border))`, background: `color-mix(in srgb, ${tint} 10%, var(--surface))` }}>
+      <div className="num font-semibold" style={{ fontSize: 22, color: textC }}>{v}</div>
+      <div className="label mt-0.5">{l}</div>
+    </div>
+  );
+}
+
+function Fig({ v, l, sub, c }: { v: number; l: string; sub: string; c: string }) {
+  return (
+    <div className="rounded-kk p-4" style={{ borderTop: `3px solid ${c}`, border: `1px solid var(--border)`, borderTopWidth: 3, borderTopColor: c, background: `color-mix(in srgb, ${c} 6%, var(--surface))` }}>
+      <div className="num" style={{ fontSize: 34, lineHeight: 1.1, color: c }}>{v.toLocaleString("en-IN")}</div>
       <div className="font-semibold">{l}</div>
       <div className="label mt-1">{sub}</div>
     </div>

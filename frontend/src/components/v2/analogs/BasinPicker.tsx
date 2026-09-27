@@ -3,6 +3,7 @@ import type { Lang } from "@/lib/i18n";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { hazardLabel, hazardText } from "@/lib/format";
 import { tr } from "./trLocal";
+import { hazardColor, lithColor } from "@/lib/palette";
 
 export type Basin = { slug: string; name: string; url: string; category: string | null; suggestions: Suggestion[] };
 export type Suggestion = { type: "lithology" | "formation"; value: string; text: string; source_ref: string; depth_hints_m: string[] };
@@ -42,14 +43,21 @@ export function BasinPicker({
         <div className="mt-3">
           <div className="label mb-1">{t("Cited suggestions for this basin (click a lithology to search it)", "इस द्रोणी हेतु उद्धृत सुझाव (लिथोलॉजी पर क्लिक कर खोजें)")}</div>
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="basin suggestions">
-            {basin.suggestions.map((s, i) => (
-              <span key={i} className="chip" style={{ cursor: s.type === "lithology" ? "pointer" : "default", opacity: s.type === "lithology" ? 1 : 0.85 }}
-                onClick={s.type === "lithology" ? () => onPickSuggestion(s) : undefined}
-                title={s.text}>
-                {s.type === "lithology" ? t("lithology:", "लिथोलॉजी:") : t("formation:", "संरचना:")} {s.value}
-                <SourceFootnote refId={s.source_ref} n={i + 1} />
-              </span>
-            ))}
+            {basin.suggestions.map((s, i) => {
+              const c = s.type === "lithology" ? lithColor(s.value) : "#8B5CF6";
+              return (
+                <span key={i} className="chip" style={{
+                  cursor: s.type === "lithology" ? "pointer" : "default", opacity: s.type === "lithology" ? 1 : 0.85,
+                  background: `color-mix(in srgb, ${c} 20%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)`,
+                }}
+                  onClick={s.type === "lithology" ? () => onPickSuggestion(s) : undefined}
+                  title={s.text}>
+                  <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 7, height: 7, background: c }} />
+                  {s.type === "lithology" ? t("lithology:", "लिथोलॉजी:") : t("formation:", "संरचना:")} {s.value}
+                  <SourceFootnote refId={s.source_ref} n={i + 1} />
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -74,9 +82,17 @@ export function BasinPicker({
       <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="hazard filter">
         <span className="label mr-1">{t("Hazards", "खतरे")}</span>
         <button className="chip" aria-pressed={hazards.size === 0} onClick={() => setHazards(new Set())}>{t("All", "सभी")}</button>
-        {HAZ.map((h) => (
-          <button key={h} className="chip" aria-pressed={hazards.has(h)} onClick={() => toggleHazard(h)}>{hazardText(h, lang)}</button>
-        ))}
+        {HAZ.map((h) => {
+          const c = hazardColor(h);
+          const active = hazards.has(h);
+          return (
+            <button key={h} className="chip" aria-pressed={active} onClick={() => toggleHazard(h)}
+              style={active ? { background: `color-mix(in srgb, ${c} 18%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)` } : undefined}>
+              <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 7, height: 7, background: c }} />
+              {hazardText(h, lang)}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

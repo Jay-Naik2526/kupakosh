@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/kk/EmptyState";
 import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { CountryFilter } from "@/components/kk/CountryFilter";
+import { formationColor, wellColor } from "@/lib/palette";
 
 const H = 560, COLW = 120, GAP = 44;
 const HAZ = Object.keys(hazardLabel);
@@ -138,7 +139,7 @@ export default function Offsets() {
                       const n = cols[i + 1].tops.find((x: any) => x.formation === t.formation);
                       if (!n) return null;
                       return <line key={`${i}-${t.formation}-${t.top_md_m}`} x1={i * (COLW + GAP) + 50} x2={(i + 1) * (COLW + GAP)} y1={y(t.top_md_m - shift(c))} y2={y(n.top_md_m - shift(cols[i + 1]))}
-                        stroke="var(--ink-2)" strokeDasharray="3 3" strokeWidth={0.8} />;
+                        stroke={formationColor(t.formation, t.lithology)} strokeDasharray="3 3" strokeWidth={1.4} opacity={0.85} />;
                     }))}
                   </svg>
                   <div className="flex relative" style={{ gap: GAP }}>
@@ -148,7 +149,10 @@ export default function Offsets() {
                       return (
                         <div key={c.well.id} style={{ width: COLW }}>
                           <div className="small" style={{ height: 74 }}>
-                            <div className="font-semibold">{i === 0 ? "▶ " : ""}{c.well.name}</div>
+                            <div className="font-semibold flex items-center gap-1.5">
+                              <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 999, background: wellColor(i), flex: "0 0 auto" }} />
+                              {i === 0 ? "▶ " : ""}{c.well.name}
+                            </div>
                             {c.offset ? <div className="label num">{m(c.offset.raw.distance_m)} · sim {c.offset.sim.toFixed(2)}</div> : <div className="label">{t("offsActiveWellTag", lang)}</div>}
                             <div className="label">{c.events.length} {t("cmdEvents", lang)} · TD {m(c.well.td_md_m)}</div>
                           </div>

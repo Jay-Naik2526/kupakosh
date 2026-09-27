@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/kk/EmptyState";
 import { useApp } from "@/lib/state";
 import { CountryFilter } from "@/components/kk/CountryFilter";
 import { t } from "@/lib/i18n";
+import { hazardColor } from "@/lib/palette";
 
 const OUT_GLYPH: Record<string, string> = { resolved: "✓ resolved", partial: "◐ partial", unresolved: "✕ unresolved", worsened: "▲ worsened", unknown: "? unknown" };
 const OUT_GLYPH_HI: Record<string, string> = { resolved: "✓ समाधान", partial: "◐ आंशिक", unresolved: "✕ अनसुलझा", worsened: "▲ बिगड़ा", unknown: "? अज्ञात" };
@@ -40,9 +41,12 @@ export default function Fixes() {
       {/* Zone A — selectors, in a toolbar card */}
       <section className="kk-card flex flex-wrap items-center gap-3" aria-label="selectors">
         <label className="label" htmlFor="hz">{t("fixHazard", lang)}</label>
-        <select id="hz" className="input" value={hazard} onChange={(e) => { setHazard(e.target.value); setFormation(""); }}>
-          {Object.keys(hazardLabel).map((k) => <option key={k} value={k}>{hazardText(k, lang)}</option>)}
-        </select>
+        <span className="inline-flex items-center gap-2">
+          <span aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, background: hazardColor(hazard), flex: "0 0 auto" }} />
+          <select id="hz" className="input" style={{ borderColor: hazardColor(hazard) }} value={hazard} onChange={(e) => { setHazard(e.target.value); setFormation(""); }}>
+            {Object.keys(hazardLabel).map((k) => <option key={k} value={k}>{hazardText(k, lang)}</option>)}
+          </select>
+        </span>
         <label className="label" htmlFor="fm">{t("fixFormation", lang)}</label>
         <select id="fm" className="input" value={formation} onChange={(e) => setFormation(e.target.value)}>
           <option value="">{t("fixAllFormations", lang)}</option>

@@ -28,18 +28,33 @@ router = APIRouter(prefix="/api")
 # NOT_WELLS in routes.py. Kept as its own tuple here so this module has no import-time dependency on routes.py.
 _NOT_WELLS = {"block_aggregate", "field_centroid"}
 _KINDS = ["well", "block_aggregate", "field_centroid"]
-GEO_FIELDS = ["id", "name", "country_idx", "lat", "lon", "has_events", "n_events", "documented", "kind_idx"]
+GEO_FIELDS = ["id", "name", "country_idx", "lat", "lon", "has_events", "n_events", "documented", "kind_idx", "top_hazard_idx"]
 
 
 def _kind_of(well_type: str | None) -> str:
     return well_type if well_type in _NOT_WELLS else "well"
 
 
+def _top_hazard(events: list) -> str | None:
+    """Most frequent hazard among a well's trusted events (ties broken by first-seen order); None if no events."""
+    if not events:
+        return None
+    counts: dict[str, int] = {}
+    for e in events:
+        if e.hazard:
+            counts[e.hazard] = counts.get(e.hazard, 0) + 1
+    if not counts:
+        return None
+    return max(counts.items(), key=lambda kv: kv[1])[0]
+
+
 @lru_cache(maxsize=1)
-def _rows() -> tuple[list[str], list[list]]:
+def _rows() -> tuple[list[str], list[list], list[str]]:
     cx = ctx()
     countries: list[str] = []
     cidx: dict[str, int] = {}
+    hazards: list[str] = []
+    hidx: dict[str, int] = {}
     rows: list[list] = []
     for w in cx.wells.values():
         if w.lat is None or w.lon is None:
@@ -49,11 +64,19 @@ def _rows() -> tuple[list[str], list[list]]:
         if i is None:
             i = cidx[c] = len(countries)
             countries.append(c)
-        n_events = len(cx.events.get(w.id, []))
+        w_events = cx.events.get(w.id, [])
+        n_events = len(w_events)
+        th = _top_hazard(w_events)
+        hi = -1
+        if th is not None:
+            hi = hidx.get(th)
+            if hi is None:
+                hi = hidx[th] = len(hazards)
+                hazards.append(th)
         rows.append([w.id, w.canonical_name, i, round(w.lat, 4), round(w.lon, 4),
                      1 if n_events > 0 else 0, n_events, 1 if w.id in cx.documented else 0,
-                     _KINDS.index(_kind_of(w.well_type))])
-    return countries, rows
+                     _KINDS.index(_kind_of(w.well_type)), hi])
+    return countries, rows, hazards
 
 
 def reset_cache() -> None:
@@ -63,10 +86,12 @@ def reset_cache() -> None:
 @router.get("/geo/wells")
 def geo_wells(country: str | None = None):
     """Compact array payload for every located well. `country`, if given, is the English name as stored
-    on well.country (e.g. "India", "Norway") — matches the values in GET /api/countries."""
-    countries, rows = _rows()
+    on well.country (e.g. "India", "Norway") — matches the values in GET /api/countries. `top_hazard_idx`
+    indexes into `hazards` (the well's most frequent recorded hazard), or -1 if the well has no events."""
+    countries, rows, hazards = _rows()
     out_rows = rows if not country else [r for r in rows if countries[r[2]] == country]
-    return {"n": len(out_rows), "countries": countries, "kinds": _KINDS, "fields": GEO_FIELDS, "rows": out_rows}
+    return {"n": len(out_rows), "countries": countries, "kinds": _KINDS, "hazards": hazards,
+            "fields": GEO_FIELDS, "rows": out_rows}
 
 
 @router.get("/geo/basins")

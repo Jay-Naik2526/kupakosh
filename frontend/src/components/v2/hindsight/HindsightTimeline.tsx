@@ -7,6 +7,7 @@ import { Badge, Button } from "@/components/v2/ui";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { DepthAxis } from "@/components/kk/CurveTrack";
 import { hazardLabel, hazardText, m as fmtM } from "@/lib/format";
+import { hazardColor, BRAND } from "@/lib/palette";
 import { tr } from "./trLocal";
 
 export type WellRow = {
@@ -120,12 +121,13 @@ export function HindsightTimeline({
                 {alertLaid.map(({ a, yTrue, yLabel }, i) => {
                   const matched = matchedAlertKeys.has(`${a.formation}|${a.hazard}`);
                   const isSel = picked?.kind === "alert" && picked.i === i;
+                  const hc = hazardColor(a.hazard);
                   return (
                     <g key={i} style={{ cursor: "pointer" }} onClick={() => setPicked({ kind: "alert", i })}>
-                      {Math.abs(yLabel - yTrue) > 1 && <line x1={0} x2={16} y1={yTrue} y2={yLabel} stroke={matched ? "var(--hazard)" : "var(--ink-2)"} strokeWidth={0.8} opacity={0.6} />}
-                      <line x1={0} x2={16} y1={yTrue} y2={yTrue} stroke={matched ? "var(--hazard)" : "var(--ink-2)"} strokeDasharray={matched ? undefined : "2 2"} strokeWidth={isSel ? 2.2 : 1.1} opacity={matched ? 0.9 : 0.6} />
-                      <circle cx={10} cy={yTrue} r={4} fill={matched ? "var(--hazard)" : "var(--surface, var(--card))"} stroke={matched ? "var(--hazard)" : "var(--ink-2)"} strokeWidth={1.3} />
-                      <text x={20} y={yLabel + 4} fontSize={11} fill="var(--ink)">{hazardLabel[a.hazard] ?? a.hazard} <tspan className="num" fill="var(--ink-2)">{Math.round(a.mean * 100)}%</tspan></text>
+                      {Math.abs(yLabel - yTrue) > 1 && <line x1={0} x2={16} y1={yTrue} y2={yLabel} stroke={matched ? hc : "var(--ink-2)"} strokeWidth={0.8} opacity={0.6} />}
+                      <line x1={0} x2={16} y1={yTrue} y2={yTrue} stroke={matched ? hc : "var(--ink-2)"} strokeDasharray={matched ? undefined : "2 2"} strokeWidth={isSel ? 2.2 : 1.1} opacity={matched ? 0.9 : 0.6} />
+                      <circle cx={10} cy={yTrue} r={4} fill={matched ? hc : "var(--surface, var(--card))"} stroke={matched ? hc : "var(--ink-2)"} strokeWidth={1.3} />
+                      <text x={20} y={yLabel + 4} fontSize={11} fill="var(--ink)">{hazardLabel[a.hazard] ?? a.hazard} <tspan className="num" fill={hc}>{Math.round(a.mean * 100)}%</tspan></text>
                     </g>
                   );
                 })}
@@ -138,15 +140,15 @@ export function HindsightTimeline({
                 <line x1={0} x2={0} y1={0} y2={H} stroke="var(--rule)" />
                 {revealed && eventLaid.map(({ ev, yTrue, yLabel }, i) => {
                   const isSel = picked?.kind === "event" && picked.i === i;
-                  const color = ev.forewarned ? "var(--ok)" : "var(--hazard)";
+                  const hc = hazardColor(ev.hazard);
                   return (
                     <g key={ev.event_id}>
                       {ev.forewarned && ev.alert_ref && (
-                        <line x1={-LANE_W} x2={0} y1={y(ev.alert_ref.alert_md_m)} y2={yTrue} stroke="var(--ok)" strokeWidth={1} strokeDasharray="2 3" opacity={0.7} />
+                        <line x1={-LANE_W} x2={0} y1={y(ev.alert_ref.alert_md_m)} y2={yTrue} stroke={BRAND.via} strokeWidth={1.4} strokeDasharray="2 3" opacity={0.85} />
                       )}
-                      {Math.abs(yLabel - yTrue) > 1 && <line x1={0} x2={16} y1={yTrue} y2={yLabel} stroke={color} strokeWidth={0.8} opacity={0.6} />}
+                      {Math.abs(yLabel - yTrue) > 1 && <line x1={0} x2={16} y1={yTrue} y2={yLabel} stroke={hc} strokeWidth={0.8} opacity={0.6} />}
                       <g style={{ cursor: "pointer" }} onClick={(e) => { e.stopPropagation(); setPicked({ kind: "event", i }); openSource(ev.source_ref); }}>
-                        <circle cx={10} cy={yTrue} r={4.5} fill={color} stroke="var(--ink)" strokeWidth={isSel ? 1.6 : 0.8} />
+                        <circle cx={10} cy={yTrue} r={4.5} fill={ev.forewarned ? hc : "none"} stroke={hc} strokeWidth={isSel ? 2 : 1.4} />
                         <text x={20} y={yLabel + 4} fontSize={11} fill="var(--ink)">
                           {hazardLabel[ev.hazard] ?? ev.hazard}
                           {ev.forewarned ? <tspan fill="var(--ok)" className="num"> · +{Math.round(ev.lead_m ?? 0)} m {t("lead", "अग्रता")}</tspan> : <tspan fill="var(--hazard)"> · {t("missed", "छूट गई")}</tspan>}

@@ -2,10 +2,17 @@
 
 /* ---- v2 palette: light (default) ---- */
 :root {
-  --bg: #F5F7FA;
+  /* Brand gradient — kept in sync with lib/palette.ts BRAND. Do not diverge. */
+  --brand-from: #1D4ED8;
+  --brand-via: #0E7490;
+  --brand-to: #0F766E;
+  --brand-accent: #F59E0B;
+  --brand-gradient: linear-gradient(100deg, var(--brand-from), var(--brand-via) 55%, var(--brand-to));
+
+  --bg: #EEF2FC;
   --surface: #FFFFFF;
-  --surface-2: #F0F2F5;
-  --border: #E4E7EC;
+  --surface-2: #F1F4FA;
+  --border: #E1E6F0;
   --text: #101828;
   --text-2: #5D6673;
   --accent: #0F766E;
@@ -17,8 +24,8 @@
   --info: #2563EB;
   --radius-lg: 12px;
   --radius-md: 8px;
-  --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
-  --shadow-md: 0 4px 12px rgba(16,24,40,.08);
+  --shadow-sm: 0 1px 3px rgba(29,78,216,.08);
+  --shadow-md: 0 6px 18px rgba(29,78,216,.12);
 
   /* ---- legacy tokens (SPEC.md §11.2), mapped onto the v2 palette so old §11 components (kk/*)
      stay coherent inside the new shell, in both themes. Older pages import these names directly. ---- */

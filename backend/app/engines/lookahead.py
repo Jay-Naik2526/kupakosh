@@ -37,9 +37,16 @@ def _profile(well_id: int) -> tuple[list[dict], list[dict]]:
 def formation_intervals(well_id: int) -> list[dict]:
     cx = ctx()
     out = []
-    for t in cx.tops.tops(well_id):
-        if t.level == "GROUP" and any(x.level == "FORMATION" for x in cx.tops.tops(well_id)):
-            continue
+    tops = cx.tops.tops(well_id)
+    fm_mds = [x.top_md_m for x in tops if x.level == "FORMATION" and x.top_md_m is not None]
+    for t in tops:
+        # A GROUP is replaced by its FORMATION children only where they exist inside it. Groups with no
+        # formation-level subdivision (e.g. shallow NORDLAND GP / HORDALAND GP on Sodir) stay in the column,
+        # matching TopIndex.at(), which falls back to GROUP when no FORMATION covers a depth.
+        if t.level == "GROUP":
+            lo, hi = t.top_md_m, t.base_md_m if t.base_md_m is not None else float("inf")
+            if lo is None or any(lo <= m < hi for m in fm_mds):
+                continue
         out.append({"formation": t.formation, "label": pretty(t.formation), "top_md_m": t.top_md_m, "base_md_m": t.base_md_m,
                     "lithology": t.lithology or lithology().get(t.formation), "lithology_source": "report" if t.lithology else ("lexicon (approx.)" if t.formation in lithology() else None),
                     "source_ref": t.source_ref})

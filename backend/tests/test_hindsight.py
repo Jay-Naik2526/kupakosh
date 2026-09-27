@@ -272,3 +272,29 @@ def test_hindsight_wells_list_filters_by_source(client):
 
 def test_hindsight_summary_unknown_source_404(client):
     assert client.get("/api/hindsight/summary", params={"max_wells": 40, "source": "not-a-real-source"}).status_code == 404
+
+
+def test_watchlist_report_pure():
+    from app.engines.hindsight import watchlist_report
+    cells = [
+        {"well_id": 1, "formation": "A", "hazard": "kick", "mean": 0.5, "base": 0.1},
+        {"well_id": 1, "formation": "B", "hazard": "kick", "mean": 0.2, "base": 0.3},
+        {"well_id": 1, "formation": "C", "hazard": "kick", "mean": 0.1, "base": 0.2},
+        {"well_id": 1, "formation": "D", "hazard": "kick", "mean": 0.0, "base": 0.0},
+    ]
+    events = [(1, "A", "kick"), (1, "C", "kick"), (1, "Z", "kick")]  # Z has no cell -> always missed
+    r = watchlist_report(cells, events, [1, 2])
+    k1, k2 = r["rows"]
+    assert k1["hits"] == 1 and k1["base_rate_hits"] == 0  # model top-1 = A; base-rate top-1 = B
+    assert k2["hits"] == 1 and k2["base_rate_hits"] == 1  # base-rate top-2 = B, C
+    assert k1["random_expected"] == round(2 * 1 / 4, 1)   # two events with a cell, k/n = 1/4 each
+    assert r["n_events_without_cell"] == 1
+
+
+def test_operating_points_monotone():
+    from app.engines.hindsight import operating_points
+    cells = [{"well_id": 1, "formation": f, "hazard": "kick", "mean": m, "status": "ok", "y": y}
+             for f, m, y in [("A", 0.5, 1), ("B", 0.08, 1), ("C", 0.03, 0), ("D", 0.01, 0)]]
+    ops = operating_points(cells, [(1, "A", "kick"), (1, "B", "kick")], [0.4, 0.05, 0.02])
+    assert [o["forewarned"] for o in ops] == [1, 2, 2]
+    assert [o["flagged"] for o in ops] == [1, 2, 3]

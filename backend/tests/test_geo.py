@@ -23,9 +23,10 @@ def test_geo_wells_shape(db_ready):
     assert body["fields"] == routes_geo.GEO_FIELDS
     assert body["n"] == len(body["rows"]) > 0
     assert set(body["kinds"]) >= {"well", "block_aggregate", "field_centroid"}
+    assert "hazards" in body
     row = body["rows"][0]
     assert len(row) == len(routes_geo.GEO_FIELDS)
-    wid, name, cidx, lat, lon, has_events, n_events, documented, kidx = row
+    wid, name, cidx, lat, lon, has_events, n_events, documented, kidx, hidx = row
     assert isinstance(wid, int) and isinstance(name, str)
     assert 0 <= cidx < len(body["countries"])
     assert -90 <= lat <= 90 and -180 <= lon <= 180
@@ -34,6 +35,17 @@ def test_geo_wells_shape(db_ready):
     assert 0 <= kidx < len(body["kinds"])
     # has_events must agree with n_events (has_events is just n_events > 0, kept as a separate flag for the UI)
     assert has_events == (1 if n_events > 0 else 0)
+    # top_hazard_idx is -1 (no events) or a valid index into `hazards`; -1 only when n_events == 0
+    assert -1 <= hidx < len(body["hazards"])
+    if n_events == 0:
+        assert hidx == -1
+
+
+def test_geo_wells_top_hazard(db_ready):
+    body = client.get("/api/geo/wells").json()
+    rows_with_events = [r for r in body["rows"] if r[6] > 0]
+    assert rows_with_events, "expected at least one well with events in the fixture db"
+    assert any(r[9] != -1 for r in rows_with_events)
 
 
 def test_geo_wells_country_filter(db_ready):

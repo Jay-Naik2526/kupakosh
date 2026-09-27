@@ -4,12 +4,24 @@ import { get } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { hazardLabel } from "@/lib/format";
 
+// Colour a citation by the kind of record it points to (report doc, a table row, a live DB query, a sensor sample) —
+// decoration only, the ref text and glyph still carry the meaning. Darker ("-700") hues so the small text clears AA (4.5:1) on its own tint.
+export function sourceKindColor(refId: string): string {
+  if (refId?.startsWith("doc:")) return "var(--info)";
+  if (refId?.startsWith("query:")) return "#7E22CE";
+  if (refId?.startsWith("sodir:") || refId?.includes(":table:")) return "#0E7490";
+  if (refId?.startsWith("realtime:")) return "#166534";
+  return "var(--text-2)";
+}
+
 /** Tiny superscript marker; click opens a paper slip with the verbatim source text + ref. */
 export function SourceFootnote({ refId, n }: { refId: string; n: number | string }) {
   const { openSource } = useApp();
+  const c = sourceKindColor(refId);
   return (
     <button type="button" onClick={(e) => { e.stopPropagation(); openSource(refId); }} title={refId}
-      className="num align-super text-[0.72rem] px-0.5 border border-rule rounded-kk bg-card hover:border-ink ml-0.5 leading-none"
+      className="num align-super text-[0.72rem] px-0.5 rounded-kk ml-0.5 leading-none"
+      style={{ border: `1px solid color-mix(in srgb, ${c} 55%, var(--border))`, background: `color-mix(in srgb, ${c} 12%, var(--card))`, color: c }}
       aria-label={`source ${n}: ${refId}`}>{n}</button>
   );
 }

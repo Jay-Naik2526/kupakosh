@@ -3,17 +3,31 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { get } from "@/lib/api";
-import { MAP_STYLES, satelliteTileUrl } from "./map/styles";
+import { styleFor, type BaseStyleId } from "./map/styles";
 import { decodeGeoWells, wellsToGeoJSON, bboxOf, circleGeoJSON, type MapWell } from "./map/geo";
-import { ensureWellsSource, ensureAggregatesLayer, ensureBasinsLayer, ensureRadiusLayer, ensureActiveWellLayer,
-         enableTerrain, disableTerrain, ensureSatelliteLayer } from "./map/layers";
+import {
+  ensureWellsSource, setWellColorMode, type WellColorMode, ensureHeatmapLayer, setLayerVisible,
+  ensureAggregatesLayer, ensureBasinsLayer, setBasinHover, ensureRadiusLayer, ensureActiveWellLayer,
+  setActiveWellPulse, enableTerrain, disableTerrain, setHillshadeVisible, setBordersLabelsVisible,
+} from "./map/layers";
+import { COUNTRY_COLOR, HAZARD_COLOR, countryColor, hazardColor } from "@/lib/palette";
 
 // MapLibre v6 worker as a separate ES module; served from /public (same pattern as components/kk/MiniMap.tsx).
 if (typeof window !== "undefined") maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
-export type SelectedWell = { id: number; name: string; country: string; lat: number; lon: number; has_events: boolean; n_events: number; documented: boolean };
+export type SelectedWell = { id: number; name: string; country: string; lat: number; lon: number; has_events: boolean; n_events: number; documented: boolean; topHazard: string | null };
 export type SelectedBasin = { name: string; slug: string; url: string; category: string | null };
 export type FlyTarget = { id: number; lat: number; lon: number } | null;
+
+const BASE_STYLES: { id: BaseStyleId; label: string }[] = [
+  { id: "streets", label: "Streets" },
+  { id: "terrain", label: "Terrain" },
+  { id: "satellite", label: "Satellite" },
+  { id: "dark", label: "Dark" },
+];
+
+type Layers = { wells: boolean; heatmap: boolean; clusters: boolean; basins: boolean; borders: boolean; terrain: boolean; radius: boolean };
+const DEFAULT_LAYERS: Layers = { wells: true, heatmap: false, clusters: true, basins: true, borders: true, terrain: false, radius: true };
 
 export function WellMap({
   activeWell, radiusKm = 10, country = null, flyTo = null, theme = "light",
@@ -34,45 +48,61 @@ export function WellMap({
   const wellsRef = useRef<MapWell[]>([]);
   const basinsRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const pulseRaf = useRef<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [is3D, setIs3D] = useState(false);
-  const [satOn, setSatOn] = useState(false);
   const [n, setN] = useState(0);
   const [err, setErr] = useState<string | null>(null);
-  const canSatellite = !!satelliteTileUrl();
+  const [base, setBase] = useState<BaseStyleId>(theme === "dark" ? "dark" : "streets");
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [layers, setLayers] = useState<Layers>(DEFAULT_LAYERS);
+  const [colorMode, setColorMode] = useState<WellColorMode>("country");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+
+  const is3D = base === "terrain" || layers.terrain;
 
   const draw = useCallback(() => {
     const m = map.current;
     if (!m) return;
     const wells = wellsRef.current.filter((w) => !country || w.country === country);
     setN(wells.length);
-    ensureWellsSource(m, wellsToGeoJSON(wells, "well"));
+    const wellsGeoJSON = wellsToGeoJSON(wells, "well");
+    ensureWellsSource(m, wellsGeoJSON, colorMode, layers.clusters);
     ensureAggregatesLayer(m, wellsToGeoJSON(wells, "other"));
+    ensureHeatmapLayer(m, wellsGeoJSON, layers.heatmap);
     if (basinsRef.current) ensureBasinsLayer(m, basinsRef.current);
     ensureRadiusLayer(m, activeWell ? (circleGeoJSON([activeWell.lat, activeWell.lon], radiusKm * 1000) as any) : null);
     ensureActiveWellLayer(m, activeWell
       ? { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [activeWell.lon, activeWell.lat] } }] }
       : null);
-    if (canSatellite) ensureSatelliteLayer(m, satOn);
-  }, [country, activeWell, radiusKm, satOn, canSatellite]);
+    setLayerVisible(m, "well-points", layers.wells);
+    setLayerVisible(m, "well-clusters", layers.wells);
+    setLayerVisible(m, "well-cluster-count", layers.wells);
+    setLayerVisible(m, "aggregate-points", layers.wells);
+    for (const id of ["basin-fill", "basin-fill-hover", "basin-line", "basin-label"]) setLayerVisible(m, id, layers.basins);
+    for (const id of ["radius-fill", "radius-line"]) setLayerVisible(m, id, layers.radius);
+    setBordersLabelsVisible(m, layers.borders);
+    setHillshadeVisible(m, is3D);
+  }, [country, activeWell, radiusKm, colorMode, layers, is3D]);
 
   // Init map + load data once.
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = new maplibregl.Map({
-      container: el.current, style: theme === "dark" ? MAP_STYLES.dark : MAP_STYLES.light,
+      container: el.current, style: styleFor(base) as any,
       center: [80, 22], zoom: 3.4, attributionControl: false,
     });
     map.current = m;
     m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    m.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: false }), "top-right");
     m.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
     m.addControl(new maplibregl.FullscreenControl(), "top-right");
     m.addControl(new maplibregl.AttributionControl({ compact: false }), "bottom-right");
 
     m.on("load", () => { setLoaded(true); draw(); });
-    // A style swap (e.g. system theme change) wipes runtime-added sources/layers — redraw after it settles.
+    // A style swap (base-style switch, theme change) wipes runtime-added sources/layers — redraw after it settles.
     m.on("style.load", () => draw());
+    m.on("mousemove", (e) => setCoords({ lat: e.lngLat.lat, lon: e.lngLat.lng }));
 
     const onClusterClick = (e: maplibregl.MapMouseEvent) => {
       const f = m.queryRenderedFeatures(e.point, { layers: ["well-clusters"] })[0];
@@ -88,7 +118,20 @@ export function WellMap({
       if (!f) return;
       const p = f.properties as any;
       const [lon, lat] = (f.geometry as any).coordinates;
-      onSelectWell?.({ id: p.id, name: p.name, country: p.country, lat, lon, has_events: p.has_events === 1, n_events: p.n_events, documented: p.documented === 1 });
+      const topHazard: string | null = p.top_hazard || null;
+      popupRef.current?.remove();
+      const chip = topHazard
+        ? `<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:${hazardColor(topHazard)};color:#fff;font:600 11px IBM Plex Sans, sans-serif;margin-top:4px">${escapeHtml(topHazard.replace(/_/g, " "))}</span>`
+        : `<span style="font:12px IBM Plex Sans, sans-serif;color:#64748B">no recorded events</span>`;
+      popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 10 })
+        .setLngLat([lon, lat])
+        .setHTML(`<div style="font:13px IBM Plex Sans, sans-serif;max-width:220px">
+            <b>${escapeHtml(p.name)}</b><br/>
+            <span style="color:${countryColor(p.country)};font-weight:600">${escapeHtml(p.country)}</span>
+            · ${p.n_events} event${p.n_events === 1 ? "" : "s"}<br/>${chip}
+          </div>`)
+        .addTo(m);
+      onSelectWell?.({ id: p.id, name: p.name, country: p.country, lat, lon, has_events: p.has_events === 1, n_events: p.n_events, documented: p.documented === 1, topHazard });
     };
     const onAggClick = (e: maplibregl.MapMouseEvent) => {
       const f = m.queryRenderedFeatures(e.point, { layers: ["aggregate-points"] })[0];
@@ -106,6 +149,11 @@ export function WellMap({
       const p = f.properties as any;
       onSelectBasin?.({ name: p.name, slug: p.slug, url: p.url, category: p.category ?? null });
     };
+    const onBasinMove = (e: maplibregl.MapMouseEvent) => {
+      const f = m.queryRenderedFeatures(e.point, { layers: ["basin-fill"] })[0];
+      setBasinHover(m, (f?.properties as any)?.name ?? null);
+    };
+    const onBasinLeave = () => setBasinHover(m, null);
     const cursorOn = () => { m.getCanvas().style.cursor = "pointer"; };
     const cursorOff = () => { m.getCanvas().style.cursor = ""; };
     for (const layer of ["well-clusters", "well-points", "aggregate-points", "basin-fill"]) {
@@ -116,27 +164,57 @@ export function WellMap({
     m.on("click", "well-points", onWellClick);
     m.on("click", "aggregate-points", onAggClick);
     m.on("click", "basin-fill", onBasinClick);
+    m.on("mousemove", "basin-fill", onBasinMove);
+    m.on("mouseleave", "basin-fill", onBasinLeave);
 
     Promise.all([
       get<any>("/api/geo/wells").then((r) => { wellsRef.current = decodeGeoWells(r); }),
       get<any>("/api/geo/basins").then((r) => { basinsRef.current = r; }),
     ]).then(() => { if (m.isStyleLoaded()) draw(); setDataLoaded(true); }).catch((e) => setErr(String(e?.message ?? e)));
 
-    return () => { m.remove(); map.current = null; };
+    return () => { if (pulseRaf.current) cancelAnimationFrame(pulseRaf.current); m.remove(); map.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Redraw when filters/props that affect layers change (cheap: sources already loaded, this just calls setData).
   useEffect(() => { if (loaded) draw(); }, [loaded, draw]);
 
-  // Theme toggle after init: swap the base style; the "style.load" listener registered above redraws our layers.
-  const themeRef = useRef(theme);
+  // Well colour mode (country vs top hazard) — cheap paint-property swap, no redraw needed.
+  useEffect(() => { if (map.current && loaded) setWellColorMode(map.current, colorMode); }, [colorMode, loaded]);
+
+  // Base style switch: swap the style; "style.load" (registered above) redraws our runtime layers.
+  const baseRef = useRef(base);
   useEffect(() => {
     const m = map.current;
-    if (!m || !loaded || themeRef.current === theme) return;
-    themeRef.current = theme;
-    m.setStyle(theme === "dark" ? MAP_STYLES.dark : MAP_STYLES.light);
-  }, [theme, loaded]);
+    if (!m || !loaded || baseRef.current === base) return;
+    baseRef.current = base;
+    m.setStyle(styleFor(base) as any);
+  }, [base, loaded]);
+
+  // Keep base in sync with the app-wide light/dark theme (only when the user hasn't picked Satellite/Terrain explicitly at init time).
+  useEffect(() => { setBase((prev) => (prev === "streets" || prev === "dark" ? (theme === "dark" ? "dark" : "streets") : prev)); }, [theme]);
+
+  // 3D pitch follows either the Terrain base style or the standalone terrain layer toggle.
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !loaded) return;
+    if (is3D) { enableTerrain(m); m.easeTo({ pitch: 60, bearing: -10, duration: 600 }); }
+    else { disableTerrain(m); m.easeTo({ pitch: 0, bearing: 0, duration: 600 }); }
+  }, [is3D, loaded]);
+
+  // Pulsing active-well marker (real location, animation only — no invented data).
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !activeWell) return;
+    const t0 = performance.now();
+    const tick = (t: number) => {
+      const phase = ((t - t0) / 1400) % 1;
+      setActiveWellPulse(m, 9 + phase * 10, 0.9 * (1 - phase));
+      pulseRaf.current = requestAnimationFrame(tick);
+    };
+    pulseRaf.current = requestAnimationFrame(tick);
+    return () => { if (pulseRaf.current) cancelAnimationFrame(pulseRaf.current); };
+  }, [activeWell]);
 
   // Fit bounds to the data: once all wells are in (open fitted to every located well, not centred on India),
   // and again whenever the country filter changes (fit to that country's wells).
@@ -155,48 +233,96 @@ export function WellMap({
     m.flyTo({ center: [flyTo.lon, flyTo.lat], zoom: 10, duration: 800 });
   }, [flyTo]);
 
-  const toggle3D = () => {
-    const m = map.current;
-    if (!m) return;
-    const next = !is3D;
-    setIs3D(next);
-    if (next) { enableTerrain(m); m.easeTo({ pitch: 60, bearing: -10, duration: 600 }); }
-    else { disableTerrain(m); m.easeTo({ pitch: 0, bearing: 0, duration: 600 }); }
-  };
-  const toggleSat = () => setSatOn((v) => !v);
+  const legendCountries = Object.keys(COUNTRY_COLOR).filter((c) => wellsRef.current.some((w) => w.country === c)).slice(0, 6);
+  const legendHazards = Object.keys(HAZARD_COLOR).filter((h) => wellsRef.current.some((w) => w.topHazard === h)).slice(0, 6);
 
   return (
     <div className={className} style={{ position: "relative", height, width: "100%" }}>
       <div ref={el} style={{ position: "absolute", inset: 0, borderRadius: "var(--radius-lg, 12px)", overflow: "hidden",
                               border: "1px solid var(--border, #E4E7EC)" }} role="img" aria-label="map of wells" />
-      <div style={{ position: "absolute", left: 12, top: 12, display: "flex", flexDirection: "column", gap: 6, zIndex: 1 }}>
-        <MapButton active={is3D} onClick={toggle3D} label="3D terrain toggle">3D</MapButton>
-        {canSatellite && <MapButton active={satOn} onClick={toggleSat} label="satellite imagery toggle">SAT</MapButton>}
+
+      {/* Base-style switcher */}
+      <div style={{ position: "absolute", left: 12, top: 12, zIndex: 1, display: "flex", background: "var(--surface, #FBFAF6)",
+                    border: "1px solid var(--border, #E4E7EC)", borderRadius: 8, padding: 3, gap: 2, boxShadow: "0 1px 3px rgba(0,0,0,.12)" }}
+           role="group" aria-label="map base style">
+        {BASE_STYLES.map((s) => (
+          <button key={s.id} type="button" aria-pressed={base === s.id} onClick={() => setBase(s.id)}
+            style={{ font: "600 11px IBM Plex Sans, sans-serif", padding: "5px 9px", borderRadius: 6, cursor: "pointer", border: "none",
+                     background: base === s.id ? "linear-gradient(135deg,#1D4ED8,#0F766E)" : "transparent",
+                     color: base === s.id ? "#FFFFFF" : "var(--text, #1B1A17)" }}>
+            {s.label}
+          </button>
+        ))}
       </div>
+
+      {/* Layers panel */}
+      <div style={{ position: "absolute", left: 12, top: 50, zIndex: 1, width: layersOpen ? 190 : "auto",
+                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 8,
+                    boxShadow: "0 1px 3px rgba(0,0,0,.12)", overflow: "hidden" }}>
+        <button type="button" onClick={() => setLayersOpen((v) => !v)} aria-expanded={layersOpen}
+          style={{ width: "100%", textAlign: "left", font: "700 11px IBM Plex Sans, sans-serif", padding: "6px 10px", border: "none",
+                   background: "transparent", cursor: "pointer", color: "var(--text, #1B1A17)" }}>
+          {layersOpen ? "▾ Layers" : "▸ Layers"}
+        </button>
+        {layersOpen && (
+          <div style={{ padding: "2px 10px 8px", display: "flex", flexDirection: "column", gap: 5 }}>
+            <LayerCheck label="Wells" checked={layers.wells} onChange={(v) => setLayers((l) => ({ ...l, wells: v }))} />
+            <div style={{ display: "flex", gap: 8, paddingLeft: 18, font: "11px IBM Plex Sans, sans-serif", color: "var(--text-2, #5E5A50)" }}>
+              <label style={{ display: "flex", gap: 3, alignItems: "center", cursor: "pointer" }}>
+                <input type="radio" name="wellcolor" checked={colorMode === "country"} onChange={() => setColorMode("country")} /> country
+              </label>
+              <label style={{ display: "flex", gap: 3, alignItems: "center", cursor: "pointer" }}>
+                <input type="radio" name="wellcolor" checked={colorMode === "hazard"} onChange={() => setColorMode("hazard")} /> hazard
+              </label>
+            </div>
+            <LayerCheck label="Clusters" checked={layers.clusters} onChange={(v) => setLayers((l) => ({ ...l, clusters: v }))} />
+            <LayerCheck label="Event heatmap" checked={layers.heatmap} onChange={(v) => setLayers((l) => ({ ...l, heatmap: v }))} />
+            <LayerCheck label="Indian basins" checked={layers.basins} onChange={(v) => setLayers((l) => ({ ...l, basins: v }))} />
+            <LayerCheck label="Borders & labels" checked={layers.borders} onChange={(v) => setLayers((l) => ({ ...l, borders: v }))} />
+            <LayerCheck label="Hillshade / 3D terrain" checked={is3D} onChange={(v) => setLayers((l) => ({ ...l, terrain: v }))} />
+            <LayerCheck label="Radius circle" checked={layers.radius} onChange={(v) => setLayers((l) => ({ ...l, radius: v }))} />
+          </div>
+        )}
+      </div>
+
+      {/* Legend + well count */}
       <div style={{ position: "absolute", left: 12, bottom: 28, zIndex: 1, fontSize: 12, color: "var(--text, #1B1A17)",
                     background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 8,
-                    padding: "8px 10px", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,.08))" }}>
+                    padding: "8px 10px", boxShadow: "0 1px 2px rgba(0,0,0,.08)", maxWidth: 220 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>{loaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}</div>
-        <LegendRow color="#DC2626" ring="#7F1D1D" shape="circle" label="Wells with recorded events" />
-        <LegendRow color="#94A3B8" ring="#475569" shape="circle" label="Other wells" />
+        {colorMode === "country" ? (
+          legendCountries.length
+            ? legendCountries.map((c) => <LegendRow key={c} color={countryColor(c)} shape="circle" label={c} />)
+            : <LegendRow color="#94A3B8" shape="circle" label="wells (no country data yet)" />
+        ) : (
+          legendHazards.length
+            ? legendHazards.map((h) => <LegendRow key={h} color={hazardColor(h)} shape="circle" label={h.replace(/_/g, " ")} />)
+            : <LegendRow color="#94A3B8" shape="circle" label="no recorded hazards yet" />
+        )}
         <LegendRow color="#64748B" shape="square" label="Block / field aggregates" />
         <LegendRow color="transparent" ring="#0F766E" shape="dashed" label="Indian sedimentary basins" />
       </div>
+
+      {/* Coordinates readout */}
+      {coords && (
+        <div style={{ position: "absolute", right: 12, bottom: 28, zIndex: 1, font: "12px IBM Plex Mono, monospace",
+                      color: "var(--text-2, #5E5A50)", background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)",
+                      borderRadius: 6, padding: "4px 8px" }}>
+          {coords.lat.toFixed(3)}, {coords.lon.toFixed(3)}
+        </div>
+      )}
+
       {err && <div role="alert" style={{ position: "absolute", left: 12, right: 12, top: 52, background: "#FEF2F2", color: "#991B1B",
                                           border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>{err}</div>}
     </div>
   );
 }
 
-function MapButton({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+function LayerCheck({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} aria-label={label}
-      style={{ font: "600 11px IBM Plex Mono, monospace", padding: "6px 10px", borderRadius: 6, cursor: "pointer",
-               border: `1px solid ${active ? "var(--accent, #0F766E)" : "var(--border, #E4E7EC)"}`,
-               background: active ? "var(--accent, #0F766E)" : "var(--surface, #FBFAF6)",
-               color: active ? "#FFFFFF" : "var(--text, #1B1A17)" }}>
-      {children}
-    </button>
+    <label style={{ display: "flex", alignItems: "center", gap: 6, font: "12px IBM Plex Sans, sans-serif", cursor: "pointer", color: "var(--text, #1B1A17)" }}>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} /> {label}
+    </label>
   );
 }
 

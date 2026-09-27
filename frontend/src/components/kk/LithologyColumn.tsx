@@ -1,6 +1,7 @@
 import { ScaleLinear } from "d3-scale";
 import { glyph, hazardLabel } from "@/lib/format";
-import { lithFill } from "./LithologyPatterns";
+import { hatchUrl } from "./LithologyPatterns";
+import { formationColor, hazardColor } from "@/lib/palette";
 
 export type Interval = { formation: string; label: string; top_md_m: number; base_md_m: number | null; lithology?: string | null };
 export type Glyph = { md_m: number; hazard: string; id?: number; onClick?: () => void; dim?: boolean };
@@ -18,10 +19,12 @@ export function LithologyColumn({ intervals, y, width = 120, height, bit, target
         const top = Math.max(it.top_md_m, d0), base = Math.min(it.base_md_m ?? d1, d1);
         if (base <= d0 || top >= d1 || base <= top) return null;
         const y0 = y(top), h = y(base) - y0;
+        const fill = formationColor(it.formation ?? it.label, it.lithology);
         return (
           <g key={i}>
-            <rect x={1} y={y0} width={colW} height={h} fill={lithFill(it.lithology)} stroke="var(--ink)" strokeWidth={0.6}><title>{`${it.label}: ${Math.round(it.top_md_m)}–${it.base_md_m ? Math.round(it.base_md_m) : "?"} m${it.lithology ? " · " + it.lithology : " · lithology not recorded"}`}</title></rect>
-            {labels && h > 11 && <text x={colW + 5} y={y0 + 11} fontSize={11} fill="var(--ink)">{it.label.length > 18 ? it.label.slice(0, 17) + "…" : it.label}</text>}
+            <rect x={1} y={y0} width={colW} height={h} fill={fill} stroke="var(--ink)" strokeWidth={0.6}><title>{`${it.label}: ${Math.round(it.top_md_m)}–${it.base_md_m ? Math.round(it.base_md_m) : "?"} m${it.lithology ? " · " + it.lithology : " · lithology not recorded"}`}</title></rect>
+            <rect x={1} y={y0} width={colW} height={h} fill={hatchUrl(it.lithology)} pointerEvents="none" />
+            {labels && h > 11 && <text x={colW + 5} y={y0 + 11} fontSize={11} fontWeight={600} fill="var(--ink)">{it.label.length > 18 ? it.label.slice(0, 17) + "…" : it.label}</text>}
             {labels && h > 24 && <text x={colW + 5} y={y0 + 23} fontSize={10} fill="var(--ink-2)" className="num">{Math.round(it.top_md_m)} m</text>}
           </g>
         );
@@ -39,7 +42,7 @@ export function LithologyColumn({ intervals, y, width = 120, height, bit, target
         </g>
       )}
       {glyphs.filter((g) => g.md_m >= d0 && g.md_m <= d1).map((g, i) => (
-        <text key={i} x={colW / 2} y={y(g.md_m) + 4} textAnchor="middle" fontSize={13} fill={g.dim ? "var(--ink-2)" : "var(--ink)"} stroke="var(--card)" strokeWidth={3} paintOrder="stroke"
+        <text key={i} x={colW / 2} y={y(g.md_m) + 4} textAnchor="middle" fontSize={13} fontWeight={700} fill={g.dim ? "var(--ink-2)" : hazardColor(g.hazard)} stroke="var(--card)" strokeWidth={3} paintOrder="stroke"
               style={{ cursor: g.onClick ? "pointer" : undefined }} onClick={g.onClick}>
           {glyph[g.hazard] ?? "•"}<title>{`${hazardLabel[g.hazard]} at ${Math.round(g.md_m)} m${g.dim ? " (needs review)" : ""}`}</title>
         </text>

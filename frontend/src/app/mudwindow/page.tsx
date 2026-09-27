@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/kk/EmptyState";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { Tabs } from "@/components/v2/ui";
 import { t } from "@/lib/i18n";
+import { hazardColor, BRAND } from "@/lib/palette";
 
 const H = 560, W = 560, PAD = { l: 52, r: 12, t: 22, b: 30 };
 const NEAR = 0.3; // mirrors config mudwindow.near_edge_ppg (display only)
@@ -67,10 +68,17 @@ export default function MudWindow() {
           <section aria-label="mud weight window chart" className="kk-card flex gap-3 items-start">
             <div>
               <svg width={W} height={H} className="rounded-[var(--radius-md)]" style={{ background: "var(--surface-2)" }} role="img" aria-label="Depth versus mud weight: safe band, evidence and active well">
-                <defs><pattern id="safe" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--ok)" strokeWidth="1.2" /></pattern></defs>
+                <defs>
+                  <pattern id="safe" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--ok)" strokeWidth="1.2" /></pattern>
+                  <linearGradient id="safeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="var(--ok)" stopOpacity={0.32} />
+                    <stop offset="1" stopColor="#0F766E" stopOpacity={0.32} />
+                  </linearGradient>
+                </defs>
                 {rows.filter((r: any) => r.top_md_m !== null && r.base_md_m !== null).map((r: any) => (
                   <g key={r.formation}>
-                    {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="url(#safe)" stroke="var(--ok)" strokeWidth={0.8}><title>{`${r.label}: safe band ${ppg(r.lower_ppg)}–${ppg(r.upper_ppg)} ppg`}</title></rect>}
+                    {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="url(#safeGrad)" stroke="var(--ok)" strokeWidth={0.8}><title>{`${r.label}: safe band ${ppg(r.lower_ppg)}–${ppg(r.upper_ppg)} ppg`}</title></rect>}
+                    {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="url(#safe)" pointerEvents="none" />}
                     {r.status === "upper_only" && <line x1={x(r.upper_ppg)} x2={x(r.upper_ppg)} y1={y(r.top_md_m)} y2={y(r.base_md_m)} stroke="var(--ok)" strokeWidth={2} strokeDasharray="4 2"><title>{`${r.label}: upper bound only`}</title></line>}
                     {r.status === "lower_only" && <line x1={x(r.lower_ppg)} x2={x(r.lower_ppg)} y1={y(r.top_md_m)} y2={y(r.base_md_m)} stroke="var(--ok)" strokeWidth={2} strokeDasharray="4 2"><title>{`${r.label}: lower bound only`}</title></line>}
                     {r.status === "conflict" && <rect x={x(r.upper_ppg)} width={x(r.lower_ppg) - x(r.upper_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="none" stroke="var(--hazard)" strokeDasharray="2 2"><title>{`${r.label}: evidence conflicts (lower > upper)`}</title></rect>}
@@ -79,12 +87,15 @@ export default function MudWindow() {
                 {active.length > 1 && active.slice(1).map((a, i) => {
                   const p = active[i]; const w = winAt(a.md_m);
                   const near = w && (Math.abs(a.ppg - w.lower_ppg) <= NEAR || Math.abs(a.ppg - w.upper_ppg) <= NEAR || a.ppg < w.lower_ppg || a.ppg > w.upper_ppg);
-                  return <path key={i} d={`M${x(p.ppg)} ${y(p.md_m)} V${y(a.md_m)} H${x(a.ppg)}`} fill="none" stroke={near ? "var(--caution)" : "var(--text)"} strokeWidth={near ? 3 : 1.6} />;
+                  return <path key={i} d={`M${x(p.ppg)} ${y(p.md_m)} V${y(a.md_m)} H${x(a.ppg)}`} fill="none" stroke={near ? "var(--caution)" : BRAND.via} strokeWidth={near ? 3 : 1.8} />;
                 })}
-                {pts.map((p: any, i: number) => (
-                  <text key={i} x={x(p.ppg)} y={y(p.md_m) + 4} textAnchor="middle" fontSize={12} fill="var(--text)" stroke="var(--surface-2)" strokeWidth={3} paintOrder="stroke" style={{ cursor: "pointer" }}
-                    onClick={() => openSource(p.source_ref)}>{G[p.kind] ?? "•"}<title>{`${p.kind} ${ppg(p.ppg)} ppg at ${Math.round(p.md_m)} m — ${p.well}`}</title></text>
-                ))}
+                {pts.map((p: any, i: number) => {
+                  const gc = p.kind === "LOT" || p.kind === "FIT" ? "#2563EB" : hazardColor(p.kind);
+                  return (
+                    <text key={i} x={x(p.ppg)} y={y(p.md_m) + 4} textAnchor="middle" fontSize={13} fontWeight={700} fill={gc} stroke="var(--surface-2)" strokeWidth={3} paintOrder="stroke" style={{ cursor: "pointer" }}
+                      onClick={() => openSource(p.source_ref)}>{G[p.kind] ?? "•"}<title>{`${p.kind} ${ppg(p.ppg)} ppg at ${Math.round(p.md_m)} m — ${p.well}`}</title></text>
+                  );
+                })}
                 {x.ticks(6).map((tk) => <text key={tk} x={x(tk)} y={H - 10} fontSize={11} textAnchor="middle" className="num" fill="var(--text-2)">{tk}</text>)}
                 {y.ticks(8).map((tk) => <text key={tk} x={PAD.l - 6} y={y(tk) + 4} fontSize={11} textAnchor="end" className="num" fill="var(--text-2)">{tk}</text>)}
                 <text x={W - PAD.r} y={14} fontSize={11} textAnchor="end" fill="var(--text-2)">mud weight, ppg →</text>

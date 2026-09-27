@@ -43,6 +43,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
+ENGINE_VERSION = 2  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -52,6 +53,8 @@ def _hindsight_cfg() -> dict:
         "min_offsets": c.get("min_offsets", 3),
         "alert_mode": c.get("alert_mode", "elevated"),
         "rr_min": c.get("rr_min", 2.0),
+        "watchlist_k": list(c.get("watchlist_k", [3, 5, 10])),
+        "operating_thresholds": list(c.get("operating_thresholds", [0.4, 0.1, 0.05, 0.02])),
     }
 
 
@@ -193,7 +196,18 @@ def run_well(well_id: int) -> dict:
         "alert_mode": mode, "testable": testable, "n_offsets": len(offs), "n_offsets_documented": n_offsets_documented,
         "formations": ints, "alerts": alerts, "n_alerts_other_mode": len(alerts_other_mode),
         "events": events_out, "summary": summ,
+        "watchlist": _well_watchlist(cells, events_out, max(hc["watchlist_k"] or [5])),
     }
+
+
+def _well_watchlist(cells: list[dict], events_out: list[dict], k: int) -> dict:
+    """This well's blind top-k watch-list (by posterior mean) and which of its real problems were on it."""
+    top = sorted(cells, key=_rank_key("mean"))[:k]
+    on = {(c["formation"], c["hazard"]) for c in top}
+    hits = sum(1 for e in events_out if (e["formation"], e["hazard"]) in on)
+    return {"k": k, "hits": hits, "events": len(events_out),
+            "items": [{k2: c[k2] for k2 in ("formation", "formation_label", "hazard", "label", "top_md_m", "alert_md_m", "mean", "ci", "n_eff", "base", "status")}
+                      | {"has_event": any((e["formation"], e["hazard"]) == (c["formation"], c["hazard"]) for e in events_out)} for c in top]}
 
 
 def _candidates(cx, max_wells: int | None) -> list[int]:
@@ -310,6 +324,63 @@ def _stratify(cells: list[dict], wells_rows: list[dict], key: str, flag_key: str
     return out
 
 
+def _rank_key(field: str):
+    return lambda c: (-c[field], c["formation"] or "", c["hazard"])
+
+
+def watchlist_report(cells: list[dict], events: list[tuple[int, str | None, str]], ks: list[int]) -> dict:
+    """Per-well watch-list: rank each blind well's own (formation, hazard) cells and keep the top k.
+    A real event is 'on the watch-list' when its (formation, hazard) cell is in its well's top k.
+    Compared with ranking by the field base rate alone and with the exact expectation of a random
+    pick of k cells (k / n_cells of that well, per event that has a cell)."""
+    by_well: dict[int, list[dict]] = defaultdict(list)
+    for c in cells:
+        by_well[c["well_id"]].append(c)
+    keys_by_well = {w: {(c["formation"], c["hazard"]) for c in cs} for w, cs in by_well.items()}
+    n_events = len(events)
+    rows = []
+    for k in ks:
+        top_model = {w: {(c["formation"], c["hazard"]) for c in sorted(cs, key=_rank_key("mean"))[:k]} for w, cs in by_well.items()}
+        top_base = {w: {(c["formation"], c["hazard"]) for c in sorted(cs, key=_rank_key("base"))[:k]} for w, cs in by_well.items()}
+        hit_m = sum(1 for w, f, h in events if (f, h) in top_model.get(w, set()))
+        hit_b = sum(1 for w, f, h in events if (f, h) in top_base.get(w, set()))
+        exp_r = sum(min(1.0, k / len(by_well[w])) for w, f, h in events if (f, h) in keys_by_well.get(w, set()))
+        share_cells = sum(min(k, len(cs)) for cs in by_well.values()) / max(1, len(cells))
+        rows.append({
+            "k": k, "events": n_events, "hits": hit_m, "share": round(hit_m / n_events, 4) if n_events else None,
+            "hits_ci": [round(x, 4) for x in wilson_ci(hit_m, n_events)] if n_events else None,
+            "base_rate_hits": hit_b, "base_rate_share": round(hit_b / n_events, 4) if n_events else None,
+            "random_expected": round(exp_r, 1), "random_share": round(exp_r / n_events, 4) if n_events else None,
+            "x_random": round(hit_m / exp_r, 2) if exp_r else None,
+            "share_of_cells_flagged": round(share_cells, 4),
+        })
+    return {"rows": rows, "n_events": n_events, "n_events_without_cell": sum(1 for w, f, h in events if (f, h) not in keys_by_well.get(w, set())),
+            "method": ("For each blind well, its own formation x hazard cells are ranked by the blind posterior mean (offsets exclude the "
+                       "well and its sidetracks); the top k form its watch-list. A recorded problem counts when its formation and hazard "
+                       "are on that list. 'Random' is the exact expected hit count of picking k cells at random per well; 'base rate' "
+                       "ranks by the field-wide (formation, hazard, source) rate alone. Problems whose formation is not in the well's "
+                       "column can never be on a list and count as missed.")}
+
+
+def operating_points(cells: list[dict], events: list[tuple[int, str | None, str]], thresholds: list[float]) -> list[dict]:
+    """Sensitivity trade-off: at each posterior-mean threshold (with enough evidence), how many real
+    problems were forewarned, how many cells were flagged, and how often a flag matched a record."""
+    out = []
+    for t in thresholds:
+        flagged = {(c["well_id"], c["formation"], c["hazard"]) for c in cells if c["status"] == "ok" and c["mean"] >= t}
+        for c in cells:
+            c["_op"] = (c["well_id"], c["formation"], c["hazard"]) in flagged
+        lr = lift_report(cells, "_op")
+        fw = sum(1 for e in events if e in flagged)
+        out.append({"threshold": t, "forewarned": fw, "events": len(events),
+                    "forewarned_share": round(fw / len(events), 4) if events else None,
+                    "flagged": lr["n_flagged"], "hit_rate": lr["rate_flagged"], "hit_rate_ci": lr["rate_flagged_ci"],
+                    "lift": lr["lift"], "lift_ci_approx": lr["lift_ci_approx"], "no_measured_lift_yet": lr["no_measured_lift_yet"]})
+    for c in cells:
+        c.pop("_op", None)
+    return out
+
+
 def _fingerprint(cx) -> list[int]:
     n_events_depth = sum(1 for lst in cx.events.values() for e in lst if e.md_m is not None)
     n_tops = sum(len(cx.tops.penetrated(wid)) for wid in cx.documented)
@@ -329,7 +400,7 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     if not force and CACHE_PATH.exists():
         try:
             cached = json.loads(CACHE_PATH.read_text())
-            if (cached.get("fingerprint") == fp and cached.get("max_wells_config") == n_wanted
+            if (cached.get("engine_version") == ENGINE_VERSION and cached.get("fingerprint") == fp and cached.get("max_wells_config") == n_wanted
                     and cached.get("alert_mode_config") == hc["alert_mode"] and cached.get("rr_min_config") == hc["rr_min"]):
                 return cached
         except (json.JSONDecodeError, OSError):
@@ -340,6 +411,7 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     mode = hc["alert_mode"]
     all_cells: list[dict] = []
     wells_out: list[dict] = []
+    all_events: list[tuple[int, str | None, str]] = []
     for wid in candidates:
         w, offs, ints, cells = _cells_for_well(wid, light=True)  # offsets computed once per well, reused for every cell
         n_offs_doc = sum(1 for o in offs if o["well_id"] in cx.documented)
@@ -348,6 +420,7 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
         if not testable:
             continue
         events_out, es = _match_well_events(wid, cells, mode)
+        all_events.extend((wid, e["formation"], e["hazard"]) for e in events_out)
         wells_out.append({"well_id": wid, "name": w.canonical_name, "field": w.field_name, "country": w.country,
                           "source": w.source, "n_offsets": n_offs_doc, **es})
         all_cells.extend(cells)
@@ -361,13 +434,15 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     other_baseline = baseline_lift_report(all_cells, other_lift["n_flagged"])
 
     out = {
-        "fingerprint": fp, "max_wells_config": n_wanted, "min_offsets_config": hc["min_offsets"],
+        "engine_version": ENGINE_VERSION, "fingerprint": fp, "max_wells_config": n_wanted, "min_offsets_config": hc["min_offsets"],
         "alert_mode_config": mode, "rr_min_config": hc["rr_min"],
         "n_candidates": len(candidates), "n_testable": len(wells_out), "n_cells": len(all_cells),
         "headline": model_lift["headline"],
         "lift": {"mode": mode, "model": model_lift, "baseline": baseline_lift},
         "lift_other_mode": {"mode": "absolute" if mode == "elevated" else "elevated", "model": other_lift, "baseline": other_baseline},
         "forewarned": aggregate(wells_out), "wells": wells_out,
+        "watchlist": watchlist_report(all_cells, all_events, hc["watchlist_k"]),
+        "operating_points": operating_points(all_cells, all_events, hc["operating_thresholds"]),
         "by_source": _stratify(all_cells, wells_out, "source", flag_key),
         "by_country": _stratify(all_cells, wells_out, "country", flag_key),
         "computed_in_s": elapsed, "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

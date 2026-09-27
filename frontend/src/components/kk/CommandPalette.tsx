@@ -30,9 +30,9 @@ export function CommandPalette() {
     return () => clearTimeout(h);
   }, [q, open]);
   const items = useMemo(() => [
-    ...TABS.filter((t) => !q || (t.en + t.hi).toLowerCase().includes(q.toLowerCase())).map((t) => ({ label: `${t.no} ${t.en} / ${t.hi}`, hint: t.q, go: () => router.push(t.href) })),
-    ...wells.map((w) => ({ label: `Well ${w.name}`, hint: `${w.field ?? ""} · ${w.documented ? "has reports" : "no reports"}`, go: () => { setWellId(w.id); router.push("/offsets"); } })),
-    ...pages.map((p) => ({ label: `Wiki: ${p.title}`, hint: `${p.ref_no} · ${p.status}`, go: () => router.push(`/wiki?page=${encodeURIComponent(p.slug)}`) })),
+    ...TABS.filter((t) => !q || (t.en + t.hi).toLowerCase().includes(q.toLowerCase())).map((t) => ({ label: `${t.no} ${t.en} / ${t.hi}`, hint: t.q, dot: "var(--brand-via, var(--accent))", go: () => router.push(t.href) })),
+    ...wells.map((w) => ({ label: `Well ${w.name}`, hint: `${w.field ?? ""} · ${w.documented ? "has reports" : "no reports"}`, dot: "var(--info)", go: () => { setWellId(w.id); router.push("/offsets"); } })),
+    ...pages.map((p) => ({ label: `Wiki: ${p.title}`, hint: `${p.ref_no} · ${p.status}`, dot: "#8B5CF6", go: () => router.push(`/wiki?page=${encodeURIComponent(p.slug)}`) })),
   ], [q, wells, pages, router, setWellId]);
   if (!open) return null;
   return (
@@ -47,8 +47,9 @@ export function CommandPalette() {
           }} />
         <ul className="max-h-80 overflow-y-auto">
           {items.map((it, k) => (
-            <li key={k}><button className="w-full text-left px-4 py-2 rule-b" style={k === i ? { background: "var(--card)" } : undefined} onClick={() => { it.go(); setOpen(false); }}>
-              <div>{it.label}</div><div className="label">{it.hint}</div></button></li>
+            <li key={k}><button className="w-full text-left px-4 py-2 rule-b flex items-start gap-2" style={k === i ? { background: "var(--card)" } : undefined} onClick={() => { it.go(); setOpen(false); }}>
+              <span aria-hidden="true" className="inline-block rounded-full mt-1.5 shrink-0" style={{ width: 7, height: 7, background: it.dot }} />
+              <span><div>{it.label}</div><div className="label">{it.hint}</div></span></button></li>
           ))}
         </ul>
       </div>

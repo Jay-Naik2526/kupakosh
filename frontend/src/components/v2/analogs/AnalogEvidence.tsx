@@ -6,6 +6,15 @@ import { Badge } from "@/components/v2/ui";
 import { hazardText, pct } from "@/lib/format";
 import { RangeBar } from "./RangeBar";
 import { tr } from "./trLocal";
+import { hazardColor, countryColor } from "@/lib/palette";
+
+// Darker ("-700") variant of each hazard hue, used only for small TEXT so it clears AA (4.5:1) on white —
+// hazardColor() itself (the "-600" hue) stays for decoration (dots, range-bar strokes) where contrast rules don't apply.
+const HAZARD_TEXT: Record<string, string> = {
+  lost_circulation: "#BE123C", kick: "#B91C1C", stuck_pipe: "#C2410C", torque_spike: "#B45309",
+  overpressure: "#6D28D9", cementing_issue: "#0E7490", fishing: "#4338CA", wellbore_instability: "#A16207",
+};
+const hazardTextColor = (h: string) => HAZARD_TEXT[h] ?? "#475569";
 
 export type HazardRow = {
   hazard: string; label: string; status: string; mean: number; ci: [number, number]; ci_level: number;
@@ -23,10 +32,15 @@ export function AnalogEvidence({ result, lang }: { result: AnalogResult; lang: L
   const ciLevel = result.hazards[0]?.ci_level ?? 0.8;
 
   const cols: Col<HazardRow>[] = [
-    { key: "h", head: t("Hazard", "खतरा"), cell: (r) => hazardText(r.hazard, lang) },
+    { key: "h", head: t("Hazard", "खतरा"), cell: (r) => (
+      <span className="inline-flex items-center gap-2">
+        <span aria-hidden="true" className="inline-block rounded-full" style={{ width: 9, height: 9, background: hazardColor(r.hazard) }} />
+        {hazardText(r.hazard, lang)}
+      </span>
+    ) },
     { key: "s", head: t("Status", "स्थिति"), cell: (r) => (r.status === "ok" ? <span className="label">{t("enough evidence", "पर्याप्त साक्ष्य")}</span> : <Badge kind="caution">{t("insufficient evidence", "अपर्याप्त साक्ष्य")}</Badge>) },
-    { key: "m", head: t("Mean", "औसत"), num: true, cell: (r) => (r.status === "ok" ? pct(r.mean) : "—") },
-    { key: "r", head: `${Math.round(ciLevel * 100)}% range`, cell: (r) => (r.status === "ok" ? <RangeBar mean={r.mean} ci={r.ci} /> : <span className="label">—</span>) },
+    { key: "m", head: t("Mean", "औसत"), num: true, cell: (r) => (r.status === "ok" ? <span style={{ color: hazardTextColor(r.hazard), fontWeight: 600 }}>{pct(r.mean)}</span> : "—") },
+    { key: "r", head: `${Math.round(ciLevel * 100)}% range`, cell: (r) => (r.status === "ok" ? <RangeBar mean={r.mean} ci={r.ci} color={hazardColor(r.hazard)} /> : <span className="label">—</span>) },
     { key: "n", head: t("n wells", "n कूप"), num: true, cell: (r) => r.n_wells },
     { key: "e", head: t("with event", "घटना सहित"), num: true, cell: (r) => r.n_with_event },
     {
@@ -57,15 +71,21 @@ export function AnalogEvidence({ result, lang }: { result: AnalogResult; lang: L
         <div className="mt-4">
           <div className="label mb-1">{t("Evidence by country", "देश अनुसार साक्ष्य")}</div>
           <div className="space-y-1">
-            {result.by_country.map((c) => (
-              <div key={c.country} className="flex items-center gap-2 small">
-                <span style={{ width: 90 }}>{c.country}</span>
-                <div style={{ background: "var(--surface-2, var(--card))", height: 10, flex: 1, maxWidth: 220, position: "relative" }}>
-                  <div style={{ background: "var(--accent)", height: 10, width: `${(c.n_wells / maxCountry) * 100}%` }} />
+            {result.by_country.map((c) => {
+              const cc = countryColor(c.country);
+              return (
+                <div key={c.country} className="flex items-center gap-2 small">
+                  <span className="inline-flex items-center gap-1.5" style={{ width: 100 }}>
+                    <span aria-hidden="true" className="inline-block rounded-full shrink-0" style={{ width: 8, height: 8, background: cc }} />
+                    {c.country}
+                  </span>
+                  <div style={{ background: "var(--surface-2, var(--card))", height: 10, flex: 1, maxWidth: 220, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ background: cc, height: 10, width: `${(c.n_wells / maxCountry) * 100}%` }} />
+                  </div>
+                  <span className="num label">{c.n_wells} {t("wells", "कूप")} ({c.n_wells_documented} {t("documented", "प्रलेखित")})</span>
                 </div>
-                <span className="num label">{c.n_wells} {t("wells", "कूप")} ({c.n_wells_documented} {t("documented", "प्रलेखित")})</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
