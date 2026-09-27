@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 // Toggle EN/हिं on three screens and confirm the UI chrome actually switches to Hindi,
 // without breaking layout (≤ 3 zones) or throwing console errors (SPEC.md §11.3, §11.4).
-const SCREENS = ["/", "/offsets", "/wiki"];
+const SCREENS = ["/", "/command", "/offsets", "/wiki"];
 
 for (const path of SCREENS) {
   test(`screen ${path}: EN/हिं toggle shows Hindi, no console errors, ≤ 3 zones`, async ({ page }) => {

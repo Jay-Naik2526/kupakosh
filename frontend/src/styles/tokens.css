@@ -1,28 +1,86 @@
-/* Kupakosh design tokens — SPEC.md §11.2. Colour = state only (ISA-101). */
+/* Kupakosh design tokens — v2 (docs/PLAN_V2.md "Design system v2"). Colour = state only (ISA-101 legacy rule kept). */
+
+/* ---- v2 palette: light (default) ---- */
 :root {
-  --desk: #2B2A27;
-  --file-board: #D8CBA8;
-  --paper: #F3F0E8;
-  --card: #FBFAF6;
-  --grid: #E2DDD0;
-  --rule: #CFC8B8;
-  --ink: #1B1A17;
-  --ink-2: #5E5A50;
-  --hazard: #B23A1E;
-  --caution: #C98A12;
-  --caution-ink: #7A5000;  /* caution TEXT on paper (AA); --caution stays for rules, borders, lines */
-  --ok: #2F6B5E;
-  --tab-1: #E6DCC3; --tab-2: #D9E2D3; --tab-3: #E0E0DA; --tab-4: #EAD9D3;
+  --bg: #F5F7FA;
+  --surface: #FFFFFF;
+  --surface-2: #F0F2F5;
+  --border: #E4E7EC;
+  --text: #101828;
+  --text-2: #5D6673;
+  --accent: #0F766E;
+  --accent-2: #0B5C56;
+  --accent-contrast: #FFFFFF;
+  --hazard: #B91C1C;  /* PLAN_V2 specifies #DC2626; darkened to clear WCAG AA (4.5:1) as body text on --bg/--surface-2 */
+  --caution: #D97706;
+  --ok: #16A34A;
+  --info: #2563EB;
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.06);
+  --shadow-md: 0 4px 12px rgba(16,24,40,.08);
+
+  /* ---- legacy tokens (SPEC.md §11.2), mapped onto the v2 palette so old §11 components (kk/*)
+     stay coherent inside the new shell, in both themes. Older pages import these names directly. ---- */
+  --desk: var(--bg);
+  --file-board: var(--surface-2);
+  --paper: var(--surface);
+  --card: var(--surface-2);
+  --grid: var(--border);
+  --rule: var(--border);
+  --ink: var(--text);
+  --ink-2: var(--text-2);
+  --caution-ink: #92620A;  /* caution TEXT on light paper (AA); --caution stays for rules/borders/lines */
+  --tab-1: #E6F0EE; --tab-2: #EAF1E6; --tab-3: #ECEEF1; --tab-4: #F3EAE6;
   --lith-sand: #E9D8A6; --lith-shale: #A7B0A0; --lith-lime: #B9C6CF; --lith-clay: #B89B7A; --lith-chalk: #EDEBE4; --lith-granite: #D9CFC7;
-  --radius: 2px;
+  --radius: 2px;   /* sharp corners for mud-log style widgets (LithologyColumn, Register, …) */
   --fs: 15px;
 }
-/* high-contrast mode (GIGW-inspired) */
+
+/* ---- v2 palette: dark ("Rig / control room") ---- */
+html[data-theme="dark"] {
+  --bg: #0B1220;
+  --surface: #111A2E;
+  --surface-2: #16213A;
+  --border: #22314D;
+  --text: #E6EAF2;
+  --text-2: #9AA5B8;
+  --accent: #14B8A6;
+  --accent-2: #2DD4C4;
+  --accent-contrast: #06201C;
+  --hazard: #F0564A;
+  --caution: #E0A93A;
+  --ok: #34D399;
+  --info: #60A5FA;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.45);
+
+  --desk: var(--bg);
+  --file-board: var(--surface-2);
+  --paper: var(--surface);
+  --card: var(--surface-2);
+  --grid: var(--border);
+  --rule: var(--border);
+  --ink: var(--text);
+  --ink-2: var(--text-2);
+  --caution-ink: var(--caution);
+  --tab-1: #16332F; --tab-2: #1B3320; --tab-3: #1E2536; --tab-4: #33221E;
+  --lith-sand: #6B5E3A; --lith-shale: #4A5148; --lith-lime: #3F4E58; --lith-clay: #5A4632; --lith-chalk: #3A3C3F; --lith-granite: #47403C;
+}
+
+/* high-contrast mode (GIGW-inspired) — layered on top of either theme */
 [data-contrast="high"] {
   --paper: #FFFFFF; --card: #FFFFFF; --grid: #D0D0D0; --rule: #6B6B6B; --ink: #000000; --ink-2: #2E2E2E;
   --hazard: #9E2A10; --caution: #8A5A00; --caution-ink: #6A4500; --ok: #1E5247;
+  --bg: #FFFFFF; --surface: #FFFFFF; --surface-2: #FFFFFF; --border: #6B6B6B; --text: #000000; --text-2: #2E2E2E; --accent: #0B5C56;
 }
-/* Rig mode: ISA-101 dark, Command screen only */
+html[data-theme="dark"][data-contrast="high"] {
+  --paper: #000000; --card: #000000; --grid: #7A7A7A; --rule: #A0A0A0; --ink: #FFFFFF; --ink-2: #E4E4E4;
+  --hazard: #FF8A75; --caution: #FFCB66; --caution-ink: #FFCB66; --ok: #74E0B8;
+  --bg: #000000; --surface: #000000; --surface-2: #000000; --border: #A0A0A0; --text: #FFFFFF; --text-2: #E4E4E4; --accent: #5CE0D0;
+}
+
+/* Rig mode: ISA-101 dark, Command/Well-Room screen only */
 [data-rig="on"] .rig-scope {
   --paper: #1E1F21; --card: #2A2B2E; --grid: #2F3033; --rule: #3A3B3F; --ink: #D9D6CF; --ink-2: #A3A09A;
   --hazard: #E0543A; --caution: #E0A93A; --caution-ink: #E0A93A; --ok: #7FB7A8;

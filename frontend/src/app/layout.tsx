@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_Devanagari, Courier_Prime } from "next/font/google";
 import "./globals.css";
 import { AppState } from "@/lib/state";
-import { FileFrame } from "@/components/kk/FileFrame";
+import { AppShell } from "@/components/v2/AppShell";
 
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono" });
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${plex.variable} ${mono.variable} ${deva.variable} ${courier.variable}`}>
-      <body><AppState><FileFrame>{children}</FileFrame></AppState></body>
+      <body><AppState><AppShell>{children}</AppShell></AppState></body>
     </html>
   );
 }

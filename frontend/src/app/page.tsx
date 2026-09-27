@@ -1,208 +1,185 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { scaleLinear } from "d3-scale";
-import { get, WS } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { Radar, Map as MapIcon, MessageSquare, History, Globe2, BookOpen, Wrench, Box, ArrowRight } from "lucide-react";
+import { get } from "@/lib/api";
 import { useApp } from "@/lib/state";
-import { actionText, m, pct } from "@/lib/format";
-import { t } from "@/lib/i18n";
-import { Stamp } from "@/components/kk/Stamp";
-import { NoticeSlip } from "@/components/kk/NoticeSlip";
-import { LithologyColumn } from "@/components/kk/LithologyColumn";
-import { CurveTrack, DepthAxis, Pt } from "@/components/kk/CurveTrack";
-import { IntervalBar } from "@/components/kk/IntervalBar";
-import { Drawer } from "@/components/kk/Drawer";
+import { Lang } from "@/lib/i18n";
+import { Card, LinkCard, StatTile, Button, PageHeader } from "@/components/v2/ui";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { MiniMap } from "@/components/kk/MiniMap";
-import { WellPicker } from "@/components/kk/WellPicker";
+import { openGuidedTour } from "@/components/v2/GuidedTour";
 
-type Sample = { t: string; md_m: number | null; bit_md_m: number | null; torque: number | null; pit_vol: number | null; mw_ppg: number | null; flow_in: number | null; spp: number | null; hookload: number | null; flag?: boolean };
-const H = 520;
-const WINDOW_ABOVE = 260, WINDOW_BELOW = 190;
-
-export default function Command() {
-  const { wellId, setWellId, lang, openSource, ready } = useApp();
-  const [well, setWell] = useState<any>(null);
-  const [survey, setSurvey] = useState<any[]>([]);
-  const [range, setRange] = useState<any>(null);
-  const [speed, setSpeed] = useState(120);
-  const [startMd, setStartMd] = useState<number | "">("");
-  const [running, setRunning] = useState(false);
-  const [samples, setSamples] = useState<Sample[]>([]);
-  const [la, setLa] = useState<any>(null);
-  const [anomaly, setAnomaly] = useState<any>(null);
-  const [rig, setRig] = useState(false);
-  const [drawer, setDrawer] = useState<null | "offsets" | "alerts">(null);
-  const [offsets, setOffsets] = useState<any[]>([]);
-  const [ended, setEnded] = useState(false);
-  const ws = useRef<WebSocket | null>(null);
-
-  // default to a replayable well
-  useEffect(() => { if (!ready) return; get("/api/replay/wells").then((ws) => { if (!ws.some((w: any) => w.id === wellId) && ws.length) setWellId(ws.find((w: any) => w.name.startsWith("16B"))?.id ?? ws[0].id); }); }, [ready]); // eslint-disable-line
-  useEffect(() => {
-    if (!wellId) return;
-    stop(); setSamples([]); setLa(null); setEnded(false);
-    get(`/api/wells/${wellId}`).then(setWell);
-    get(`/api/wells/${wellId}/survey`).then(setSurvey);
-    get(`/api/replay/${wellId}/range`).then(setRange);
-    get(`/api/wells/${wellId}/offsets`).then((o) => setOffsets(o.offsets));
-  }, [wellId]); // eslint-disable-line
-
-  const stop = useCallback(() => { ws.current?.close(); ws.current = null; setRunning(false); }, []);
-  const start = () => {
-    if (!wellId) return;
-    stop(); setSamples([]); setLa(null); setEnded(false);
-    const s = new WebSocket(`${WS}/ws/replay/${wellId}?speed=${speed}${startMd !== "" ? `&start_md=${startMd}` : ""}`);
-    s.onmessage = (ev) => {
-      const msg = JSON.parse(ev.data);
-      if (msg.type === "samples") {
-        const batch: Sample[] = msg.samples.map((x: any, i: number) => ({ ...x, flag: !!msg.anomaly && i === msg.samples.length - 1 }));
-        setSamples((prev) => [...prev, ...batch].slice(-4000));
-        if (msg.anomaly) setAnomaly({ ...msg.anomaly, t: msg.t });
-        if (msg.lookahead) setLa(msg.lookahead);
-      } else if (msg.type === "end") { setEnded(true); setRunning(false); }
-    };
-    s.onclose = () => setRunning(false);
-    ws.current = s; setRunning(true);
-  };
-  useEffect(() => () => stop(), [stop]);
-
-  const last = samples[samples.length - 1];
-  const bit = last ? (last.md_m ?? null) : null;
-  const tvd = useMemo(() => interpTvd(survey, bit), [survey, bit]);
-  const y = useMemo(() => {
-    const c = bit ?? (startMd === "" ? 0 : Number(startMd));
-    const lo = Math.max(0, c - WINDOW_ABOVE);
-    return scaleLinear().domain([lo, lo + WINDOW_ABOVE + WINDOW_BELOW]).range([0, H]);
-  }, [bit, startMd]);
-  const tops = well?.tops?.filter((t: any) => t.level !== "GROUP" || !well.tops.some((x: any) => x.level === "FORMATION")) ?? [];
-  // mud-log convention: plot a value once per new hole depth (samples while off-bottom / tripping are skipped)
-  const drilled = useMemo(() => {
-    const out: Sample[] = []; let maxMd = -1;
-    for (const s of samples) if (s.md_m !== null && s.md_m > maxMd + 0.05) { out.push(s); maxMd = s.md_m; } else if (s.flag && out.length) out[out.length - 1] = { ...out[out.length - 1], flag: true };
-    return out;
-  }, [samples]);
-  const trackPts = (k: keyof Sample): Pt[] => drilled.map((s) => ({ y: s.md_m as number, v: (s[k] as number) ?? null, flag: s.flag }));
-  const top = la?.alerts?.[0] ?? la?.notices?.[0] ?? null;
-  const more = (la?.alerts?.length ?? 0) + (la?.notices?.length ?? 0) - (top ? 1 : 0);
-  const nextTop = la?.ahead?.[0] ?? null;
-  const hazardTarget = top && !top.in_formation ? { md: top.distance_m + (bit ?? 0), text: top.formation_label } : nextTop ? { md: nextTop.top_md_m, text: nextTop.label } : null;
-  const jumpTargets: any[] = tops.filter((t: any) => t.top_md_m > 50);
-
-  return (
-    <div data-rig={rig ? "on" : "off"}>
-      <div className="rig-scope" style={rig ? { background: "var(--paper)", color: "var(--ink)", padding: 12, borderRadius: 2 } : undefined}>
-        {/* Zone A — status line */}
-        <section aria-label="status" className="flex flex-wrap items-center gap-x-5 gap-y-2 rule-b pb-3">
-          <WellPicker onlyReplay label={t("well", lang)} />
-          <Stamp kind="replay" text={lang === "hi" ? "पुनःचलन · REPLAY" : "REPLAY"} sub={t("cmdReplaySub", lang)} />
-          <div><span className="label">{t("bitDepth", lang)} </span><span className="num" style={{ fontSize: rig ? 26 : 20 }}>{bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"}</span>
-            <span className="label"> · </span><span className="num">{tvd !== null ? `${Math.round(tvd).toLocaleString()} m TVD` : t("tvdUnknown", lang)}</span></div>
-          <div><span className="label">{t("formationLabel", lang)} </span><span className="font-semibold">{la?.current?.label ?? "—"}</span></div>
-          <div className="small label">{last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `recorded ${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : ""}</div>
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <label className="label" htmlFor="startmd">{t("startAt", lang)}</label>
-            <select id="startmd" className="input" value={startMd} onChange={(e) => setStartMd(e.target.value === "" ? "" : Number(e.target.value))}>
-              <option value="">{t("spudOpt", lang)}</option>
-              {jumpTargets.map((jt: any) => <option key={jt.formation} value={Math.max(0, Math.round(jt.top_md_m - 150))}>150 m above {jt.label} ({Math.round(jt.top_md_m - 150)} m)</option>)}
-              {[500, 1000, 1500, 2000, 2500, 3000].map((d) => <option key={d} value={d}>{d} m</option>)}
-            </select>
-            <label className="label" htmlFor="spd">{t("speedLabel", lang)}</label>
-            <select id="spd" className="input" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-              {[30, 60, 120, 300, 600].map((s) => <option key={s} value={s}>{s}×</option>)}
-            </select>
-            {running ? <button className="btn" onClick={stop}>{t("pauseBtn", lang)}</button> : <button className="btn btn-primary" onClick={start} disabled={!wellId}>{t("startReplay", lang)}</button>}
-            <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>{t("rigMode", lang)}</button>
-          </div>
-        </section>
-
-        {!wellId && <div className="mt-6"><EmptyState title={t("cmdNoWellSelected", lang)} why={t("cmdNoWellWhy", lang)} /></div>}
-        {wellId && (
-          <div className="grid gap-8 mt-5" style={{ gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)" }}>
-            {/* Zone B — mud-log view */}
-            <section aria-label="mud log" className="overflow-x-auto">
-              <div className="flex gap-3 items-start">
-                <div><div className="small rule-b pb-0.5 mb-1">{t("cmdMdAxis", lang)}</div><DepthAxis y={y} height={H} /></div>
-                <div><div className="small rule-b pb-0.5 mb-1">{t("formationLabel", lang)}</div>
-                  <LithologyColumn intervals={tops} y={y} height={H} width={132} bit={bit} target={hazardTarget} /></div>
-                <CurveTrack title="Torque" unit="kft·lb" pts={trackPts("torque")} y={y} height={H} width={rig ? 150 : 118} />
-                <CurveTrack title="Pit volume" unit="bbl" pts={trackPts("pit_vol")} y={y} height={H} width={rig ? 150 : 118} />
-                <CurveTrack title="Mud weight" unit="ppg" pts={trackPts("mw_ppg")} y={y} height={H} width={rig ? 120 : 96} />
-              </div>
-              <p className="label mt-2">{t("cmdSensorNote1", lang)} {well?.name} {t("cmdSensorNote2", lang)}
-                {anomaly && <> {t("cmdLastAbnormal", lang)} <b>{anomaly.channels.join(", ")}</b> {anomaly.t?.slice(11, 16)}.</>}</p>
-              {ended && <p className="small mt-1">{t("cmdReplayEnded", lang)}</p>}
-            </section>
-
-            {/* Zone C — top look-ahead hazard */}
-            <section aria-label="look-ahead">
-              {!la && <EmptyState title={running ? t("cmdReadingAhead", lang) : t("cmdReplayNotStarted", lang)} why={`Start the replay. Every tick, Kupakosh looks ${150} m ahead of the bit and checks offset-well records for the formations coming up.`} />}
-              {la && !top && <EmptyState title={t("cmdNothingAhead", lang)} why={`No offset well recorded a problem in ${la.current?.label ?? "this formation"} or in the formations within 150 m below the bit (${la.n_offsets} offsets in radius). Absence of a record is not proof of safety.`} />}
-              {top && (
-                <NoticeSlip level={top.level} title={`${top.label} · ${top.formation_label}`}
-                  where={top.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(top.distance_m)} m`}
-                  mean={top.mean} ci={top.ci} neff={top.n_eff} nWells={top.n_wells} nWithEvent={top.n_with_event} status={top.status}
-                  actions={<>
-                    <button className="btn" onClick={() => { const e = top.evidence.find((x: any) => x.events.length); if (e) openSource(e.events[0].source_ref); }}>{t("sources", lang)}</button>
-                    <Link className="btn" href={`/wiki?page=${encodeURIComponent("formations/" + slugF(top.formation))}`}>{t("openWiki", lang)}</Link>
-                  </>}>
-                  <div className="label mb-1">{t("cmdWhatWorkedBefore", lang)} {top.fixes?.scope ? `(${top.fixes.scope})` : ""}</div>
-                  {(top.fixes?.rows ?? []).length === 0 && <div className="small text-ink2">{t("cmdNoEpisodeOutcome", lang)}</div>}
-                  <ul className="space-y-1">
-                    {(top.fixes?.rows ?? []).map((r: any) => (
-                      <li key={r.action} className="grid items-center gap-x-3 small rule-b pb-1" style={{ gridTemplateColumns: "minmax(0,1fr) auto auto" }}>
-                        <span>{actionText(r.action, lang)}{r.anecdotal ? <span className="label"> · {t("cmdAnecdotal", lang)}</span> : null}
-                          {r.worsened > 0 && <span className="num" style={{ color: "var(--hazard)" }}> · ▲ {r.worsened} {t("cmdMadeWorse", lang)}</span>}</span>
-                        <span className="num">{fmtK(r.k)}/{r.n}</span>
-                        <IntervalBar rate={r.rate} lb={r.lb} width={96} anecdotal={r.anecdotal} />
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="label mt-2">{t("cmdEvidencePrefix", lang)} {top.evidence.filter((e: any) => e.y).map((e: any) => e.name).join(", ") || t("cmdNone", lang)} · {t("cmdPrior", lang)} {pct(top.prior.base_rate)} ({top.prior.scope.replace("_", " ")})</div>
-                </NoticeSlip>
-              )}
-              <div className="flex gap-2 mt-4 flex-wrap">
-                <button className="btn" onClick={() => setDrawer("offsets")}>{t("cmdOffsetWellsBtn", lang)} ({offsets.length}) ▸</button>
-                {more > 0 && <button className="btn" onClick={() => setDrawer("alerts")}>{t("cmdFurtherAlertsBtn", lang)} ({more}) ▸</button>}
-              </div>
-            </section>
-          </div>
-        )}
-      </div>
-
-      <Drawer open={drawer === "offsets"} onClose={() => setDrawer(null)} title={`${t("cmdOffsetWellsWithin", lang)} ${m(10000)}`} width={560}>
-        {well && <MiniMap center={[well.lat, well.lon]} radius_m={10000} height={260}
-          wells={[{ ...well, active: true }, ...offsets.map((o) => ({ id: o.well_id, name: o.name, lat: o.lat, lon: o.lon, documented: o.documented, n_events: o.n_events }))]} />}
-        <ul className="mt-3">
-          {offsets.map((o) => (
-            <li key={o.well_id} className="rule-b py-2 small flex justify-between gap-3">
-              <span>{o.name} <span className="label">{o.documented ? t("cmdReports", lang) : t("cmdNoReports", lang)} · {o.n_events} {t("cmdEvents", lang)}</span></span>
-              <span className="num">{o.raw.distance_m.toLocaleString()} m · sim {o.sim.toFixed(2)}</span>
-            </li>
-          ))}
-          {offsets.length === 0 && <li className="small">{t("cmdNoWellsInRadius", lang)}</li>}
-        </ul>
-      </Drawer>
-      <Drawer open={drawer === "alerts"} onClose={() => setDrawer(null)} title={t("cmdAllLookahead", lang)}>
-        {[...(la?.alerts ?? []), ...(la?.notices ?? [])].slice(1).map((a: any, i: number) => (
-          <div key={i} className="rule-b py-2 small">
-            <div className="font-semibold">{a.label} · {a.formation_label} <span className="label">{a.level}</span></div>
-            <div>{a.status === "ok" ? `${pct(a.mean)} (range ${pct(a.ci[0])}–${pct(a.ci[1])})` : t("insufficient", lang)} · n_eff {a.n_eff.toFixed(1)} · {a.in_formation ? t("cmdInCurrentFormation", lang) : `in ${Math.round(a.distance_m)} m`}</div>
-          </div>
-        ))}
-      </Drawer>
-    </div>
-  );
+/**
+ * Home (v2) — docs/PLAN_V2.md "Design system v2 / Home". Bilingual copy lives locally (a plain
+ * {en, hi} dictionary, below) rather than in the shared lib/i18n.ts table, which this task's
+ * scope keeps to nav keys only so several agents editing that file in parallel don't collide.
+ */
+function tr(lang: Lang, en: string, hi: string) {
+  return lang === "hi" ? hi : en;
 }
 
-function fmtK(k: number) { return Number.isInteger(k) ? String(k) : k.toFixed(1); }
-function slugF(f: string) { return f.toLowerCase().replace(/ø/g, "o").replace(/å/g, "a").replace(/æ/g, "ae").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""); }
-function interpTvd(sv: any[], md: number | null): number | null {
-  if (md === null || !sv.length) return null;
-  if (md <= sv[0].md_m) return md;
-  for (let i = 1; i < sv.length; i++) if (sv[i].md_m >= md) {
-    const a = sv[i - 1], b = sv[i], f = (md - a.md_m) / (b.md_m - a.md_m || 1);
-    return a.tvd_m + f * (b.tvd_m - a.tvd_m);
-  }
-  return null;
+type Status = {
+  counts: { wells: number; report_entries: number; events: number; wiki_approved: number; documented_wells: number };
+  by_country: { country: string }[];
+};
+
+type HindsightSummary = {
+  n_wells: number;
+  n_problems: number;
+  n_forewarned: number;
+  median_lead_m: number | null;
+  n_false_alarms: number;
+  method?: string;
+} | null;
+
+export default function Home() {
+  const { lang } = useApp();
+  const [status, setStatus] = useState<Status | null>(null);
+  const [hindsight, setHindsight] = useState<HindsightSummary>(null);
+  const [hindsightState, setHindsightState] = useState<"loading" | "ok" | "none">("loading");
+
+  useEffect(() => {
+    get("/api/status").then(setStatus).catch(() => setStatus(null));
+    get("/api/hindsight/summary")
+      .then((d) => { setHindsight(d); setHindsightState("ok"); })
+      .catch(() => setHindsightState("none"));
+  }, []);
+
+  const t = (en: string, hi: string) => tr(lang, en, hi);
+
+  return (
+    <div>
+      {/* Hero */}
+      <section aria-label="hero" className="mb-8">
+        <div className="kk-card" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, var(--surface)), var(--surface))" }}>
+          <div className="label">{t("Well memory for Oil India's engineers", "ऑयल इंडिया के अभियंताओं हेतु कूप-स्मृति")}</div>
+          <h1 className="mt-1" style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.15 }}>
+            Kupakosh <span className="deva" style={{ fontWeight: 500 }}>कूपकोश</span>
+          </h1>
+          <p className="mt-2 max-w-prose" style={{ fontSize: 17, color: "var(--text-2)" }}>
+            {t("Oil India's memory of every well.", "ऑयल इंडिया की हर कूप की स्मृति।")}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="primary" onClick={openGuidedTour}>
+              {t("Start guided tour", "मार्गदर्शित दौरा प्रारंभ करें")}
+            </Button>
+            <Button href="/accuracy">{t("See what's real", "वास्तविक क्या है, देखें")}</Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Zone B: three primary actions + the live KPI strip */}
+      <section aria-label="explore and status" className="mb-8">
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+          <LinkCard href="/command">
+            <Radar size={22} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2">{t("Watch a real alert", "एक वास्तविक चेतावनी देखें")}</div>
+            <p className="label mt-1">{t("Replay recorded rig data and see a look-ahead hazard notice fire.", "अभिलिखित रिग डेटा का पुनःचलन करें और आगे-दृष्टि खतरा सूचना देखें।")}</p>
+            <div className="mt-3 small link inline-flex items-center gap-1">
+              {t("Open Well Room", "कूप कक्ष खोलें")} <ArrowRight size={14} />
+            </div>
+          </LinkCard>
+          <LinkCard href="/map">
+            <MapIcon size={22} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2">{t("Explore wells on the map", "मानचित्र पर कूप देखें")}</div>
+            <p className="label mt-1">{t("Every well we hold, from eight countries, with its record status.", "आठ देशों के सभी कूप, उनकी अभिलेख स्थिति सहित।")}</p>
+            <div className="mt-3 small link inline-flex items-center gap-1">
+              {t("Open Map", "मानचित्र खोलें")} <ArrowRight size={14} />
+            </div>
+          </LinkCard>
+          <LinkCard href="/copilot">
+            <MessageSquare size={22} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2">{t("Ask the records", "अभिलेखों से पूछें")}</div>
+            <p className="label mt-1">{t("A cited, extractive answer — or a plain refusal when there is no evidence.", "एक उद्धृत, निष्कर्षणात्मक उत्तर — या साक्ष्य न होने पर स्पष्ट अस्वीकृति।")}</p>
+            <div className="mt-3 small link inline-flex items-center gap-1">
+              {t("Open Copilot", "सहायक खोलें")} <ArrowRight size={14} />
+            </div>
+          </LinkCard>
+        </div>
+        <div className="mt-8">
+          <PageHeader title={t("The records, right now", "अभिलेख, अभी की स्थिति")} />
+          {!status ? (
+            <div className="label">{t("Loading…", "लोड हो रहा है…")}</div>
+          ) : (
+            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+              <StatTile label={t("wells", "कूप")} value={status.counts.wells.toLocaleString()} href="/accuracy" />
+              <StatTile label={t("report entries", "रिपोर्ट प्रविष्टियाँ")} value={status.counts.report_entries.toLocaleString()} href="/accuracy" />
+              <StatTile label={t("extracted events", "निष्कर्षित घटनाएँ")} value={status.counts.events.toLocaleString()} href="/accuracy" />
+              <StatTile label={t("countries", "देश")} value={status.by_country.length.toLocaleString()} href="/accuracy" />
+              <StatTile label={t("approved wiki pages", "अनुमोदित ज्ञानकोश पृष्ठ")} value={status.counts.wiki_approved.toLocaleString()} href="/wiki" />
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Zone C: the Hindsight proof + "what makes it different" */}
+      <section aria-label="proof and differentiators" className="mb-4">
+        <Card>
+          <div className="flex items-center gap-2">
+            <History size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold">{t("How Kupakosh proves itself", "कूपकोश स्वयं को कैसे सिद्ध करता है")}</div>
+          </div>
+          <p className="label mt-1 max-w-prose">
+            {t(
+              "The Hindsight test hides a real well, replays it depth by depth using only the other wells, and checks afterwards whether Kupakosh would have warned in time.",
+              "पूर्वाभास परीक्षण एक वास्तविक कूप को छुपाकर, केवल अन्य कूपों का उपयोग कर गहराई-दर-गहराई पुनःचलन करता है, और बाद में जाँचता है कि क्या कूपकोश समय पर चेतावनी देता।"
+            )}
+          </p>
+          {hindsightState === "loading" && <div className="label mt-3">{t("Loading…", "लोड हो रहा है…")}</div>}
+          {hindsightState === "none" && (
+            <div className="mt-3">
+              <EmptyState
+                title={t("Hindsight test not computed yet", "पूर्वाभास परीक्षण अभी संगणित नहीं हुआ")}
+                why={t("This measurement has not been run in this build. Not evaluated is shown rather than a made-up score.", "इस बिल्ड में यह मापन अभी नहीं चलाया गया है। बनावटी अंक के स्थान पर \"मूल्यांकन नहीं हुआ\" दिखाया गया है।")}
+              />
+            </div>
+          )}
+          {hindsightState === "ok" && hindsight && (
+            <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+              <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${hindsight.n_forewarned} / ${hindsight.n_problems}`} href="/hindsight" />
+              <StatTile
+                label={t("median lead distance", "माध्यिका अग्रता दूरी")}
+                value={hindsight.median_lead_m !== null ? `${Math.round(hindsight.median_lead_m)} m` : t("unknown", "अज्ञात")}
+                href="/hindsight"
+              />
+              <StatTile label={t("false alarms", "झूठी चेतावनियाँ")} value={hindsight.n_false_alarms} href="/hindsight" />
+              <StatTile label={t("wells tested", "परीक्षित कूप")} value={hindsight.n_wells} href="/hindsight" />
+            </div>
+          )}
+          <div className="mt-3">
+            <Button href="/hindsight">{t("Open Hindsight", "पूर्वाभास परीक्षण खोलें")}</Button>
+          </div>
+        </Card>
+        <div className="mt-8">
+          <PageHeader title={t("What makes it different", "यह अलग कैसे है")} />
+          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+          <LinkCard href="/hindsight">
+            <History size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2 small">{t("Hindsight proof", "पूर्वाभास प्रमाण")}</div>
+            <p className="label mt-1">{t("Measured, blind, well-level.", "मापित, अंध, कूप-स्तरीय।")}</p>
+          </LinkCard>
+          <LinkCard href="/analogs">
+            <Globe2 size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2 small">{t("India Analogs", "भारत अनुरूप कूप")}</div>
+            <p className="label mt-1">{t("Global analogue evidence for Indian basins.", "भारतीय द्रोणियों हेतु वैश्विक अनुरूप साक्ष्य।")}</p>
+          </LinkCard>
+          <LinkCard href="/wiki">
+            <BookOpen size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2 small">{t("Well Wiki", "ज्ञानकोश")}</div>
+            <p className="label mt-1">{t("Compiled, cited, engineer-approved.", "संकलित, उद्धृत, अभियंता-अनुमोदित।")}</p>
+          </LinkCard>
+          <LinkCard href="/fixes">
+            <Wrench size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2 small">{t("What actually worked", "वास्तव में क्या कारगर रहा")}</div>
+            <p className="label mt-1">{t("Fixes ranked by measured success.", "मापित सफलता से क्रमबद्ध उपाय।")}</p>
+          </LinkCard>
+          <LinkCard href="/subsurface">
+            <Box size={18} style={{ color: "var(--accent)" }} aria-hidden="true" />
+            <div className="font-semibold mt-2 small">{t("3D subsurface", "3D उपसतह")}</div>
+            <p className="label mt-1">{t("Offset wells as real trajectories.", "निकट कूप वास्तविक पथ के रूप में।")}</p>
+          </LinkCard>
+        </div>
+        </div>
+      </section>
+    </div>
+  );
 }

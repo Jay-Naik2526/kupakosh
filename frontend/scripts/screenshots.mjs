@@ -8,9 +8,16 @@ const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
 const shot = async (name) => { await page.screenshot({ path: OUT + name + ".png" }); console.log("saved", name); };
 const go = async (path, wait = 3000) => { await page.goto(BASE + path); await page.waitForLoadState("load"); await page.waitForTimeout(wait); };
+// A page owned by another agent may not exist yet mid-build — don't let that fail the whole run.
+const goSafe = async (path, name, wait = 3000) => {
+  try { await go(path, wait); await shot(name); } catch (e) { console.log(`skipped ${name} (${path}):`, e.message?.split("\n")[0]); }
+};
 
-// 01 Command: start the REPLAY of 16B and wait for a look-ahead notice
-await go("/");
+// 00 Home (new v2 shell landing page)
+await goSafe("/", "00-home", 3000);
+
+// 01 Well Room (was "Command"): start the REPLAY of 16B and wait for a look-ahead notice
+await go("/command");
 await page.getByRole("button", { name: /Start replay/ }).click();
 await page.waitForSelector("text=/range .*evidence/i", { timeout: 90000 }).catch(() => console.log("no notice yet"));
 await page.waitForTimeout(4000);
@@ -34,4 +41,11 @@ for (const q of ["What worked against stuck pipe in the Draupne Formation?", "Wh
   await page.waitForSelector(`text=${q.slice(0, 30)}`); await page.waitForTimeout(2500);
 }
 await shot("07-copilot");
+
+// New v2 screens (owned by other agents building in parallel; skip gracefully if not shipped yet)
+await goSafe("/map", "10-map", 5000);
+await goSafe("/subsurface", "11-subsurface", 5000);
+await goSafe("/analogs", "12-analogs", 4000);
+await goSafe("/hindsight", "13-hindsight", 4000);
+
 await b.close();
