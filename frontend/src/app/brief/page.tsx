@@ -10,6 +10,9 @@ import { Card, PageHeader } from "@/components/v2/ui";
 import { hazardColor, formationColor } from "@/lib/palette";
 const MiniMap = dynamic(() => import("@/components/kk/MiniMap").then((m) => m.MiniMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
+// /brief sits in the "deliver" nav group — its section colour, ochre, marks the preview's spine.
+const SEC = "var(--sec-deliver)";
+
 export default function Brief() {
   const { wellId, ready, lang } = useApp();
   const [lat, setLat] = useState<number | "">("");
@@ -79,14 +82,18 @@ export default function Brief() {
       <section aria-label="A4 preview">
         <Card className="overflow-x-auto">
         {!b && <div className="bg-card border border-dashed border-rule p-10 text-ink2" style={{ aspectRatio: "210/297", maxWidth: 720 }}>{t("brPreviewPlaceholder", lang)}</div>}
+        {/* Fixed ink colour, not the theme-flipping "text-ink" class: this sheet is always printed on
+            white paper in both themes, like a real document. */}
         {b && (
-          <div className="bg-white text-ink border border-rule p-10 small" style={{ maxWidth: 760, boxShadow: "none" }}>
+          <div className="bg-white border border-rule p-10 small" style={{ maxWidth: 760, boxShadow: "none", borderLeft: `4px solid ${SEC}`, color: "#1B1A17" }}>
             <div style={{ height: 2, background: "linear-gradient(90deg,#FF9933 33.3%,#fff 33.3% 66.6%,#138808 66.6%)" }} />
-            <div className="flex justify-between items-center px-3 py-2 mt-2 rounded-kk" style={{ background: "var(--brand-gradient, linear-gradient(100deg,#1D4ED8,#0E7490 55%,#0F766E))", color: "#fff" }}>
-              <span className="font-semibold">Kupakosh · {t("board", lang)}</span>
-              <span className="typewriter">No. {b.ref_no} · {t("brDated", lang)} {b.date}</span>
+            {/* This preview is always printed on white paper (bg-white), in both themes, so its text is a
+                fixed ink colour rather than the theme-flipping var(--text) — plain black, like a real document. */}
+            <div className="flex justify-between items-center pt-2 mt-2" style={{ borderBottom: "2px solid #1B1A17", paddingBottom: 8 }}>
+              <span className="serif font-semibold" style={{ color: "#1B1A17" }}>Kupakosh · {t("board", lang)}</span>
+              <span className="typewriter" style={{ color: "#1B1A17" }}>No. {b.ref_no} · {t("brDated", lang)} {b.date}</span>
             </div>
-            <h2 className="font-semibold mt-3" style={{ fontSize: 16 }}>{t("brSubject", lang)} {b.subject}</h2>
+            <h2 className="serif font-semibold mt-3" style={{ fontSize: 16 }}>{t("brSubject", lang)} {b.subject}</h2>
             <p className="label mt-1">{t("brDistribution", lang)} {b.distribution.join(", ")}. {b.n_offsets} {t("brWellsInRadius", lang)} {b.n_documented} {t("brWithReports", lang)} {b.inputs.tops_inferred ? t("brTopsInferred", lang) : t("brTopsPlanned", lang)}</p>
             <Sec n={1} t={t("brSec1", lang)}>
               <table className="w-full"><tbody>{b.formations.map((f: any) => (
@@ -125,5 +132,5 @@ export default function Brief() {
 }
 
 function Sec({ n, t, children }: { n: number; t: string; children: React.ReactNode }) {
-  return <div className="mt-4"><h3 className="font-semibold border-b border-rule mb-1">{n}. {t}</h3>{children}</div>;
+  return <div className="mt-4"><h3 className="serif font-semibold border-b border-rule mb-1">{n}. {t}</h3>{children}</div>;
 }

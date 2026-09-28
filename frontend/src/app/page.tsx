@@ -1,13 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Radar, Map as MapIcon, MessageSquare, History, Globe2, BookOpen, Wrench, Box, ArrowRight, Database, Activity } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { get } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { Lang } from "@/lib/i18n";
-import { Card, LinkCard, StatTile, Button, PageHeader, IconChip } from "@/components/v2/ui";
+import { Button } from "@/components/v2/ui";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { openGuidedTour } from "@/components/v2/GuidedTour";
-import { SECTION_COLOR, LITH_COLOR } from "@/lib/palette";
+import Link from "next/link";
+import { StrataBanner } from "@/components/v2/StrataBanner";
 
 /**
  * Home (v2) — docs/PLAN_V2.md "Design system v2 / Home". Bilingual copy lives locally (a plain
@@ -19,7 +20,7 @@ function tr(lang: Lang, en: string, hi: string) {
 }
 
 type Status = {
-  counts: { wells: number; report_entries: number; events: number; wiki_approved: number; documented_wells: number };
+  counts: { wells: number; report_entries: number; events: number; events_trusted?: number; wiki_approved: number; documented_wells: number };
   by_country: { country: string }[];
 };
 
@@ -52,154 +53,141 @@ export default function Home() {
 
   const t = (en: string, hi: string) => tr(lang, en, hi);
 
+  const pctx = (x: number | null | undefined, d = 0) => (x == null ? "—" : `${(x * 100).toFixed(d)}%`);
+  const figures: [string, string | undefined][] = status ? [
+    [t("wells located", "स्थित कूप"), status.counts.wells.toLocaleString()],
+    [t("report sentences indexed", "अनुक्रमित रिपोर्ट वाक्य"), status.counts.report_entries.toLocaleString()],
+    [t("drilling problems on record", "दर्ज ड्रिलिंग समस्याएँ"), (status.counts.events_trusted ?? status.counts.events).toLocaleString()],
+    [t("countries", "देश"), status.by_country.length.toLocaleString()],
+    [t("wiki pages approved", "अनुमोदित ज्ञानकोश पृष्ठ"), status.counts.wiki_approved.toLocaleString()],
+  ] : [];
+  const steps: { href: string; title: string; body: string; c: string }[] = [
+    { c: "var(--sec-operate)", href: "/command", title: t("Watch a real alert", "एक वास्तविक चेतावनी देखें"), body: t("Replay recorded rig data; a look-ahead notice fires before the bit reaches a problem layer.", "अभिलिखित रिग डेटा का पुनःचलन; समस्या परत से पहले आगे-दृष्टि सूचना।") },
+    { c: "var(--sec-trust)", href: "/hindsight", title: t("Check the proof", "प्रमाण जाँचें"), body: t("Every documented well replayed as if new, then compared with what really happened.", "हर प्रलेखित कूप नए जैसा पुनःचलाया गया, फिर वास्तविक घटनाओं से तुलना।") },
+    { c: "var(--sec-knowledge)", href: "/fixes", title: t("See what actually worked", "देखें क्या वास्तव में कारगर रहा"), body: t("Fixes ranked by how often they resolved the problem, with the cases behind each number.", "उपाय इस आधार पर क्रमबद्ध कि कितनी बार समस्या सुलझी।") },
+    { c: "var(--sec-ask)", href: "/copilot", title: t("Ask the records", "अभिलेखों से पूछें"), body: t("A cited answer from the reports, or a plain refusal when there is no evidence.", "रिपोर्टों से उद्धृत उत्तर, या साक्ष्य न होने पर स्पष्ट अस्वीकृति।") },
+  ];
+  const more: { href: string; title: string; body: string; c: string }[] = [
+    { c: "var(--teal)", href: "/map", title: t("Map", "मानचित्र"), body: t("All located wells, eight countries, satellite and terrain.", "सभी स्थित कूप, आठ देश, उपग्रह और भू-आकृति।") },
+    { c: "var(--slate)", href: "/subsurface", title: t("3D subsurface", "3D उपसतह"), body: t("Offset wells and formation layers in depth.", "गहराई में निकट कूप और संरचना परतें।") },
+    { c: "var(--ochre)", href: "/analogs", title: t("India analogs", "भारत अनुरूप"), body: t("Same rock, same depth, elsewhere — for Indian basins.", "वही चट्टान, वही गहराई, अन्यत्र — भारतीय द्रोणियों हेतु।") },
+    { c: "var(--sage)", href: "/wiki", title: t("Well wiki", "ज्ञानकोश"), body: t("Compiled pages, every sentence cited, approved by an engineer.", "संकलित पृष्ठ, हर वाक्य उद्धृत, अभियंता-अनुमोदित।") },
+  ];
+
   return (
-    <div>
-      {/* Hero: brand gradient + a decorative geological-layer illustration (no numbers — colour only) */}
-      <section aria-label="hero" className="mb-8">
-        <div className="kk-hero">
-          <div className="label">{t("Well memory for Oil India's engineers", "ऑयल इंडिया के अभियंताओं हेतु कूप-स्मृति")}</div>
-          <h1 className="mt-1" style={{ fontSize: 32, fontWeight: 700, lineHeight: 1.15 }}>
-            Kupakosh <span className="deva" style={{ fontWeight: 500 }}>कूपकोश</span>
-          </h1>
-          <p className="mt-2 max-w-prose" style={{ fontSize: 17, opacity: 0.92 }}>
-            {t("Oil India's memory of every well.", "ऑयल इंडिया की हर कूप की स्मृति।")}
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Button variant="primary" onClick={openGuidedTour} style={{ background: "#fff", color: "var(--brand-to)" }}>
-              {t("Start guided tour", "मार्गदर्शित दौरा प्रारंभ करें")}
-            </Button>
-            <Button href="/accuracy" style={{ background: "rgba(255,255,255,.16)", color: "#fff", borderColor: "rgba(255,255,255,.5)" }}>
-              {t("See what's real", "वास्तविक क्या है, देखें")}
-            </Button>
+    <div style={{ maxWidth: 1180 }}>
+      <section aria-label="introduction" className="kk-hero kk-contours" style={{ margin: "-24px calc(-1 * clamp(16px, 3vw, 32px)) 0", padding: "40px clamp(16px, 3vw, 32px) 26px" }}>
+        <div className="grid gap-10" style={{ gridTemplateColumns: "minmax(0, 1.5fr) minmax(260px, 1fr)", alignItems: "end" }}>
+          <div>
+            <div className="eyebrow">{t("Offset-well memory for drilling engineers", "ड्रिलिंग अभियंताओं हेतु निकट-कूप स्मृति")}</div>
+            <h1 className="mt-3">
+              Kupakosh <span className="deva" style={{ fontWeight: 400, color: "var(--text-2)" }}>कूपकोश</span>
+            </h1>
+            <p className="mt-3" style={{ fontSize: 18, lineHeight: 1.5, maxWidth: "36rem" }}>
+              {t(
+                "What went wrong in the wells around you, which fix actually worked, and a warning before the bit gets there — compiled from the drilling reports, with the source behind every number.",
+                "आपके आसपास के कूपों में क्या गलत हुआ, कौन-सा उपाय वास्तव में कारगर रहा, और बिट के पहुँचने से पहले चेतावनी — ड्रिलिंग रिपोर्टों से संकलित, हर संख्या के पीछे स्रोत सहित।"
+              )}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button variant="primary" onClick={openGuidedTour}>{t("Start guided tour", "मार्गदर्शित दौरा प्रारंभ करें")}</Button>
+              <Button href="/accuracy">{t("See what's real", "वास्तविक क्या है, देखें")}</Button>
+            </div>
           </div>
-          <svg className="kk-hero-strata" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
-            {[LITH_COLOR.sand, LITH_COLOR.shale, LITH_COLOR.lime, LITH_COLOR.clay, LITH_COLOR.chalk].map((c, i, arr) => (
-              <rect key={c + i} x={0} y={(i * 20) / arr.length} width={100} height={20 / arr.length} fill={c} opacity={0.9} />
-            ))}
-          </svg>
-        </div>
-      </section>
-
-      {/* Zone B: three primary actions + the live KPI strip */}
-      <section aria-label="explore and status" className="mb-8">
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-          <LinkCard href="/command" accent={SECTION_COLOR.operate}>
-            <IconChip icon={Radar} color={SECTION_COLOR.operate} />
-            <div className="font-semibold mt-2">{t("Watch a real alert", "एक वास्तविक चेतावनी देखें")}</div>
-            <p className="label mt-1">{t("Replay recorded rig data and see a look-ahead hazard notice fire.", "अभिलिखित रिग डेटा का पुनःचलन करें और आगे-दृष्टि खतरा सूचना देखें।")}</p>
-            <div className="mt-3 small link inline-flex items-center gap-1">
-              {t("Open Well Room", "कूप कक्ष खोलें")} <ArrowRight size={14} />
-            </div>
-          </LinkCard>
-          <LinkCard href="/map" accent={SECTION_COLOR.explore}>
-            <IconChip icon={MapIcon} color={SECTION_COLOR.explore} />
-            <div className="font-semibold mt-2">{t("Explore wells on the map", "मानचित्र पर कूप देखें")}</div>
-            <p className="label mt-1">{t("Every well we hold, from eight countries, with its record status.", "आठ देशों के सभी कूप, उनकी अभिलेख स्थिति सहित।")}</p>
-            <div className="mt-3 small link inline-flex items-center gap-1">
-              {t("Open Map", "मानचित्र खोलें")} <ArrowRight size={14} />
-            </div>
-          </LinkCard>
-          <LinkCard href="/copilot" accent={SECTION_COLOR.ask}>
-            <IconChip icon={MessageSquare} color={SECTION_COLOR.ask} />
-            <div className="font-semibold mt-2">{t("Ask the records", "अभिलेखों से पूछें")}</div>
-            <p className="label mt-1">{t("A cited, extractive answer — or a plain refusal when there is no evidence.", "एक उद्धृत, निष्कर्षणात्मक उत्तर — या साक्ष्य न होने पर स्पष्ट अस्वीकृति।")}</p>
-            <div className="mt-3 small link inline-flex items-center gap-1">
-              {t("Open Copilot", "सहायक खोलें")} <ArrowRight size={14} />
-            </div>
-          </LinkCard>
-        </div>
-        <div className="mt-8">
-          <PageHeader title={t("The records, right now", "अभिलेख, अभी की स्थिति")} icon={Database} color={SECTION_COLOR.trust} />
-          {!status ? (
-            <div className="label">{t("Loading…", "लोड हो रहा है…")}</div>
-          ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-              <StatTile label={t("wells", "कूप")} value={status.counts.wells.toLocaleString()} href="/accuracy" color={SECTION_COLOR.operate} />
-              <StatTile label={t("report entries", "रिपोर्ट प्रविष्टियाँ")} value={status.counts.report_entries.toLocaleString()} href="/accuracy" color={SECTION_COLOR.explore} />
-              <StatTile label={t("extracted events", "निष्कर्षित घटनाएँ")} value={status.counts.events.toLocaleString()} href="/accuracy" color={SECTION_COLOR.knowledge} />
-              <StatTile label={t("countries", "देश")} value={status.by_country.length.toLocaleString()} href="/accuracy" color={SECTION_COLOR.ask} />
-              <StatTile label={t("approved wiki pages", "अनुमोदित ज्ञानकोश पृष्ठ")} value={status.counts.wiki_approved.toLocaleString()} href="/wiki" color={SECTION_COLOR.deliver} />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Zone C: the Hindsight proof + "what makes it different" */}
-      <section aria-label="proof and differentiators" className="mb-4">
-        <Card accent={SECTION_COLOR.trust}>
-          <div className="flex items-center gap-2">
-            <IconChip icon={History} color={SECTION_COLOR.trust} />
-            <div className="font-semibold">{t("How Kupakosh proves itself", "कूपकोश स्वयं को कैसे सिद्ध करता है")}</div>
-          </div>
-          <p className="label mt-1 max-w-prose">
-            {t(
-              "The Hindsight test hides a real well, replays it depth by depth using only the other wells, and checks afterwards whether Kupakosh would have warned in time.",
-              "पूर्वाभास परीक्षण एक वास्तविक कूप को छुपाकर, केवल अन्य कूपों का उपयोग कर गहराई-दर-गहराई पुनःचलन करता है, और बाद में जाँचता है कि क्या कूपकोश समय पर चेतावनी देता।"
-            )}
-          </p>
-          {hindsightState === "loading" && <div className="label mt-3">{t("Loading…", "लोड हो रहा है…")}</div>}
-          {hindsightState === "none" && (
-            <div className="mt-3">
-              <EmptyState
-                title={t("Hindsight test not computed yet", "पूर्वाभास परीक्षण अभी संगणित नहीं हुआ")}
-                why={t("This measurement has not been run in this build. Not evaluated is shown rather than a made-up score.", "इस बिल्ड में यह मापन अभी नहीं चलाया गया है। बनावटी अंक के स्थान पर \"मूल्यांकन नहीं हुआ\" दिखाया गया है।")}
-              />
-            </div>
-          )}
-          {hindsightState === "ok" && hindsight && (() => {
-            const f = hindsight.forewarned, live = hindsight.learned?.learned_live;
-            const auc = hindsight.learned?.auc?.learned_live?.auc;
-            const aucBase = hindsight.learned?.auc?.field_average?.auc;
-            const b15 = hindsight.learned?.budget_curve?.find((r) => r.budget_per_well === 15);
-            return (
-            <div className="mt-3">
-              <p>
-                {t(
-                  `Replayed blind, ${f.forewarned} of ${f.events} real recorded problems were forewarned before the bit reached them${f.median_lead_m ? `, a median ${Math.round(f.median_lead_m)} m ahead` : ""}${live ? ` — the field average with the same number of alerts manages ${live.baseline_forewarned}` : ""}.`,
-                  `अंध पुनःचलन में ${f.events} में से ${f.forewarned} वास्तविक दर्ज समस्याओं की बिट के पहुँचने से पहले पूर्व-चेतावनी दी गई${f.median_lead_m ? `, माध्यिका ${Math.round(f.median_lead_m)} मी पहले` : ""}${live ? ` — उतनी ही चेतावनियों से क्षेत्र औसत ${live.baseline_forewarned} तक पहुँचता है` : ""}।`
-                )}
-              </p>
-              <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-                {auc != null && <StatTile label={t(`ranking accuracy (AUC)${aucBase != null ? ` · field average ${Math.round(aucBase * 100)}%` : ""}`, "क्रम सटीकता (AUC)")} value={`${Math.round(auc * 100)}%`} href="/hindsight" color={SECTION_COLOR.operate} />}
-                {b15 && <StatTile label={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, "समस्या परतें पहले चिह्नित")} value={b15.layer_flagged_share !== null ? `${(b15.layer_flagged_share * 100).toFixed(1)}%` : "—"} href="/hindsight" color={SECTION_COLOR.trust} />}
-                <StatTile label={t("exact hazard forewarned (6 alerts/well)", "सटीक खतरा पूर्व-चेतावनी (6 चेतावनी/कूप)")} value={`${f.forewarned} / ${f.events}`} href="/hindsight" color={SECTION_COLOR.knowledge} />
-                <StatTile label={t("median warning ahead", "माध्यिका अग्रिम चेतावनी")} value={f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.explore} />
+          <dl aria-label={t("records right now", "अभिलेख, अभी")} style={{ borderTop: "3px solid var(--text)", background: "var(--surface)", padding: "0 14px 10px", border: "1px solid var(--border)", borderTopWidth: 3, borderTopColor: "var(--text)" }}>
+            {!status && <div className="label py-2">{t("Loading…", "लोड हो रहा है…")}</div>}
+            {figures.map(([k, v]) => (
+              <div key={k} className="flex items-baseline justify-between gap-4 py-2" style={{ borderBottom: "1px solid var(--border)" }}>
+                <dt className="label">{k}</dt>
+                <dd className="num" style={{ fontSize: 18, fontWeight: 600 }}>{v}</dd>
               </div>
-            </div>
-            ); })()}
-          <div className="mt-3">
-            <Button href="/hindsight">{t("Open Hindsight", "पूर्वाभास परीक्षण खोलें")}</Button>
-          </div>
-        </Card>
-        <div className="mt-8">
-          <PageHeader title={t("What makes it different", "यह अलग कैसे है")} icon={Activity} color={SECTION_COLOR.deliver} />
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
-          <LinkCard href="/hindsight" accent={SECTION_COLOR.trust}>
-            <IconChip icon={History} color={SECTION_COLOR.trust} />
-            <div className="font-semibold mt-2 small">{t("Hindsight proof", "पूर्वाभास प्रमाण")}</div>
-            <p className="label mt-1">{t("Measured, blind, well-level.", "मापित, अंध, कूप-स्तरीय।")}</p>
-          </LinkCard>
-          <LinkCard href="/analogs" accent={SECTION_COLOR.explore}>
-            <IconChip icon={Globe2} color={SECTION_COLOR.explore} />
-            <div className="font-semibold mt-2 small">{t("India Analogs", "भारत अनुरूप कूप")}</div>
-            <p className="label mt-1">{t("Global analogue evidence for Indian basins.", "भारतीय द्रोणियों हेतु वैश्विक अनुरूप साक्ष्य।")}</p>
-          </LinkCard>
-          <LinkCard href="/wiki" accent={SECTION_COLOR.knowledge}>
-            <IconChip icon={BookOpen} color={SECTION_COLOR.knowledge} />
-            <div className="font-semibold mt-2 small">{t("Well Wiki", "ज्ञानकोश")}</div>
-            <p className="label mt-1">{t("Compiled, cited, engineer-approved.", "संकलित, उद्धृत, अभियंता-अनुमोदित।")}</p>
-          </LinkCard>
-          <LinkCard href="/fixes" accent={SECTION_COLOR.knowledge}>
-            <IconChip icon={Wrench} color={SECTION_COLOR.knowledge} />
-            <div className="font-semibold mt-2 small">{t("What actually worked", "वास्तव में क्या कारगर रहा")}</div>
-            <p className="label mt-1">{t("Fixes ranked by measured success.", "मापित सफलता से क्रमबद्ध उपाय।")}</p>
-          </LinkCard>
-          <LinkCard href="/subsurface" accent={SECTION_COLOR.explore}>
-            <IconChip icon={Box} color={SECTION_COLOR.explore} />
-            <div className="font-semibold mt-2 small">{t("3D subsurface", "3D उपसतह")}</div>
-            <p className="label mt-1">{t("Offset wells as real trajectories.", "निकट कूप वास्तविक पथ के रूप में।")}</p>
-          </LinkCard>
+            ))}
+            <div className="pt-2"><Link href="/accuracy" className="small link">{t("Sources and licences", "स्रोत और अनुज्ञप्तियाँ")}</Link></div>
+          </dl>
         </div>
+        <div className="mt-8">
+          <StrataBanner caption={(w, td) => t(
+            `Formation column of well ${w.name}${w.field ? ` (${w.field})` : ""}, ${w.country ?? ""} — recorded tops from the public ${w.source === "sodir" ? "Sodir FactPages" : "well records"}, drawn to scale to ${Math.round(td).toLocaleString()} m MD. Colour = formation, hatch = rock type.`,
+            `कूप ${w.name} का संरचना स्तंभ — सार्वजनिक अभिलेखों से दर्ज शीर्ष, ${Math.round(td).toLocaleString()} मी MD तक पैमाने पर। रंग = संरचना, रेखांकन = चट्टान प्रकार।`
+          )} />
+        </div>
+      </section>
+
+      <section aria-label="start here" className="mt-10">
+        <div className="eyebrow">{t("Start here", "यहाँ से शुरू करें")}</div>
+        <ol className="mt-3" style={{ borderTop: "1px solid var(--border)" }}>
+          {steps.map((s, i) => (
+            <li key={s.href} style={{ borderBottom: "1px solid var(--border)" }}>
+              <Link href={s.href} className="kk-row-link grid items-baseline gap-4 py-4" style={{ gridTemplateColumns: "3rem minmax(0, 16rem) minmax(0, 1fr) auto" }}>
+                <span className="num inline-flex items-center gap-2" style={{ color: "var(--text-2)" }}><span className="swatch" style={{ background: s.c }} />{String(i + 1).padStart(2, "0")}</span>
+                <span className="serif" style={{ fontWeight: 600, fontSize: 18 }}>{s.title}</span>
+                <span className="label">{s.body}</span>
+                <ArrowRight size={16} aria-hidden="true" style={{ color: "var(--text-2)" }} />
+              </Link>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section aria-label="proof and more" className="mt-12">
+        <div className="grid gap-12" style={{ gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)" }}>
+          <div>
+            <div className="eyebrow">{t("Does it work?", "क्या यह काम करता है?")}</div>
+            <h2 className="mt-2 serif" style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-.01em" }}>{t("Measured on real history, blind", "वास्तविक इतिहास पर, अंध रूप से मापा गया")}</h2>
+            <p className="label mt-2" style={{ maxWidth: "38rem" }}>
+              {t(
+                "Each documented well is replayed as if it were being drilled today: the model never trained on it and sees nothing below the bit. The alerts are then compared with what the reports say happened.",
+                "हर प्रलेखित कूप को ऐसे पुनःचलाया जाता है मानो आज ड्रिल हो रहा हो: मॉडल ने इस पर कभी प्रशिक्षण नहीं लिया और बिट के नीचे कुछ नहीं देखता।"
+              )}
+            </p>
+            {hindsightState === "loading" && <div className="label mt-4">{t("Loading…", "लोड हो रहा है…")}</div>}
+            {hindsightState === "none" && (
+              <div className="mt-4">
+                <EmptyState
+                  title={t("Hindsight test not computed yet", "पूर्वाभास परीक्षण अभी संगणित नहीं हुआ")}
+                  why={t("This measurement has not been run in this build. Not evaluated is shown rather than a made-up score.", "इस बिल्ड में यह मापन अभी नहीं चलाया गया है। बनावटी अंक के स्थान पर \"मूल्यांकन नहीं हुआ\" दिखाया गया है।")}
+                />
+              </div>
+            )}
+            {hindsightState === "ok" && hindsight && (() => {
+              const f = hindsight.forewarned, live = hindsight.learned?.learned_live;
+              const auc = hindsight.learned?.auc?.learned_live?.auc;
+              const aucBase = hindsight.learned?.auc?.field_average?.auc;
+              const b15 = hindsight.learned?.budget_curve?.find((r) => r.budget_per_well === 15);
+              const bars = ["var(--rust)", "var(--ochre)", "var(--sage)", "var(--slate)"];
+              const cells: [string, string, string][] = [
+                [pctx(auc), t("ranking accuracy (AUC)", "क्रम सटीकता (AUC)"), aucBase != null ? t(`field average ${pctx(aucBase)}`, `क्षेत्र औसत ${pctx(aucBase)}`) : ""],
+                [b15 ? pctx(b15.layer_flagged_share, 1) : "—", t("problem layers flagged ahead", "समस्या परतें पहले चिह्नित"), b15 ? t(`${b15.budget_per_well} alerts per well`, `${b15.budget_per_well} चेतावनी प्रति कूप`) : ""],
+                [`${f.forewarned}/${f.events}`, t("exact hazard named ahead", "सटीक खतरा पहले बताया"), live ? t(`field average ${live.baseline_forewarned}`, `क्षेत्र औसत ${live.baseline_forewarned}`) : ""],
+                [f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : "—", t("median warning ahead", "माध्यिका अग्रिम चेतावनी"), ""],
+              ];
+              return (
+                <div className="mt-5 grid gap-5" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+                  {cells.map(([v, l, b], i) => (
+                    <div key={l} className="pt-3" style={{ borderTop: `5px solid ${bars[i]}` }}>
+                      <div className="num" style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-.01em" }}>{v}</div>
+                      <div className="small mt-1">{l}</div>
+                      {b && <div className="label">{b}</div>}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <div className="mt-5"><Link href="/hindsight" className="small link inline-flex items-center gap-1">{t("Method, trade-offs and every well", "विधि, संतुलन और हर कूप")} <ArrowRight size={14} aria-hidden="true" /></Link></div>
+          </div>
+          <div>
+            <div className="eyebrow">{t("Also in Kupakosh", "कूपकोश में और भी")}</div>
+            <ul className="mt-3" style={{ borderTop: "1px solid var(--border)" }}>
+              {more.map((m) => (
+                <li key={m.href} style={{ borderBottom: "1px solid var(--border)" }}>
+                  <Link href={m.href} className="kk-row-link block py-3">
+                    <div className="flex items-center gap-2" style={{ fontWeight: 600 }}><span className="swatch" style={{ background: m.c }} />{m.title}</div>
+                    <div className="label">{m.body}</div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
     </div>

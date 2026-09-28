@@ -26,9 +26,8 @@ export function CountryFilter({ metric = "wells", label }: { metric?: keyof Omit
         const active = country === r.country;
         return (
           <button key={r.country} className="chip" aria-pressed={active} onClick={() => setCountry(r.country)}
-            style={active ? { background: `color-mix(in srgb, ${c} 18%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)` } : undefined}
             title={`${r.wells.toLocaleString()} wells (${r.located_wells.toLocaleString()} located) · ${r.documents_linked.toLocaleString()} documents · ${r.events.toLocaleString()} events`}>
-            <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 8, height: 8, background: c }} />
+            <span aria-hidden="true" className="inline-block mr-1.5" style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
             {r.country} <span className="mono text-ink2">{Number(r[metric]).toLocaleString()}</span><span className="sr-only"> {unit}</span>
           </button>
         );

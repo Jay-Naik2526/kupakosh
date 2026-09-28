@@ -23,10 +23,11 @@ const BORDER: Record<Kind, string> = {
 };
 /** Clean status badge (Approved / Replay / Returned / Draft / In review). Text is always spelled out, never colour alone. */
 export function Stamp({ kind, text, sub, round = false }: { kind: Kind; text: string; sub?: string; round?: boolean }) {
+  void round; // corners are fixed at var(--radius-lg); no pill shape
   return (
     <span
       className="inline-flex items-center gap-2 px-3 py-1.5 font-semibold select-none"
-      style={{ color: TEXT_COLOR[kind], background: TINT[kind], border: `1px solid ${BORDER[kind]}`, borderRadius: round ? 999 : "var(--radius-lg)" }}
+      style={{ color: TEXT_COLOR[kind], background: TINT[kind], border: `1px solid ${BORDER[kind]}`, borderRadius: "var(--radius-lg)" }}
       aria-label={`${text}${sub ? " " + sub : ""}`}
     >
       <span aria-hidden="true" className="text-[0.9rem] leading-none">{GLYPH[kind]}</span>

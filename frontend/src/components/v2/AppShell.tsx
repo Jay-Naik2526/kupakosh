@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="kk-shell-main">
         <TopBar onOpenMobileNav={() => setMobileOpen(true)} />
         <div
-          style={{ height: 3, background: "linear-gradient(90deg,#FF9933 33.3%,#FFFFFF 33.3% 66.6%,#138808 66.6%)" }}
+          style={{ height: 2, background: "linear-gradient(90deg,#FF9933 33.3%,#FFFFFF 33.3% 66.6%,#138808 66.6%)" }}
           aria-hidden="true"
         />
         <main className="kk-content">{children}</main>

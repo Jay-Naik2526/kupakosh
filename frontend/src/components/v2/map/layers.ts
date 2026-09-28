@@ -5,9 +5,9 @@ import { TERRAIN_TILE_URL, TERRAIN_ATTRIBUTION } from "./styles";
 import { squareIcon } from "./geo";
 import { COUNTRY_COLOR, HAZARD_COLOR } from "@/lib/palette";
 
-const NEUTRAL = "#94A3B8";
-const NEUTRAL_RING = "#475569";
-const ACCENT = "#0F766E";
+const NEUTRAL = "#A89B84";
+const NEUTRAL_RING = "#5B5245";
+const ACCENT = "#1F5F66";
 
 export type WellColorMode = "country" | "hazard";
 
@@ -42,16 +42,16 @@ export function ensureWellsSource(map: maplibregl.Map, data: GeoJSON.FeatureColl
     id: "well-clusters", type: "circle", source: "wells", filter: ["has", "point_count"],
     paint: {
       // Vivid size gradient; a red ring flags clusters containing at least one well with recorded events.
-      "circle-color": ["step", ["get", "point_count"], "#60A5FA", 50, "#2563EB", 500, "#7C3AED", 5000, "#DB2777"],
+      "circle-color": ["step", ["get", "point_count"], "#4F7C8A", 50, "#1F5F66", 500, "#B87333", 5000, "#A8472A"],
       "circle-radius": ["step", ["get", "point_count"], 14, 50, 18, 500, 24, 5000, 32],
       "circle-stroke-width": 2.5,
-      "circle-stroke-color": ["case", [">", ["get", "hasEvent"], 0], HAZARD_COLOR.lost_circulation, "#FFFFFF"],
+      "circle-stroke-color": ["case", [">", ["get", "hasEvent"], 0], HAZARD_COLOR.lost_circulation, "#FBF8F1"],
     },
   });
   map.addLayer({
     id: "well-cluster-count", type: "symbol", source: "wells", filter: ["has", "point_count"],
     layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12, "text-font": ["Noto Sans Bold"] },
-    paint: { "text-color": "#FFFFFF" },
+    paint: { "text-color": "#FBF8F1" },
   });
   map.addLayer({
     id: "well-points", type: "circle", source: "wells", filter: ["!", ["has", "point_count"]],
@@ -83,7 +83,7 @@ export function ensureHeatmapLayer(map: maplibregl.Map, data: GeoJSON.FeatureCol
       "heatmap-weight": ["interpolate", ["linear"], ["get", "n_events"], 0, 0, 1, 0.4, 20, 1],
       "heatmap-intensity": 1.1,
       "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"],
-        0, "rgba(0,0,0,0)", 0.2, "#3B82F6", 0.4, "#22D3EE", 0.6, "#FACC15", 0.8, "#F97316", 1, "#DC2626"],
+        0, "rgba(0,0,0,0)", 0.2, "#4F7C8A", 0.4, "#6E8B5A", 0.6, "#E3C98F", 0.8, "#C8902E", 1, "#A8322A"],
       "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 8, 6, 22, 12, 36],
       "heatmap-opacity": 0.75,
     },
@@ -97,7 +97,7 @@ export function setLayerVisible(map: maplibregl.Map, layerId: string, visible: b
 
 export function ensureAggregatesLayer(map: maplibregl.Map, data: GeoJSON.FeatureCollection) {
   if (!map.hasImage("kk-square")) {
-    const canvas = squareIcon(16, "#64748B");
+    const canvas = squareIcon(16, "#5B5245");
     const imgData = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height);
     if (imgData) map.addImage("kk-square", imgData, { pixelRatio: 1 });
   }
@@ -108,7 +108,7 @@ export function ensureAggregatesLayer(map: maplibregl.Map, data: GeoJSON.Feature
     layout: { "icon-image": "kk-square", "icon-size": 1, "icon-allow-overlap": true } });
 }
 
-const BASIN_RAMP = ["#F97316", "#2563EB", "#7C3AED", "#DB2777", "#0891B2", "#65A30D", "#D97706", "#BE123C"];
+const BASIN_RAMP = ["#B87333", "#3D5A73", "#6B4A6E", "#A8472A", "#1F5F66", "#6E8B5A", "#C8902E", "#8E2A24"];
 
 export function ensureBasinsLayer(map: maplibregl.Map, data: GeoJSON.FeatureCollection) {
   const src = map.getSource("basins") as maplibregl.GeoJSONSource | undefined;
@@ -121,7 +121,7 @@ export function ensureBasinsLayer(map: maplibregl.Map, data: GeoJSON.FeatureColl
   map.addLayer({ id: "basin-line", type: "line", source: "basins", paint: { "line-color": ["get", "_c"], "line-width": 2 } });
   map.addLayer({ id: "basin-label", type: "symbol", source: "basins",
     layout: { "symbol-placement": "point", "text-field": ["get", "name"], "text-size": 12, "text-font": ["Noto Sans Bold"] },
-    paint: { "text-color": ["get", "_c"], "text-halo-color": "#FFFFFF", "text-halo-width": 1.6 } });
+    paint: { "text-color": ["get", "_c"], "text-halo-color": "#FBF8F1", "text-halo-width": 1.6 } });
 }
 
 export function setBasinHover(map: maplibregl.Map, name: string | null) {
@@ -146,9 +146,9 @@ export function ensureActiveWellLayer(map: maplibregl.Map, data: GeoJSON.Feature
   // Two rings (a static outer + an animated pulsing inner, driven from WellMap's rAF loop via setActiveWellPulse)
   // so the active well reads clearly against a busy, colourful basemap.
   map.addLayer({ id: "active-well-pulse", type: "circle", source: "active-well",
-    paint: { "circle-radius": 9, "circle-color": "transparent", "circle-stroke-color": "#F59E0B", "circle-stroke-width": 2, "circle-stroke-opacity": 0.9 } });
+    paint: { "circle-radius": 9, "circle-color": "transparent", "circle-stroke-color": "#C8902E", "circle-stroke-width": 2, "circle-stroke-opacity": 0.9 } });
   map.addLayer({ id: "active-well-point", type: "circle", source: "active-well",
-    paint: { "circle-radius": 7, "circle-color": "#F59E0B", "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 2 } });
+    paint: { "circle-radius": 7, "circle-color": "#C8902E", "circle-stroke-color": "#FBF8F1", "circle-stroke-width": 2 } });
 }
 
 export function setActiveWellPulse(map: maplibregl.Map, radius: number, opacity: number) {

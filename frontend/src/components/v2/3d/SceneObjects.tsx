@@ -13,8 +13,7 @@ export const SCALE = 0.01; // 1 scene unit = 100 m (keeps the camera / controls 
 // Inline (not global CSS) since this component doesn't own globals.css — kept theme-aware via CSS vars.
 export const tipStyle: CSSProperties = {
   background: "var(--surface, #fff)", color: "var(--text, #101828)", border: "1px solid var(--border, #E4E7EC)",
-  borderRadius: 8, padding: "6px 9px", fontSize: 12, lineHeight: 1.4, whiteSpace: "nowrap",
-  boxShadow: "var(--shadow-md, 0 4px 12px rgba(16,24,40,.08))",
+  borderRadius: 6, padding: "6px 9px", fontSize: 12, lineHeight: 1.4, whiteSpace: "nowrap",
 };
 const tickStyle: CSSProperties = { color: "var(--text-2, #5D6673)", fontSize: 10, fontFamily: "var(--font-plex-mono), ui-monospace, monospace", fontWeight: 600 };
 

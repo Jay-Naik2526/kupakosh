@@ -162,9 +162,7 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
 
   const activeWell = scene.wells.find((w) => w.is_active) ?? null;
   const offsetWells = scene.wells.filter((w) => !w.is_active);
-  const sky = isDark
-    ? "radial-gradient(ellipse at 50% 0%, #1E293B 0%, #0B1220 60%, #05070C 100%)"
-    : "linear-gradient(180deg, #BFE3FF 0%, #E8F4FF 45%, #F6F3E7 100%)";
+  const sky = colors.bg; // flat paper tone, no sky gradient — same in light and dark
 
   return (
     <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 8 }}>
@@ -174,8 +172,8 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
           gl={{ alpha: true, localClippingEnabled: true }}
           dpr={[1, 2]}
         >
-          <color attach="background" args={[sky.includes("linear") ? "#E8F4FF" : "#0B1220"]} />
-          <fog attach="fog" args={[isDark ? "#0B1220" : "#E8F4FF", groundSize * 1.4, groundSize * 4]} />
+          <color attach="background" args={[sky]} />
+          <fog attach="fog" args={[sky, groundSize * 1.4, groundSize * 4]} />
           <ambientLight intensity={isDark ? 0.55 : 0.85} />
           <directionalLight position={[5, 8, 3]} intensity={isDark ? 0.5 : 0.9} castShadow={false} />
           <hemisphereLight args={[isDark ? "#3B4A63" : "#BFE3FF", "#2F6F4E", 0.5]} />

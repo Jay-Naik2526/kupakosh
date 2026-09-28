@@ -11,23 +11,18 @@ import { EmptyState } from "@/components/kk/EmptyState";
 import { t } from "@/lib/i18n";
 import { hazardColor } from "@/lib/palette";
 
-// One colour + glyph per wiki page kind, so the document type reads before you read the title.
-// A hazard page's chip uses that hazard's own colour (from its slug, hazards/<key>) so it matches the same hue everywhere else in the app.
-// KIND_COLOR/HAZARD_TEXT are darker ("-700") variants of the same hues, used only as TEXT so small labels clear AA (4.5:1) on a light tint —
-// hazardColor()/the "-600" hues stay for decoration (dots, bars) where contrast rules don't apply.
+// One colour dot + glyph per wiki page kind, so the document type reads before you read the title.
+// A hazard page's dot uses that hazard's own colour (from its slug, hazards/<key>) so it matches the same hue everywhere else in the app.
+// The chip itself stays neutral (surface + border + ink text); colour is carried only by the small dot, never by a tinted background.
 const KIND_COLOR: Record<string, string> = { formation: "#0E7490", well: "var(--info)", lesson: "#A16207", basin: "#6D28D9" };
-const HAZARD_TEXT: Record<string, string> = {
-  lost_circulation: "#BE123C", kick: "#B91C1C", stuck_pipe: "#C2410C", torque_spike: "#B45309",
-  overpressure: "#6D28D9", cementing_issue: "#0E7490", fishing: "#4338CA", wellbore_instability: "#A16207",
-};
 const KIND_GLYPH: Record<string, string> = { hazard: "⚠", formation: "▤", well: "◎", lesson: "✎", basin: "◈" };
 function KindChip({ kind, slug }: { kind: string; slug: string }) {
   const key = slug.split("/")[1] ?? "";
-  const bg = kind === "hazard" ? hazardColor(key) : KIND_COLOR[kind] ?? "#64748B";
-  const c = kind === "hazard" ? (HAZARD_TEXT[key] ?? "#64748B") : KIND_COLOR[kind] ?? "#64748B";
+  const dot = kind === "hazard" ? hazardColor(key) : KIND_COLOR[kind] ?? "#64748B";
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-kk text-[0.72rem] font-semibold uppercase tracking-wide"
-          style={{ background: `color-mix(in srgb, ${bg} 14%, var(--surface))`, border: `1px solid color-mix(in srgb, ${bg} 45%, transparent)`, color: c }}>
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-kk text-[0.72rem] font-semibold uppercase tracking-wide"
+          style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
+      <span aria-hidden="true" className="inline-block rounded-full" style={{ width: 7, height: 7, background: dot }} />
       <span aria-hidden="true">{KIND_GLYPH[kind] ?? "●"}</span>{kind}
     </span>
   );
@@ -88,14 +83,14 @@ function Wiki() {
       {page && (
         <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0, 64fr) minmax(0, 36fr)" }}>
           {/* Zone A — the document, on a clean card with readable measure */}
-          <article aria-label="wiki page" className="kk-card">
+          <article aria-label="wiki page" className="kk-card" style={{ borderLeft: "6px solid var(--sec-knowledge, var(--accent))" }}>
             <div className="max-w-[75ch]">
               <div className="flex justify-between items-start gap-4 flex-wrap border-b border-[var(--border)] pb-4">
                 <div>
                   <div className="typewriter small text-[var(--text-2)]">{page.ref_no} · v{page.version}</div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <KindChip kind={page.kind} slug={slug} />
-                    <h2 className="text-xl font-semibold">{page.title}</h2>
+                    <h2 className="serif text-xl font-semibold">{page.title}</h2>
                   </div>
                   <div className="label mt-0.5">{page.n_sources} {t("wikiSourcesSuffix", lang)} · {t("wikiCommit", lang)} <span className="mono">{page.git_commit?.slice(0, 8)}</span></div>
                   <TrustBar v={page.trust} lang={lang} />
@@ -174,11 +169,12 @@ function Wiki() {
 
 function TrustBar({ v, lang }: { v: number | null; lang: "en" | "hi" }) {
   if (v === null || v === undefined) return <div className="label mt-1">{t("wikiTrustNotComputed", lang)}</div>;
+  const fill = v >= 0.7 ? "var(--ok)" : v >= 0.4 ? "var(--caution)" : "var(--hazard)";
   return (
     <div className="flex items-center gap-2 mt-2 small" title="share of cited report lines with no open report conflict">
       <span className="label">{t("wikiTrust", lang)}</span>
       <span className="inline-block h-2 w-40 rounded-full bg-[var(--surface-2)] border border-[var(--border)] overflow-hidden">
-        <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: "linear-gradient(90deg, var(--hazard), var(--caution), var(--ok))" }} />
+        <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: fill }} />
       </span>
       <span className="num">{Math.round(v * 100)}%</span>
     </div>

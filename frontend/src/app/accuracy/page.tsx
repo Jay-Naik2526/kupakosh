@@ -8,7 +8,10 @@ import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
 import { countryColor } from "@/lib/palette";
 
-const FIG_COLORS = ["var(--info)", "#0891B2", "#8B5CF6", "var(--ok)"];
+// Flat earth tones (DESIGN_V3_COLOUR.md) — one per headline figure, used only as a thin underline bar.
+const FIG_COLORS = ["var(--slate)", "var(--teal)", "var(--rust)", "var(--sage)"];
+// /accuracy sits in the "trust" nav group — its section colour marks this page's own section headings.
+const SEC = "var(--sec-trust)";
 
 const tr = (lang: string, en: string, hi: string) => (lang === "hi" ? hi : en);
 
@@ -77,7 +80,7 @@ export default function Accuracy() {
       {/* Zone B — data sources */}
       <section aria-label="data sources">
         <div className="flex items-baseline justify-between mb-2">
-          <h2 className="font-semibold">{t("acDataSources", lang)}</h2>
+          <h2 className="serif font-semibold">{t("acDataSources", lang)}</h2>
           <button className="btn" onClick={() => setUp(true)}>{t("acAddReport", lang)}</button>
         </div>
         <Drawer open={up} onClose={() => setUp(false)} title={t("acAddReportTitle", lang)} width={560}><UploadReport /></Drawer>
@@ -90,7 +93,7 @@ export default function Accuracy() {
         ]} />
         {s.by_country?.length > 0 && (
           <div className="mt-4">
-            <h3 className="font-semibold mb-1">{t("acByCountry", lang)}</h3>
+            <h3 className="serif font-semibold mb-1">{t("acByCountry", lang)}</h3>
             <Register rows={s.by_country} cols={[
               { key: "c", head: t("acCol_country", lang), cell: (r: any) => (
                 <span className="inline-flex items-center gap-2">
@@ -123,7 +126,10 @@ export default function Accuracy() {
       {/* Zone C — measured accuracy + limitations */}
       <section aria-label="measured accuracy" className="grid gap-8" style={{ gridTemplateColumns: "minmax(0,3fr) minmax(0,2fr)" }}>
         <div>
-          <h2 className="font-semibold mb-2">{t("acMeasuredAccuracy", lang)}</h2>
+          <h2 className="serif font-semibold mb-2" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: 2, background: SEC, display: "inline-block" }} />
+            {t("acMeasuredAccuracy", lang)}
+          </h2>
           <Register rows={rows} cols={[
             { key: "a", head: t("acCol_area", lang), cell: (r: any) => r.name.replace("_", " ") },
             { key: "m", head: t("acCol_metric", lang), cell: (r: any) => r.metric },
@@ -133,7 +139,7 @@ export default function Accuracy() {
           ]} />
           <p className="small mt-2"><b>{t("acReadingHazard", lang)}</b> the offset-well model is not measurably better than the formation base rate on this data (Brier model vs base above). Kupakosh therefore shows the rate with its range and evidence count, and says “insufficient evidence” when the evidence is thin — it does not claim predictive skill.</p>
 
-          <h2 className="font-semibold mt-6 mb-2">{tr(lang, "Hindsight (blind leave-well-out replay)", "हिंडसाइट (अंध लीव-वन-वेल-आउट पुनःचलन)")}</h2>
+          <h2 className="serif font-semibold mt-6 mb-2">{tr(lang, "Hindsight (blind leave-well-out replay)", "हिंडसाइट (अंध लीव-वन-वेल-आउट पुनःचलन)")}</h2>
           {hsErr && <p className="label">{t("notEvaluated", lang)}</p>}
           {!hsErr && !hs && <p className="label">{t("loading", lang)}</p>}
           {hs && (
@@ -159,7 +165,7 @@ export default function Accuracy() {
           )}
         </div>
         <div>
-          <h2 className="font-semibold mb-2">{t("acKnownLimitations", lang)}</h2>
+          <h2 className="serif font-semibold mb-2">{t("acKnownLimitations", lang)}</h2>
           <ol className="list-decimal pl-5 space-y-1 small">{LIMITS.map((l) => <li key={l}>{l}</li>)}</ol>
           <p className="label mt-3">{t("acDemoUsers", lang)} ({s.demo_users.map((u: any) => u.name).join(", ")}) {t("acDemoUsersNote", lang)}</p>
         </div>
@@ -182,23 +188,27 @@ function hindsightRows(hs: any) {
   ];
 }
 
+/** Plain figure with a state-coloured underline bar (good = --ok, otherwise --caution) — no tinted box. */
 function HsTile({ v, l, good }: { v: string; l: string; good: boolean }) {
-  // "#166534" (not --ok) so the big number clears AA as text; the tint background still uses the brighter --ok hue for the vivid card colour.
-  const tint = good ? "var(--ok)" : "var(--caution)";
-  const textC = good ? "#166534" : "var(--caution-ink)"; // green-800: #166534 was 4.499:1 on this tinted background, just under AA
+  // "#166534" (not --ok) so the number clears AA as text on paper; --ok stays for the underline bar itself.
+  const textC = good ? "#166534" : "var(--caution-ink)";
+  const barC = good ? "var(--ok)" : "var(--caution)";
   return (
-    <div className="rounded-kk p-3 text-center" style={{ border: `1px solid color-mix(in srgb, ${tint} 40%, var(--border))`, background: `color-mix(in srgb, ${tint} 10%, var(--surface))` }}>
+    <div>
       <div className="num font-semibold" style={{ fontSize: 22, color: textC }}>{v}</div>
-      <div className="label mt-0.5">{l}</div>
+      <div aria-hidden="true" style={{ height: 4, width: 32, background: barC, marginTop: 4, borderRadius: 1 }} />
+      <div className="label mt-1">{l}</div>
     </div>
   );
 }
 
+/** Plain ink figure with a solid coloured underline bar (this figure's earth tone) — no tinted box. */
 function Fig({ v, l, sub, c }: { v: number; l: string; sub: string; c: string }) {
   return (
-    <div className="rounded-kk p-4" style={{ borderTop: `3px solid ${c}`, border: `1px solid var(--border)`, borderTopWidth: 3, borderTopColor: c, background: `color-mix(in srgb, ${c} 6%, var(--surface))` }}>
-      <div className="num" style={{ fontSize: 34, lineHeight: 1.1, color: c }}>{v.toLocaleString("en-IN")}</div>
-      <div className="font-semibold">{l}</div>
+    <div className="rounded-kk p-4" style={{ border: "1px solid var(--border)" }}>
+      <div className="num" style={{ fontSize: 34, lineHeight: 1.1 }}>{v.toLocaleString("en-IN")}</div>
+      <div aria-hidden="true" style={{ height: 4, width: 36, background: c, marginTop: 6, borderRadius: 1 }} />
+      <div className="serif font-semibold mt-2">{l}</div>
       <div className="label mt-1">{sub}</div>
     </div>
   );

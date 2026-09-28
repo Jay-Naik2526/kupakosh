@@ -243,13 +243,13 @@ export function WellMap({
 
       {/* Base-style switcher */}
       <div style={{ position: "absolute", left: 12, top: 12, zIndex: 1, display: "flex", background: "var(--surface, #FBFAF6)",
-                    border: "1px solid var(--border, #E4E7EC)", borderRadius: 8, padding: 3, gap: 2, boxShadow: "0 1px 3px rgba(0,0,0,.12)" }}
+                    border: "1px solid var(--border, #E4E7EC)", borderRadius: 6, padding: 3, gap: 2 }}
            role="group" aria-label="map base style">
         {BASE_STYLES.map((s) => (
           <button key={s.id} type="button" aria-pressed={base === s.id} onClick={() => setBase(s.id)}
-            style={{ font: "600 11px IBM Plex Sans, sans-serif", padding: "5px 9px", borderRadius: 6, cursor: "pointer", border: "none",
-                     background: base === s.id ? "linear-gradient(135deg,#1D4ED8,#0F766E)" : "transparent",
-                     color: base === s.id ? "#FFFFFF" : "var(--text, #1B1A17)" }}>
+            style={{ font: "600 11px IBM Plex Sans, sans-serif", padding: "5px 9px", borderRadius: 4, cursor: "pointer", border: "none",
+                     background: base === s.id ? "var(--text, #1B1A17)" : "transparent",
+                     color: base === s.id ? "var(--surface, #FBFAF6)" : "var(--text, #1B1A17)" }}>
             {s.label}
           </button>
         ))}
@@ -257,8 +257,8 @@ export function WellMap({
 
       {/* Layers panel */}
       <div style={{ position: "absolute", left: 12, top: 50, zIndex: 1, width: layersOpen ? 190 : "auto",
-                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 8,
-                    boxShadow: "0 1px 3px rgba(0,0,0,.12)", overflow: "hidden" }}>
+                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 6,
+                    overflow: "hidden" }}>
         <button type="button" onClick={() => setLayersOpen((v) => !v)} aria-expanded={layersOpen}
           style={{ width: "100%", textAlign: "left", font: "700 11px IBM Plex Sans, sans-serif", padding: "6px 10px", border: "none",
                    background: "transparent", cursor: "pointer", color: "var(--text, #1B1A17)" }}>
@@ -287,8 +287,8 @@ export function WellMap({
 
       {/* Legend + well count */}
       <div style={{ position: "absolute", left: 12, bottom: 28, zIndex: 1, fontSize: 12, color: "var(--text, #1B1A17)",
-                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 8,
-                    padding: "8px 10px", boxShadow: "0 1px 2px rgba(0,0,0,.08)", maxWidth: 220 }}>
+                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 6,
+                    padding: "8px 10px", maxWidth: 220 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>{loaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}</div>
         {colorMode === "country" ? (
           legendCountries.length

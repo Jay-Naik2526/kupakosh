@@ -54,7 +54,7 @@ export function WhyPanel({ posterior }: { posterior: Posterior }) {
   const hc = hazardColor(p.hazard ?? "");
 
   return (
-    <div className="kk-card" style={{ padding: 14, marginTop: 10, background: "var(--surface-2)" }} aria-label="Why this number">
+    <div className="kk-card" style={{ padding: 14, marginTop: 10, background: "var(--surface-2)", borderLeft: `3px solid ${hc}` }} aria-label="Why this number">
       <p className="small" style={{ marginTop: 0 }}>{sentence}</p>
 
       <div className="label" style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", margin: "8px 0" }}>

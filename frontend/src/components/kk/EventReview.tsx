@@ -76,9 +76,8 @@ export function EventReviewDrawer({ variant = "chip" }: { variant?: "chip" | "ti
             const c = hazardColor(h);
             const active = hazard === h;
             return (
-              <button key={h} className="chip" aria-pressed={active} onClick={() => { setHazard(h); setSel(null); }}
-                style={active ? { background: `color-mix(in srgb, ${c} 16%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)` } : undefined}>
-                <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 8, height: 8, background: c }} />
+              <button key={h} className="chip" aria-pressed={active} onClick={() => { setHazard(h); setSel(null); }}>
+                <span aria-hidden="true" className="inline-block mr-1.5" style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
                 {hazardText(h, lang)}
               </button>
             );
@@ -96,7 +95,7 @@ export function EventReviewDrawer({ variant = "chip" }: { variant?: "chip" | "ti
               cols={[
                 { key: "w", head: t("chkCol_well", lang), cell: (e: any) => e.well },
                 { key: "h", head: t("fixHazard", lang), cell: (e: any) => (
-                  <span><span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 7, height: 7, background: hazardColor(e.hazard) }} />{hazardText(e.hazard, lang)}</span>
+                  <span><span aria-hidden="true" className="inline-block mr-1.5" style={{ width: 7, height: 7, borderRadius: 2, background: hazardColor(e.hazard) }} />{hazardText(e.hazard, lang)}</span>
                 ) },
                 { key: "f", head: t("offsFormationLbl", lang), cell: (e: any) => e.formation_label ?? t("offsUnknown", lang) },
                 { key: "md", head: "MD", num: true, cell: (e: any) => (e.md_m != null ? `${Math.round(e.md_m)} m` : t("offsUnknown", lang)) },

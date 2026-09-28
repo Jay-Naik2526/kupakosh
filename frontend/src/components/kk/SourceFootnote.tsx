@@ -20,9 +20,12 @@ export function SourceFootnote({ refId, n }: { refId: string; n: number | string
   const c = sourceKindColor(refId);
   return (
     <button type="button" onClick={(e) => { e.stopPropagation(); openSource(refId); }} title={refId}
-      className="num align-super text-[0.72rem] px-0.5 rounded-kk ml-0.5 leading-none"
-      style={{ border: `1px solid color-mix(in srgb, ${c} 55%, var(--border))`, background: `color-mix(in srgb, ${c} 12%, var(--card))`, color: c }}
-      aria-label={`source ${n}: ${refId}`}>{n}</button>
+      className="num align-super text-[0.72rem] px-1 rounded-kk ml-0.5 leading-none inline-flex items-center gap-1"
+      style={{ border: "1px solid var(--border)", background: "var(--card)", color: "var(--text)" }}
+      aria-label={`source ${n}: ${refId}`}>
+      <span aria-hidden="true" style={{ width: 5, height: 5, borderRadius: 1, background: c, display: "inline-block", flex: "0 0 auto" }} />
+      {n}
+    </button>
   );
 }
 

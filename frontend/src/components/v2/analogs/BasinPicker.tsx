@@ -46,13 +46,10 @@ export function BasinPicker({
             {basin.suggestions.map((s, i) => {
               const c = s.type === "lithology" ? lithColor(s.value) : "#8B5CF6";
               return (
-                <span key={i} className="chip" style={{
-                  cursor: s.type === "lithology" ? "pointer" : "default", opacity: s.type === "lithology" ? 1 : 0.85,
-                  background: `color-mix(in srgb, ${c} 20%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)`,
-                }}
+                <span key={i} className="chip" style={{ cursor: s.type === "lithology" ? "pointer" : "default", opacity: s.type === "lithology" ? 1 : 0.85 }}
                   onClick={s.type === "lithology" ? () => onPickSuggestion(s) : undefined}
                   title={s.text}>
-                  <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 7, height: 7, background: c }} />
+                  <span aria-hidden="true" className="inline-block mr-1.5" style={{ width: 7, height: 7, borderRadius: 2, background: c }} />
                   {s.type === "lithology" ? t("lithology:", "लिथोलॉजी:") : t("formation:", "संरचना:")} {s.value}
                   <SourceFootnote refId={s.source_ref} n={i + 1} />
                 </span>
@@ -86,9 +83,8 @@ export function BasinPicker({
           const c = hazardColor(h);
           const active = hazards.has(h);
           return (
-            <button key={h} className="chip" aria-pressed={active} onClick={() => toggleHazard(h)}
-              style={active ? { background: `color-mix(in srgb, ${c} 18%, var(--surface))`, borderColor: `color-mix(in srgb, ${c} 55%, transparent)` } : undefined}>
-              <span aria-hidden="true" className="inline-block rounded-full mr-1.5" style={{ width: 7, height: 7, background: c }} />
+            <button key={h} className="chip" aria-pressed={active} onClick={() => toggleHazard(h)}>
+              <span aria-hidden="true" className="inline-block mr-1.5" style={{ width: 7, height: 7, borderRadius: 2, background: c }} />
               {hazardText(h, lang)}
             </button>
           );

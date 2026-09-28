@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Box, Play, Pause, Gauge, Ruler, Layers, Clock } from "lucide-react";
-import { BRAND, formationColor } from "@/lib/palette";
+import { formationColor } from "@/lib/palette";
 import { scaleLinear } from "d3-scale";
 import { get, WS } from "@/lib/api";
 import { useApp } from "@/lib/state";
@@ -111,10 +111,10 @@ export default function Command() {
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mt-4">
               <WellPicker onlyReplay label={tr(lang, "Replay well (has sensor data)", "पुनःचलन कूप (सेंसर डेटा सहित)")} />
               <ReplayBadge label={t("replay", lang)} sub={t("cmdReplaySub", lang)} />
-              <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} icon={Gauge} color={BRAND.from} />
-              <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : t("tvdUnknown", lang)} rig={rig} icon={Ruler} color={BRAND.via} />
-              <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} icon={Layers} color={la?.current?.label ? formationColor(la.current.label) : "var(--text-2)"} />
-              <StatusFigure label={tr(lang, "Time", "समय")} value={last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : "—"} rig={rig} mono={false} icon={Clock} color="var(--text-2)" />
+              <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} icon={Gauge} />
+              <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : "—"} rig={rig} icon={Ruler} />
+              <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} icon={Layers} valueColor={la?.current?.label ? formationColor(la.current.label) : undefined} />
+              <StatusFigure label={tr(lang, "Time", "समय")} value={last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : "—"} rig={rig} mono={false} icon={Clock} />
             </div>
             <div className="flex items-end gap-3 flex-wrap mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
               <div>
@@ -232,28 +232,28 @@ export default function Command() {
   );
 }
 
+/** A simple numbered text stepper — no gradient/pill chips (DESIGN_V3.md). The active step is filled in
+ *  this page's section colour (operate = rust, DESIGN_V3_COLOUR.md), not a tint or gradient. */
 function StepHint({ step, lang }: { step: 1 | 2 | 3; lang: Lang }) {
   const steps: { n: 1 | 2 | 3; en: string; hi: string }[] = [
     { n: 1, en: "Pick a start depth", hi: "प्रारंभ गहराई चुनें" },
     { n: 2, en: "Start replay", hi: "पुनःचलन प्रारंभ करें" },
     { n: 3, en: "Watch the alert", hi: "चेतावनी देखें" },
   ];
-  const stepColor = [BRAND.from, BRAND.via, BRAND.to];
   return (
     <div className="flex items-center gap-2 flex-wrap" aria-label="steps">
       {steps.map((s, i) => {
-        const c = stepColor[i];
         const active = s.n === step;
         return (
           <span key={s.n} className="inline-flex items-center gap-2">
             <span className="small" style={{
-              display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999,
-              border: `1px solid ${c}`,
-              color: active ? "#fff" : c,
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: "var(--radius-md)",
+              border: `1px solid ${active ? "var(--sec-operate)" : "var(--border)"}`,
+              color: active ? "var(--surface)" : "var(--text)",
               fontWeight: active ? 600 : 500,
-              background: active ? c : `color-mix(in srgb, ${c} 12%, transparent)`,
+              background: active ? "var(--sec-operate)" : "transparent",
             }}>
-              <span className="num" style={{ display: "inline-flex", width: 16, height: 16, borderRadius: 999, alignItems: "center", justifyContent: "center", background: active ? "rgba(255,255,255,0.3)" : c, color: "#fff", fontSize: "0.68rem" }}>{s.n}</span> {tr(lang, s.en, s.hi)}
+              <span className="num" style={{ fontSize: "0.78rem" }}>{s.n}</span> {tr(lang, s.en, s.hi)}
             </span>
             {i < steps.length - 1 && <span className="label" aria-hidden="true">→</span>}
           </span>
@@ -282,17 +282,19 @@ function ReplayBadge({ label, sub }: { label: string; sub?: string }) {
   );
 }
 
-function StatusFigure({ label, value, rig, mono = true, icon: Icon, color }: { label: string; value: string; rig: boolean; mono?: boolean; icon?: any; color?: string }) {
+/** Plain grey icon (no tinted chip background) — the value itself may still carry a meaningful
+ *  data colour (e.g. the current formation) via its own inline style at the call site. */
+function StatusFigure({ label, value, rig, mono = true, icon: Icon, valueColor }: { label: string; value: string; rig: boolean; mono?: boolean; icon?: any; valueColor?: string }) {
   return (
     <div className="flex items-center gap-2">
       {Icon && !rig && (
-        <span aria-hidden="true" style={{ display: "inline-flex", width: 28, height: 28, borderRadius: 999, alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, ${color ?? "var(--text-2)"} 16%, transparent)`, flex: "0 0 auto" }}>
-          <Icon size={15} color={color ?? "var(--text-2)"} />
+        <span aria-hidden="true" className="kk-icon-chip" style={{ flex: "0 0 auto" }}>
+          <Icon size={16} strokeWidth={1.75} />
         </span>
       )}
       <div>
         <div className="label">{label}</div>
-        <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15 }}>{value}</div>
+        <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15, color: valueColor }}>{value}</div>
       </div>
     </div>
   );

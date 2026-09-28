@@ -1,19 +1,19 @@
-// Kupakosh v3 colour system — vivid, consistent across 2D, maps and 3D.
+// Kupakosh colour system — earth palette of a printed geological survey sheet, shared by 2D, maps and 3D.
 // Colour is never the only signal: every coloured item also carries a label or glyph.
 
-/** Brand gradient (header, hero, primary buttons). */
-export const BRAND = { from: "#1D4ED8", via: "#0E7490", to: "#0F766E", accent: "#F59E0B" };
+/** Brand colours (flat; no gradients). */
+export const BRAND = { from: "#1F5F66", via: "#1F5F66", to: "#1F5F66", accent: "#C8902E" };
 
 /** One colour per hazard (categorical). Kick/losses keep the "danger" hues. */
 export const HAZARD_COLOR: Record<string, string> = {
-  lost_circulation: "#E11D48", // rose
-  kick: "#DC2626",             // red
-  stuck_pipe: "#EA580C",       // orange
-  torque_spike: "#D97706",     // amber
-  overpressure: "#9333EA",     // violet
-  cementing_issue: "#0891B2",  // cyan
-  fishing: "#4F46E5",          // indigo
-  wellbore_instability: "#CA8A04", // mustard
+  lost_circulation: "#B5542D",     // rust
+  kick: "#8E2A24",                 // oxblood
+  stuck_pipe: "#C8902E",           // ochre
+  torque_spike: "#8C6D1F",         // dark mustard
+  overpressure: "#6B4A6E",         // plum
+  cementing_issue: "#3D5A73",      // slate
+  fishing: "#2F6E73",              // teal
+  wellbore_instability: "#6E8B5A", // sage
 };
 export const hazardColor = (h: string) => HAZARD_COLOR[h] ?? "#64748B";
 
@@ -35,7 +35,7 @@ export const lithColor = (l?: string | null) => {
 };
 
 /** Stable colour per formation name when lithology is unknown (hash into a vivid ramp). */
-const FORMATION_RAMP = ["#FDE68A", "#A7F3D0", "#BFDBFE", "#FBCFE8", "#DDD6FE", "#FED7AA", "#BBF7D0", "#C7D2FE", "#FECACA", "#99F6E4", "#E9D5FF", "#FEF08A"];
+const FORMATION_RAMP = ["#E9D8A6", "#CFDCC0", "#C9D8DE", "#E6C9B8", "#D9CBDC", "#F0DDB4", "#C5D3C9", "#D8D0C0", "#E3C4B4", "#BCD2CF", "#DCCFE0", "#EFE0B0"];
 export const formationColor = (name: string, lithology?: string | null) => {
   if (lithology) { const c = lithColor(lithology); if (c !== LITH_COLOR.unknown) return c; }
   let h = 0;
@@ -44,17 +44,17 @@ export const formationColor = (name: string, lithology?: string | null) => {
 };
 
 /** Distinct colours for wells in a scene (active well is always BRAND.via / cyan-teal). */
-export const WELL_SERIES = ["#2563EB", "#F59E0B", "#10B981", "#EC4899", "#8B5CF6", "#EF4444", "#14B8A6", "#F97316", "#6366F1", "#84CC16", "#06B6D4", "#D946EF"];
+export const WELL_SERIES = ["#1F5F66", "#C8902E", "#A8472A", "#6E8B5A", "#6B4A6E", "#3D5A73", "#B87333", "#8C6D1F", "#4F7C8A", "#8E2A24", "#7A8B3A", "#A0707A"];
 export const wellColor = (i: number) => WELL_SERIES[i % WELL_SERIES.length];
 
 /** One colour per country (maps, charts, chips). */
 export const COUNTRY_COLOR: Record<string, string> = {
-  India: "#F97316", Norway: "#2563EB", "United Kingdom": "#7C3AED", Netherlands: "#F59E0B",
-  USA: "#DC2626", Australia: "#10B981", "New Zealand": "#0EA5E9", Canada: "#DB2777",
+  India: "#D08A2A", Norway: "#3D5A73", "United Kingdom": "#6B4A6E", Netherlands: "#B87333",
+  USA: "#A8322A", Australia: "#6E8B5A", "New Zealand": "#2F6E73", Canada: "#8E4A5E",
 };
 export const countryColor = (c?: string | null) => (c && COUNTRY_COLOR[c]) || "#64748B";
 
 /** Section accents for sidebar groups and page headers. */
 export const SECTION_COLOR: Record<string, string> = {
-  operate: "#2563EB", explore: "#0EA5E9", knowledge: "#8B5CF6", ask: "#EC4899", deliver: "#F59E0B", trust: "#10B981",
+  operate: "#A8472A", explore: "#1F5F66", knowledge: "#6E8B5A", ask: "#6B4A6E", deliver: "#C8902E", trust: "#3D5A73",
 };

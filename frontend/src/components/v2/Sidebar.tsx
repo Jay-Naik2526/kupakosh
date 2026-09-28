@@ -1,4 +1,5 @@
 "use client";
+import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -8,19 +9,14 @@ import {
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
 import { Wordmark } from "@/components/kk/Wordmark";
-import { SECTION_COLOR } from "@/lib/palette";
-
-/** Maps each nav group to its lib/palette.ts SECTION_COLOR key (ROUND 3 colour addendum). */
-const GROUP_SECTION: Record<string, keyof typeof SECTION_COLOR> = {
-  navGroupOperate: "operate",
-  navGroupExplore: "explore",
-  navGroupKnowledge: "knowledge",
-  navGroupAsk: "ask",
-  navGroupDeliver: "deliver",
-  navGroupTrust: "trust",
-};
 
 /** Sidebar nav model (docs/PLAN_V2.md "Design system v2" shell groups). Shared with TopBar for the route title. */
+/** Each nav group gets its earth colour as a small legend square (tokens.css --sec-*), like a survey-map key. */
+const GROUP_COLOR: Record<string, string> = {
+  navGroupOperate: "var(--sec-operate)", navGroupExplore: "var(--sec-explore)", navGroupKnowledge: "var(--sec-knowledge)",
+  navGroupAsk: "var(--sec-ask)", navGroupDeliver: "var(--sec-deliver)", navGroupTrust: "var(--sec-trust)",
+};
+
 export const NAV_GROUPS = [
   {
     groupKey: "navGroupOperate" as const,
@@ -101,10 +97,9 @@ export function Sidebar({
       </div>
       <div className="kk-sidebar-scroll">
         {NAV_GROUPS.map((g) => {
-          const color = SECTION_COLOR[GROUP_SECTION[g.groupKey]];
           return (
-            <div className="kk-nav-group" key={g.groupKey}>
-              {!collapsed && <div className="kk-nav-group-label" style={{ ["--nav-color" as any]: color }}>{t(g.groupKey, lang)}</div>}
+            <div className="kk-nav-group" key={g.groupKey} style={{ ["--nav-color" as string]: GROUP_COLOR[g.groupKey] } as React.CSSProperties}>
+              {!collapsed && <div className="kk-nav-group-label">{t(g.groupKey, lang)}</div>}
               {g.items.map((it) => {
                 const active = isActive(it.href, path);
                 const Icon = it.icon;
@@ -117,7 +112,6 @@ export function Sidebar({
                     className="kk-nav-item"
                     data-active={active ? "1" : "0"}
                     title={t(it.key, lang)}
-                    style={{ ["--nav-color" as any]: color }}
                   >
                     <span className="kk-nav-icon-chip">
                       <Icon size={15} aria-hidden="true" />

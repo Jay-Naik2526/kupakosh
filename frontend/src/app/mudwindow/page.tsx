@@ -70,14 +70,10 @@ export default function MudWindow() {
               <svg width={W} height={H} className="rounded-[var(--radius-md)]" style={{ background: "var(--surface-2)" }} role="img" aria-label="Depth versus mud weight: safe band, evidence and active well">
                 <defs>
                   <pattern id="safe" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--ok)" strokeWidth="1.2" /></pattern>
-                  <linearGradient id="safeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="var(--ok)" stopOpacity={0.32} />
-                    <stop offset="1" stopColor="#0F766E" stopOpacity={0.32} />
-                  </linearGradient>
                 </defs>
                 {rows.filter((r: any) => r.top_md_m !== null && r.base_md_m !== null).map((r: any) => (
                   <g key={r.formation}>
-                    {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="url(#safeGrad)" stroke="var(--ok)" strokeWidth={0.8}><title>{`${r.label}: safe band ${ppg(r.lower_ppg)}–${ppg(r.upper_ppg)} ppg`}</title></rect>}
+                    {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="var(--ok)" fillOpacity={0.22} stroke="var(--ok)" strokeWidth={0.8}><title>{`${r.label}: safe band ${ppg(r.lower_ppg)}–${ppg(r.upper_ppg)} ppg`}</title></rect>}
                     {r.status === "window" && <rect x={x(r.lower_ppg)} width={x(r.upper_ppg) - x(r.lower_ppg)} y={y(r.top_md_m)} height={Math.max(2, y(r.base_md_m) - y(r.top_md_m))} fill="url(#safe)" pointerEvents="none" />}
                     {r.status === "upper_only" && <line x1={x(r.upper_ppg)} x2={x(r.upper_ppg)} y1={y(r.top_md_m)} y2={y(r.base_md_m)} stroke="var(--ok)" strokeWidth={2} strokeDasharray="4 2"><title>{`${r.label}: upper bound only`}</title></line>}
                     {r.status === "lower_only" && <line x1={x(r.lower_ppg)} x2={x(r.lower_ppg)} y1={y(r.top_md_m)} y2={y(r.base_md_m)} stroke="var(--ok)" strokeWidth={2} strokeDasharray="4 2"><title>{`${r.label}: lower bound only`}</title></line>}

@@ -1,31 +1,42 @@
-/* Kupakosh design tokens — v2 (docs/PLAN_V2.md "Design system v2"). Colour = state only (ISA-101 legacy rule kept). */
+/* Kupakosh design tokens — v3. Colour = state and data only (ISA-101 spirit); surfaces are flat ink-on-paper. */
 
-/* ---- v2 palette: light (default) ---- */
+/* ---- v3 "geological survey map" palette: light (default) ----
+   Paper and ink, plus flat earth colours used the way a printed survey sheet uses them: solid fields,
+   legend squares, underline bars. Never gradients or glow. Each colour has -ink (AA text on paper)
+   and -wash (a flat pale fill). Data palettes (hazard, lithology, wells, countries) live in lib/palette.ts. */
 :root {
-  /* Brand gradient — kept in sync with lib/palette.ts BRAND. Do not diverge. */
-  --brand-from: #1D4ED8;
-  --brand-via: #0E7490;
-  --brand-to: #0F766E;
-  --brand-accent: #F59E0B;
-  --brand-gradient: linear-gradient(100deg, var(--brand-from), var(--brand-via) 55%, var(--brand-to));
+  --bg: #F3EEE3;
+  --surface: #FBF8F1;
+  --surface-2: #ECE5D6;
+  --border: #D6CBB5;
+  --text: #1F1B16;
+  --text-2: #5B5245;
+  --accent: #1F5F66;
+  --accent-2: #174A50;
+  --accent-contrast: #FBF8F1;
+  --hazard: #A8322A;
+  --caution: #B86E12;
+  --ok: #3F7D4E;
+  --info: #3D5A73;
 
-  --bg: #EEF2FC;
-  --surface: #FFFFFF;
-  --surface-2: #F1F4FA;
-  --border: #E1E6F0;
-  --text: #101828;
-  --text-2: #5D6673;
-  --accent: #0F766E;
-  --accent-2: #0B5C56;
-  --accent-contrast: #FFFFFF;
-  --hazard: #B91C1C;  /* PLAN_V2 specifies #DC2626; darkened to clear WCAG AA (4.5:1) as body text on --bg/--surface-2 */
-  --caution: #D97706;
-  --ok: #16A34A;
-  --info: #2563EB;
-  --radius-lg: 12px;
-  --radius-md: 8px;
-  --shadow-sm: 0 1px 3px rgba(29,78,216,.08);
-  --shadow-md: 0 6px 18px rgba(29,78,216,.12);
+  --ochre: #C8902E; --ochre-ink: #7A5410; --ochre-wash: #F2E3C2;
+  --rust:  #A8472A; --rust-ink:  #8A3820; --rust-wash:  #F1DBD0;
+  --sage:  #6E8B5A; --sage-ink:  #4A6239; --sage-wash:  #E1E8D6;
+  --teal:  #1F5F66; --teal-ink:  #1F5F66; --teal-wash:  #D6E6E4;
+  --slate: #3D5A73; --slate-ink: #3D5A73; --slate-wash: #DCE3EA;
+  --plum:  #6B4A6E; --plum-ink:  #6B4A6E; --plum-wash:  #E8DDE8;
+  --sand:  #E3C98F; --sand-ink:  #6E5A2A; --sand-wash:  #F4EBD4;
+
+  --sec-operate: var(--rust); --sec-explore: var(--teal); --sec-knowledge: var(--sage);
+  --sec-ask: var(--plum); --sec-deliver: var(--ochre); --sec-trust: var(--slate);
+
+  --side-bg: #1F1B16; --side-text: #EDE6D8; --side-muted: #A89B84; --side-hover: #2C2720;
+
+  --brand-from: var(--accent); --brand-via: var(--accent); --brand-to: var(--accent); --brand-accent: var(--ochre); --brand-gradient: var(--accent);
+  --radius-lg: 6px;
+  --radius-md: 4px;
+  --shadow-sm: none;
+  --shadow-md: 0 6px 20px rgba(31, 27, 22, .14);
 
   /* ---- legacy tokens (SPEC.md §11.2), mapped onto the v2 palette so old §11 components (kk/*)
      stay coherent inside the new shell, in both themes. Older pages import these names directly. ---- */
@@ -37,7 +48,7 @@
   --rule: var(--border);
   --ink: var(--text);
   --ink-2: var(--text-2);
-  --caution-ink: #7A5200;  /* caution TEXT on light paper (AA); --caution stays for rules/borders/lines */
+  --caution-ink: #7A4A08;  /* caution TEXT on light paper (AA); --caution stays for rules/borders/lines */
   --tab-1: #E6F0EE; --tab-2: #EAF1E6; --tab-3: #ECEEF1; --tab-4: #F3EAE6;
   --lith-sand: #E9D8A6; --lith-shale: #A7B0A0; --lith-lime: #B9C6CF; --lith-clay: #B89B7A; --lith-chalk: #EDEBE4; --lith-granite: #D9CFC7;
   --radius: 2px;   /* sharp corners for mud-log style widgets (LithologyColumn, Register, …) */
@@ -46,21 +57,32 @@
 
 /* ---- v2 palette: dark ("Rig / control room") ---- */
 html[data-theme="dark"] {
-  --bg: #0B1220;
-  --surface: #111A2E;
-  --surface-2: #16213A;
-  --border: #22314D;
-  --text: #E6EAF2;
-  --text-2: #9AA5B8;
-  --accent: #14B8A6;
-  --accent-2: #2DD4C4;
-  --accent-contrast: #06201C;
-  --hazard: #F0564A;
-  --caution: #E0A93A;
-  --ok: #34D399;
-  --info: #60A5FA;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,.35);
-  --shadow-md: 0 8px 24px rgba(0,0,0,.45);
+  --bg: #16140F;
+  --surface: #1E1B15;
+  --surface-2: #27231C;
+  --border: #3A342A;
+  --text: #EFE8D9;
+  --text-2: #B3A892;
+  --accent: #6FB3B5;
+  --accent-2: #9CCFD0;
+  --accent-contrast: #10201F;
+  --hazard: #E8715E;
+  --caution: #E3A04A;
+  --ok: #7CC08E;
+  --info: #8FAAC4;
+
+  --ochre: #E0B25A; --ochre-ink: #E0B25A; --ochre-wash: #3A2F1A;
+  --rust:  #D9765A; --rust-ink:  #E48A70; --rust-wash:  #3B231B;
+  --sage:  #9DBA86; --sage-ink:  #9DBA86; --sage-wash:  #26301F;
+  --teal:  #6FB3B5; --teal-ink:  #6FB3B5; --teal-wash:  #1A3032;
+  --slate: #8FAAC4; --slate-ink: #8FAAC4; --slate-wash: #1F2A35;
+  --plum:  #B18BB4; --plum-ink:  #C3A0C6; --plum-wash:  #2E2330;
+  --sand:  #E3C98F; --sand-ink:  #E3C98F; --sand-wash:  #3A3322;
+
+  --side-bg: #0F0D0A; --side-text: #EDE6D8; --side-muted: #A89B84; --side-hover: #1F1B16;
+  --brand-from: var(--accent); --brand-via: var(--accent); --brand-to: var(--accent); --brand-accent: var(--ochre); --brand-gradient: var(--accent);
+  --shadow-sm: none;
+  --shadow-md: 0 8px 24px rgba(0,0,0,.5);
 
   --desk: var(--bg);
   --file-board: var(--surface-2);

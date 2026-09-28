@@ -21,16 +21,15 @@ export function NoticeSlip({ level, title, where, mean, ci, neff, nWells, nWithE
   const { lang } = useApp();
   const [why, setWhy] = useState(false);
   const bandColor = hazard ? hazardColor(hazard) : level === "notice" ? "var(--caution)" : "var(--hazard)";
-  const color = level === "escalated" ? "var(--hazard)" : level === "alert" ? "var(--hazard)" : "var(--caution)";
   const tag = lang === "hi" ? TAG[level].hi : TAG[level].en;
   const ok = status === "ok";
   return (
-    <section className="bg-card border border-rule rounded-kk overflow-hidden" style={{ borderLeft: `3px solid ${color}` }} aria-live="polite">
-      <div style={{ background: bandColor, color: "#fff", padding: "8px 20px" }}>
-        <div className="label mono" style={{ color: "#fff", opacity: 0.92 }}>{level === "notice" ? "○" : "▲"} {tag}</div>
-        <h2 className="font-semibold mt-1 uppercase tracking-wide" style={{ color: "#fff" }}>{title}</h2>
+    <section className="bg-card border border-rule rounded-kk overflow-hidden" style={{ borderLeft: `3px solid ${bandColor}` }} aria-live="polite">
+      <div className="p-5" style={{ paddingBottom: 8 }}>
+        <div className="label mono" style={{ color: bandColor }}>{level === "notice" ? "○" : "▲"} {tag}</div>
+        <h2 className="serif font-semibold mt-1 uppercase tracking-wide" style={{ color: bandColor }}>{title}</h2>
       </div>
-      <div className="p-5">
+      <div className="px-5 pb-5">
       <div className="text-ink2">{where}</div>
       {ok ? (
         <>

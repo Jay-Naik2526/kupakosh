@@ -9,15 +9,9 @@ import { Card } from "@/components/v2/ui";
 import { WELL_SERIES } from "@/lib/palette";
 
 const tr = (lang: string, en: string, hi: string) => (lang === "hi" ? hi : en);
-// Suggested questions get a rotating colour so the chip row itself feels lively (decoration only, no meaning attached to which colour).
-// WELL_SERIES_TEXT are darker ("-700") variants of the same hues (WELL_SERIES stays "-500/600", used for the background tint only) —
-// the "-500/600" hues read fine as a light background but are too light to use as small text and clear AA (4.5:1) on their own tint.
-const WELL_SERIES_TEXT = ["#1D4ED8", "#B45309", "#047857", "#BE185D", "#6D28D9", "#B91C1C", "#0F766E", "#C2410C", "#4338CA", "#4D7C0F", "#0E7490", "#A21CAF"];
-const chipStyle = (i: number) => {
-  const c = WELL_SERIES[i % WELL_SERIES.length];
-  const tc = WELL_SERIES_TEXT[i % WELL_SERIES_TEXT.length];
-  return { borderColor: `color-mix(in srgb, ${c} 45%, var(--border))`, background: `color-mix(in srgb, ${c} 8%, var(--surface))`, color: tc };
-};
+// Suggested questions get a rotating dot so the chip row is scannable (decoration only, no meaning attached to which colour);
+// the chip itself stays neutral so colour never carries information.
+const dotColor = (i: number) => WELL_SERIES[i % WELL_SERIES.length];
 
 const SUGGEST = [
   "Which wells were drilled in the Himalayan foreland basin and how deep?",
@@ -60,7 +54,12 @@ export default function Copilot() {
           <p className="label mt-2">{t("cpModeNote", lang)}</p>
           {thread.length === 0 && (
             <div className="flex flex-wrap gap-2 mt-3">
-              {SUGGEST.map((s, i) => <button key={s} type="button" className="chip" style={chipStyle(i)} onClick={() => ask(s)}>{s}</button>)}
+              {SUGGEST.map((s, i) => (
+                <button key={s} type="button" className="chip inline-flex items-center gap-1.5" onClick={() => ask(s)}>
+                  <span aria-hidden="true" className="inline-block" style={{ width: 8, height: 8, borderRadius: 2, background: dotColor(i) }} />
+                  {s}
+                </button>
+              ))}
             </div>
           )}
         </Card>
@@ -69,8 +68,8 @@ export default function Copilot() {
 
         <div className="space-y-4">
           {thread.map((a, i) => (
-            <Card key={i} as="article" className={i ? "opacity-80" : ""}>
-              <h2 className="font-semibold">Q. {a.question}</h2>
+            <Card key={i} as="article" className={i ? "opacity-80" : ""} style={{ borderLeft: "6px solid var(--sec-ask, var(--accent))" }}>
+              <h2 className="serif font-semibold">Q. {a.question}</h2>
               {a.refused ? (
                 <div className="mt-2 border border-ink rounded-kk p-3">{a.answer}</div>
               ) : (
