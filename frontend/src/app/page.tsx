@@ -27,7 +27,8 @@ type HindsightSummary = {
   n_testable: number;
   n_candidates: number;
   lift: { model: { n_flagged: number; k_flagged: number; rate_flagged: number | null; headline: string } };
-  forewarned: { events: number; forewarned: number; forewarned_share: number | null };
+  forewarned: { events: number; forewarned: number; forewarned_share: number | null; median_lead_m?: number | null };
+  learned?: { learned_live?: { baseline_forewarned: number; alerts_per_well: number | null } } | null;
   watchlist?: { rows: { k: number; hits: number; events: number; share: number | null; x_random: number | null }[] };
   method?: string;
 } | null;
@@ -141,28 +142,24 @@ export default function Home() {
               />
             </div>
           )}
-          {hindsightState === "ok" && hindsight && (() => { const wl5 = hindsight.watchlist?.rows.find((r) => r.k === 5) ?? hindsight.watchlist?.rows[0]; return (
+          {hindsightState === "ok" && hindsight && (() => {
+            const f = hindsight.forewarned, live = hindsight.learned?.learned_live;
+            return (
             <div className="mt-3">
               <p>
                 {t(
-                  `Alerts right ${hindsight.lift.model.k_flagged}/${hindsight.lift.model.n_flagged} times a blind alert fired (${hindsight.lift.model.rate_flagged !== null ? Math.round(hindsight.lift.model.rate_flagged * 100) : "?"}%)${wl5 ? ` · ${wl5.hits}/${wl5.events} real problems were on the well's blind top-${wl5.k} watch-list` : ""} · strict alerts forewarned ${hindsight.forewarned.forewarned}/${hindsight.forewarned.events}.`,
-                  `जब भी अंध चेतावनी दी गई, ${hindsight.lift.model.n_flagged} में से ${hindsight.lift.model.k_flagged} बार सही रही (${hindsight.lift.model.rate_flagged !== null ? Math.round(hindsight.lift.model.rate_flagged * 100) : "?"}%) · ${hindsight.forewarned.events} में से ${hindsight.forewarned.forewarned} समस्याएँ पूर्व-चेतावनी दी गईं।`
+                  `Replayed blind, ${f.forewarned} of ${f.events} real recorded problems were forewarned before the bit reached them${f.median_lead_m ? `, a median ${Math.round(f.median_lead_m)} m ahead` : ""}${live ? ` — the field average with the same number of alerts manages ${live.baseline_forewarned}` : ""}.`,
+                  `अंध पुनःचलन में ${f.events} में से ${f.forewarned} वास्तविक दर्ज समस्याओं की बिट के पहुँचने से पहले पूर्व-चेतावनी दी गई${f.median_lead_m ? `, माध्यिका ${Math.round(f.median_lead_m)} मी पहले` : ""}${live ? ` — उतनी ही चेतावनियों से क्षेत्र औसत ${live.baseline_forewarned} तक पहुँचता है` : ""}।`
                 )}
               </p>
               <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-                <StatTile label={t("measured lift", "मापित लिफ्ट")} value={hindsight.lift.model.headline} href="/hindsight" color={SECTION_COLOR.trust} />
-                {wl5 ? (
-                  <>
-                    <StatTile label={t(`caught on blind top-${wl5.k} watch-list`, `अंध शीर्ष-${wl5.k} सूची में पकड़ी गईं`)} value={`${wl5.hits} / ${wl5.events}`} href="/hindsight" color={SECTION_COLOR.operate} />
-                    <StatTile label={t("vs picking at random", "यादृच्छिक चयन की तुलना में")} value={wl5.x_random !== null ? `${wl5.x_random}×` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.knowledge} />
-                  </>
-                ) : (
-                  <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${hindsight.forewarned.forewarned} / ${hindsight.forewarned.events}`} href="/hindsight" color={SECTION_COLOR.operate} />
-                )}
-                <StatTile label={t("wells tested", "परीक्षित कूप")} value={`${hindsight.n_testable} / ${hindsight.n_candidates}`} href="/hindsight" color={SECTION_COLOR.explore} />
+                <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${f.forewarned} / ${f.events}`} href="/hindsight" color={SECTION_COLOR.operate} />
+                <StatTile label={t("forewarned share", "पूर्व-चेतावनी अंश")} value={f.forewarned_share !== null ? `${Math.round(f.forewarned_share * 100)}%` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.knowledge} />
+                <StatTile label={t("median warning ahead", "माध्यिका अग्रिम चेतावनी")} value={f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.trust} />
+                <StatTile label={t("field average, same alerts", "क्षेत्र औसत, उतनी चेतावनियाँ")} value={live ? `${live.baseline_forewarned} / ${f.events}` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.explore} />
               </div>
             </div>
-          ); })()}
+            ); })()}
           <div className="mt-3">
             <Button href="/hindsight">{t("Open Hindsight", "पूर्वाभास परीक्षण खोलें")}</Button>
           </div>

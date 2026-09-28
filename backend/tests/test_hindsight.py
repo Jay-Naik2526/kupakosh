@@ -181,7 +181,7 @@ def test_hindsight_well_16b_is_a_blind_self_consistent_replay(client):
     body = r.json()
     assert body["well"]["id"] == wid
     assert body["well"]["name"] == "16B(78)-32"
-    assert body["alert_mode"] in ("elevated", "absolute")
+    assert body["alert_mode"] in ("elevated", "absolute", "learned_live", "learned_blind")
     assert "formations" in body and "alerts" in body and "events" in body
     s = body["summary"]
     assert s["forewarned"] + s["missed"] == s["events"]
@@ -298,3 +298,21 @@ def test_operating_points_monotone():
     ops = operating_points(cells, [(1, "A", "kick"), (1, "B", "kick")], [0.4, 0.05, 0.02])
     assert [o["forewarned"] for o in ops] == [1, 2, 2]
     assert [o["flagged"] for o in ops] == [1, 2, 3]
+
+
+def test_learned_live_features_are_causal():
+    """Live features may only count the well's own events shallower than the alert point."""
+    from app.engines.hindsight_learned import add_live_features
+    cells = [{"well_id": 1, "hazard": "kick", "alert_md_m": 1000.0}, {"well_id": 1, "hazard": "kick", "alert_md_m": 2000.0}]
+    own = {1: [(900.0, "kick"), (1500.0, "lost_circulation"), (2500.0, "kick")]}
+    add_live_features(cells, own)
+    assert (cells[0]["p_any"], cells[0]["p_same"]) == (1, 1)   # only the 900 m event is above 1000 m
+    assert (cells[1]["p_any"], cells[1]["p_same"]) == (2, 1)   # 2500 m (below the alert point) is never seen
+
+
+def test_learned_threshold_uses_budget():
+    import numpy as np
+    from app.engines.hindsight_learned import _threshold_for_budget
+    scores = np.array([0.9, 0.8, 0.7, 0.1, 0.05, 0.01])
+    assert _threshold_for_budget(scores, n_wells=2, budget=1.0) == 0.8   # 2 wells x 1 alert = top 2
+    assert _threshold_for_budget(scores, n_wells=2, budget=0.0) == float("inf")

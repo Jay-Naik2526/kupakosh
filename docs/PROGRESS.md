@@ -8,9 +8,9 @@
 > - **India Analogs**;
 > - a "Why this number?" panel.
 >
-> **Round 3 (28 Sept 2026):** colour pass across the whole app (brand-gradient shell, section-coloured navigation, per-hazard / lithology / formation / country colours), maps with Streets / Terrain / Satellite (Esri, no key) / Dark and a layer panel (wells by country or top hazard, clusters, event heatmap, basins, borders, hillshade, radius), a 3D geological block (real formation tops interpolated between wells, auto vertical exaggeration shown on the slider), and the Hindsight blind watch-list metric (137/438 on the top-5 list, 4.4× chance).
+> **Round 3 (28 Sept 2026):** colour pass across the whole app (brand-gradient shell, section-coloured navigation, per-hazard / lithology / formation / country colours), maps with Streets / Terrain / Satellite (Esri, no key) / Dark and a layer panel (wells by country or top hazard, clusters, event heatmap, basins, borders, hillshade, radius), a 3D geological block (real formation tops interpolated between wells, auto vertical exaggeration shown on the slider), and a learned Hindsight alert policy: 191/438 real problems forewarned (44 %), median 300 m ahead, vs 125 for the field average with the same alerts; blind watch-list 137/438 on the top-5 list.
 >
-> Tests: 84 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
+> Tests: 86 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
 
 Status as of **27 Sept 2026** (end-to-end build). Phases are those of SPEC.md §15, plus the extension plan in `docs/PLAN.md`.
 

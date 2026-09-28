@@ -72,7 +72,15 @@ demo:
 hindsight:
   max_wells: ~        # null = every documented testable well (deterministic: sorted by id); set a number for a faster dev/test sample
   min_offsets: 3       # a well needs at least this many independent (non-parent/sidetrack) documented offsets to be "testable"
-  alert_mode: absolute # "elevated" (default): posterior lower 80% bound > field base rate AND mean/base >= rr_min. "absolute" (secondary): mean >= hazard.alert_threshold
+  alert_mode: learned_live # learned_live (headline) | learned_blind | absolute | elevated — "elevated" (default): posterior lower 80% bound > field base rate AND mean/base >= rr_min. "absolute" (secondary): mean >= hazard.alert_threshold
   rr_min: 2.0          # minimum mean/base-rate ratio required to flag a cell under "elevated" mode
   watchlist_k: [3, 5, 10]           # per-well watch-list sizes reported by the Hindsight test (top-k formation x hazard cells by blind posterior)
   operating_thresholds: [0.4, 0.1, 0.05, 0.02]  # posterior-mean thresholds for the sensitivity trade-off table
+  learned:                 # learned alert ranker (engines/hindsight_learned.py), grouped cross-validation by wellbore
+    folds: 5
+    alert_budget_per_well: 6.0   # threshold is set on TRAINING wells so they average this many alerts per well
+    max_iter: 300
+    learning_rate: 0.05
+    max_leaf_nodes: 15
+    l2: 1.0
+    seed: 0

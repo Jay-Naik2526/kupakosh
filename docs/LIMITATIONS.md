@@ -24,7 +24,10 @@
     - "Send for review" on the brief;
     - Dutch-language text rules (English patterns only);
     - Tesseract refuses a few extremely long log-strip pages, so their own text is kept.
-15. **Hindsight has thin coverage and a small FORGE-driven lift.**
+15. **Hindsight: what the forewarned number means.**
+    - Headline (learned live policy, about 6 alerts per well): 191/438 real problems (44 %) forewarned, median 300 m ahead; about 1 in 10 alerts matches a recorded problem. The field average with the same alerts gets 125/438; blind pre-drill (no own reports) 174/438.
+    - The ranker is trained on other wells only (grouped cross-validation); live mode uses the well's own reports only above the alert point. It assumes the planned formation column equals the recorded one, which flatters pre-drill results slightly.
+    - Precision per alert is low (about 10 %), and FORGE (4 wells) shows no measured lift on its own.
     - Strict alerts (posterior ≥ 40 %) forewarn only 15 of 438 real problems (3.4 %). Their 73× lift comes from just 14 alerts, mostly in the small FORGE set, and a field-average baseline already reaches 66×.
     - The blind top-5 watch-list per well holds 137/438 (31 %, 4.4× chance), but ranking by the field-wide layer rate alone does about as well (133/438): nearby-well weighting adds little on this data.
     - 44 problems sit in layers missing from their well's formation column and can never be listed.

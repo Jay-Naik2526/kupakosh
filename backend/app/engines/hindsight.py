@@ -43,7 +43,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 2  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 3  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -55,7 +55,15 @@ def _hindsight_cfg() -> dict:
         "rr_min": c.get("rr_min", 2.0),
         "watchlist_k": list(c.get("watchlist_k", [3, 5, 10])),
         "operating_thresholds": list(c.get("operating_thresholds", [0.4, 0.1, 0.05, 0.02])),
+        "learned": c.get("learned") or {},
     }
+
+
+LEARNED_MODES = ("learned_live", "learned_blind")
+
+
+def _other_mode(mode: str) -> str:
+    return "absolute" if mode in LEARNED_MODES or mode == "elevated" else "elevated"
 
 
 def _blind_offsets(well_id: int) -> list[dict]:
@@ -93,9 +101,18 @@ def _cells_for_well(well_id: int, light: bool = False):
     la = c["lookahead"]["lookahead_m"]
     thr = c["hazard"]["alert_threshold"]
     rr_min = hc["rr_min"]
+    info: dict[str, tuple[float, str, int]] = {}
+    for k, i in enumerate(ints):
+        if i["formation"] in info:
+            continue
+        nxt = ints[k + 1]["top_md_m"] if k + 1 < len(ints) else (w.td_md_m or i["top_md_m"])
+        bottom = i.get("base_md_m") or nxt or i["top_md_m"]
+        info[i["formation"]] = (max(0.0, bottom - i["top_md_m"]), i.get("lithology") or "unknown", k)
+    n_offs_doc = sum(1 for o in offs if o["well_id"] in cx.documented)
     cells = []
     for f in forms:
         top_md = tops_md[f]
+        thick, lith, order = info.get(f, (0.0, "unknown", 0))
         alert_md = round(max(0.0, top_md - la), 1)
         for h in taxonomy()["hazards"]:
             # source=w.source: "the field base rate of the same source" (SPEC.md §9.5 prior_by_source)
@@ -113,6 +130,10 @@ def _cells_for_well(well_id: int, light: bool = False):
                 "n_wells": p["n_wells"], "n_with_event": p["n_with_event"], "status": p["status"],
                 "base": round(base, 4), "rr": round(rr, 2) if rr is not None else None,
                 "y": y, "flagged_elevated": flagged_elevated, "flagged_absolute": flagged_absolute,
+                "flagged_learned_live": False, "flagged_learned_blind": False,
+                # planned-column features for the learned ranker (engines/hindsight_learned.py)
+                "ok": 1 if p["status"] == "ok" else 0, "log_thick": math.log1p(thick), "lith": lith, "order": order,
+                "td": w.td_md_m or 0.0, "n_offs": n_offs_doc,
             }
             if not light:
                 cell["evidence"] = p["evidence"]
@@ -185,12 +206,21 @@ def run_well(well_id: int) -> dict:
     hc = _hindsight_cfg()
     mode = hc["alert_mode"]
     w, offs, ints, cells = _cells_for_well(well_id, light=False)
+    if mode in LEARNED_MODES:
+        learned = (summary().get("learned") or {}).get("flags", {}).get(str(well_id), {})
+        for c in cells:
+            key = f"{c['formation']}|{c['hazard']}"
+            for m in LEARNED_MODES:
+                hit = (learned.get(m) or {}).get(key)
+                c[f"flagged_{m}"] = hit is not None
+                if hit is not None:
+                    c[f"p_{m}"] = hit
     n_offsets_documented = sum(1 for o in offs if o["well_id"] in cx.documented)
     trusted = [e for e in cx.events.get(well_id, []) if e.md_m is not None]
     testable = w.lat is not None and bool(ints) and bool(trusted) and n_offsets_documented >= hc["min_offsets"]
     events_out, summ = _match_well_events(well_id, cells, mode)
     alerts = [c for c in cells if c[f"flagged_{mode}"]]
-    alerts_other_mode = [c for c in cells if c[f"flagged_{'absolute' if mode == 'elevated' else 'elevated'}"]]
+    alerts_other_mode = [c for c in cells if c[f"flagged_{_other_mode(mode)}"]]
     return {
         "well": {"id": w.id, "name": w.canonical_name, "field": w.field_name, "country": w.country, "source": w.source, "td_md_m": w.td_md_m},
         "alert_mode": mode, "testable": testable, "n_offsets": len(offs), "n_offsets_documented": n_offsets_documented,
@@ -387,6 +417,61 @@ def _fingerprint(cx) -> list[int]:
     return [len(cx.wells), len(cx.documented), n_events_depth, n_tops]
 
 
+LEARNED_METHOD = ("Alerts come from a learned ranker (gradient-boosted trees) trained on OTHER wells only: grouped 5-fold "
+                  "cross-validation, where a well and every sidetrack of the same wellbore are always scored by a model that never "
+                  "saw them. 'Live' adds the well's own reports, but only events recorded shallower than the alert point (layer "
+                  "top minus the look-ahead distance) — what a rig would already know. The alert threshold is chosen on the "
+                  "training wells for a fixed budget of alerts per well (hindsight.learned.alert_budget_per_well); the test "
+                  "wells never set it. Assumption: the planned formation column equals the recorded one.")
+
+
+def _learned(per_well: list[tuple], cx) -> dict | None:
+    """Out-of-fold learned probabilities and flags for every testable well's cells (both variants).
+    Sets cell['p_learned_*'] and cell['flagged_learned_*'] in place; returns per-well flag maps for run_well."""
+    from app.engines import hindsight_learned as HL
+    cells = [c for _, _, _, cs in per_well for c in cs]
+    if len({wid for wid, *_ in per_well}) < 5 or not any(c["y"] for c in cells):
+        return None
+    lc = HL.learned_cfg()
+    own = {wid: [(e.md_m, e.hazard) for e in cx.events.get(wid, []) if e.md_m is not None] for wid, *_ in per_well}
+    HL.add_live_features(cells, own)
+    groups = [cx.wells[c["well_id"]].parent_well or f"w{c['well_id']}" for c in cells]
+    flags: dict[str, dict] = defaultdict(lambda: {m: {} for m in LEARNED_MODES})
+    for mode, live in (("learned_blind", False), ("learned_live", True)):
+        prob, flag = HL.cross_validated(cells, groups, live, lc)
+        for c, p, f in zip(cells, prob, flag):
+            c[f"p_{mode}"] = float(p)
+            c[f"flagged_{mode}"] = bool(f)
+            if f:
+                flags[str(c["well_id"])][mode][f"{c['formation']}|{c['hazard']}"] = round(float(p), 4)
+    return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags)}
+
+
+def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tuple], hc: dict) -> dict:
+    from app.engines import hindsight_learned as HL
+    out: dict = {}
+    n_wells = len(per_well)
+    for mode in LEARNED_MODES:
+        key = f"flagged_{mode}"
+        lr = lift_report(cells, key)
+        bl = baseline_lift_report(cells, lr["n_flagged"])
+        rows = [_match_well_events(wid, cs, mode)[1] for wid, _, _, cs in per_well]
+        fw = aggregate(rows)
+        # fair baseline: same number of alerts, ranked by field base rate alone
+        k = lr["n_flagged"]
+        top = sorted(cells, key=lambda c: (-c["base"], c["well_id"], c["formation"] or "", c["hazard"]))[:k]
+        top_keys = {(c["well_id"], c["formation"], c["hazard"]) for c in top}
+        base_fw = sum(1 for e in events if e in top_keys)
+        out[mode] = {
+            "lift": lr, "baseline": bl, "forewarned": fw,
+            "forewarned_ci": [round(x, 4) for x in wilson_ci(fw["forewarned"], fw["events"])] if fw["events"] else None,
+            "alerts_per_well": round(lr["n_flagged"] / n_wells, 2) if n_wells else None,
+            "baseline_forewarned": base_fw, "baseline_forewarned_share": round(base_fw / len(events), 4) if events else None,
+            "watchlist": HL.watchlist_rows(cells, f"p_{mode}", events, hc["watchlist_k"]),
+        }
+    return out
+
+
 def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: None) -> dict:
     """Blind-replay lift, aggregated over every documented, testable well (or `max_wells` of
     them, first-by-id, for a faster dev/test sample). Cached in
@@ -401,7 +486,8 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
         try:
             cached = json.loads(CACHE_PATH.read_text())
             if (cached.get("engine_version") == ENGINE_VERSION and cached.get("fingerprint") == fp and cached.get("max_wells_config") == n_wanted
-                    and cached.get("alert_mode_config") == hc["alert_mode"] and cached.get("rr_min_config") == hc["rr_min"]):
+                    and cached.get("alert_mode_config") == hc["alert_mode"] and cached.get("rr_min_config") == hc["rr_min"]
+                    and cached.get("learned_config") == hc["learned"]):
                 return cached
         except (json.JSONDecodeError, OSError):
             pass
@@ -412,13 +498,16 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     all_cells: list[dict] = []
     wells_out: list[dict] = []
     all_events: list[tuple[int, str | None, str]] = []
+    per_well: list[tuple] = []
     for wid in candidates:
         w, offs, ints, cells = _cells_for_well(wid, light=True)  # offsets computed once per well, reused for every cell
         n_offs_doc = sum(1 for o in offs if o["well_id"] in cx.documented)
         trusted = [e for e in cx.events.get(wid, []) if e.md_m is not None]
         testable = w.lat is not None and bool(ints) and bool(trusted) and n_offs_doc >= hc["min_offsets"]
-        if not testable:
-            continue
+        if testable:
+            per_well.append((wid, w, n_offs_doc, cells))
+    learned_out = _learned(per_well, cx)
+    for wid, w, n_offs_doc, cells in per_well:
         events_out, es = _match_well_events(wid, cells, mode)
         all_events.extend((wid, e["formation"], e["hazard"]) for e in events_out)
         wells_out.append({"well_id": wid, "name": w.canonical_name, "field": w.field_name, "country": w.country,
@@ -427,7 +516,9 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     elapsed = round(time.perf_counter() - t0, 3)
 
     flag_key = f"flagged_{mode}"
-    other_key = "flagged_absolute" if mode == "elevated" else "flagged_elevated"
+    other_key = f"flagged_{_other_mode(mode)}"
+    if learned_out:
+        learned_out.update(_learned_metrics(per_well, all_cells, all_events, hc))
     model_lift = lift_report(all_cells, flag_key)
     baseline_lift = baseline_lift_report(all_cells, model_lift["n_flagged"])
     other_lift = lift_report(all_cells, other_key)
@@ -435,21 +526,22 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
 
     out = {
         "engine_version": ENGINE_VERSION, "fingerprint": fp, "max_wells_config": n_wanted, "min_offsets_config": hc["min_offsets"],
-        "alert_mode_config": mode, "rr_min_config": hc["rr_min"],
+        "alert_mode_config": mode, "rr_min_config": hc["rr_min"], "learned_config": hc["learned"],
         "n_candidates": len(candidates), "n_testable": len(wells_out), "n_cells": len(all_cells),
         "headline": model_lift["headline"],
         "lift": {"mode": mode, "model": model_lift, "baseline": baseline_lift},
-        "lift_other_mode": {"mode": "absolute" if mode == "elevated" else "elevated", "model": other_lift, "baseline": other_baseline},
+        "lift_other_mode": {"mode": _other_mode(mode), "model": other_lift, "baseline": other_baseline},
+        "learned": learned_out,
         "forewarned": aggregate(wells_out), "wells": wells_out,
         "watchlist": watchlist_report(all_cells, all_events, hc["watchlist_k"]),
         "operating_points": operating_points(all_cells, all_events, hc["operating_thresholds"]),
         "by_source": _stratify(all_cells, wells_out, "source", flag_key),
         "by_country": _stratify(all_cells, wells_out, "country", flag_key),
         "computed_in_s": elapsed, "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "method": ("Blind replay: for each documented well, every offset excludes the well itself and any well sharing "
+        "method": ((LEARNED_METHOD + " ") if mode in LEARNED_MODES else "") + ("Blind replay: for each documented well, every offset excludes the well itself and any well sharing "
                    "its parent_well (sidetracks). Each (well, formation, hazard) visited is a 'cell'. Rule "
                    f"'{mode}': " + ("the posterior's lower 80% bound is above the (formation, hazard, source) base rate "
-                   "and mean/base >= hindsight.rr_min" if mode == "elevated" else "posterior mean >= hazard.alert_threshold")
+                   "and mean/base >= hindsight.rr_min" if mode == "elevated" else ("the learned ranker's probability is above a threshold set on the training wells" if mode in LEARNED_MODES else "posterior mean >= hazard.alert_threshold"))
                    + ", with enough evidence (n_eff >= min_neff). Primary metric is LIFT: the recorded-event rate in "
                    "flagged cells vs unflagged cells (Wilson 95% interval on each; the lift interval is an approximate "
                    "ratio of those bounds). The baseline flags the same number of cells by base rate alone (top-k), so "

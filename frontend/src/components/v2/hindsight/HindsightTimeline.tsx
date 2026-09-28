@@ -114,7 +114,7 @@ export function HindsightTimeline({
             </div>
             {/* alerts lane */}
             <div>
-              <div className="small label mono mb-1" style={{ height: 16 }}>{t("ALERTS (blind)", "चेतावनियाँ (अंध)")}</div>
+              <div className="small label mono mb-1" style={{ height: 16 }}>{t("ALERTS (replay)", "चेतावनियाँ (पुनःचलन)")}</div>
               <svg width={LANE_W} height={H} role="img" aria-label="blind alerts by depth">
                 <line x1={0} x2={0} y1={0} y2={H} stroke="var(--rule)" />
                 {detail.alerts.length === 0 && <text x={10} y={16} fontSize={11} fill="var(--ink-2)">{t("no alerts would have fired", "कोई चेतावनी नहीं दी जाती")}</text>}

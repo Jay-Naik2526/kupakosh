@@ -43,8 +43,8 @@ export default function Hindsight() {
       <PageHeader
         title={t("Hindsight — would Kupakosh have warned in time?", "पूर्वाभास — क्या कूपकोश समय पर चेतावनी देता?")}
         subtitle={t(
-          "Every documented well, replayed blind: its own reports hidden, alerts computed only from other wells, then checked against what actually happened.",
-          "प्रत्येक प्रलेखित कूप का अंध पुनःचलन: इसकी अपनी रिपोर्टें छुपाकर, केवल अन्य कूपों से चेतावनियाँ बनाकर, फिर वास्तव में हुई घटनाओं से मिलान किया गया।"
+          "Every documented well, replayed as if new: nothing below the bit is visible, the model never trained on it, and every alert is then checked against what actually happened.",
+          "प्रत्येक प्रलेखित कूप को नए जैसा पुनःचलाया गया: बिट के नीचे कुछ भी दिखाई नहीं देता, मॉडल ने इस पर कभी प्रशिक्षण नहीं लिया, और हर चेतावनी का वास्तविक घटनाओं से मिलान किया गया।"
         )}
       />
 

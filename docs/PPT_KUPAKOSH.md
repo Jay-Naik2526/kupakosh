@@ -19,8 +19,10 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 **New headline USPs (put them on slide 2, "The idea", and the comparison table):**
 1. **Hindsight Test: it proves itself on real history.**
    - Each real well is replayed *blind*: its own reports are hidden and alerts come from other wells only. Then the page reveals what really happened.
-   - When Kupakosh alerted, a problem was recorded in that layer **11 of 14 times (79 %)**, versus **1 %** where it stayed silent: **73× lift**.
-   - A fair baseline that alerts on the field average alone gets 66×.
+   - **Forewarned: 191 of 438 real recorded problems (44 %, 95 % range 39–48 %) had an alert before the bit reached them, a median 300 m ahead**, with about 6 alerts per well.
+   - Fair baseline with the same number of alerts (field average only): 125 of 438. Without the well's own reports (blind pre-drill): 174 of 438.
+   - How: a ranker trained on other wells only (grouped 5-fold cross-validation, sidetracks kept together); live mode also reads the well's own reports for depths already drilled; the alert threshold is set on the training wells for a fixed budget of 6 alerts per well.
+   - Strict alerts (posterior ≥ 40 %) remain available: 11 of 14 right (79 %), 73× lift, but they forewarn only 15.
    - **Blind watch-list:** each well's own top-5 layer risks (about 4 % of its layer×hazard cells) already held **137 of 438 real problems (31 %)**, against 31 by chance (**4.4×**). The top 10 held 44 % against 14 %.
    - Honest lines: strict alerts (≥ 40 %) forewarned only 15 of 438. Ranking layers by their field-wide rate alone catches about the same as the watch-list (133/438); the value is Kupakosh's compiled memory of every layer.
    - No public PS 26121 project shows blind, measured proof (`docs/COMPETITORS.md`).
@@ -54,7 +56,7 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 Title in bold navy: "HINDSIGHT TEST". Subtitle in grey: "Each real well replayed blind — its own reports hidden".
 Left: a tall vertical depth strip (0 m at the top, down to 3,000 m) with two lanes labelled "ALERTS (blind)" and "WHAT REALLY HAPPENED".
 The alerts lane has red dots with small labels. The real lane has markers joined to the alerts by dashed brackets labelled "lead".
-Right: two stat cards. The first: big "11 / 14" and "alerts matched a recorded problem (79%)", then "73× lift vs silent layers · fair baseline 66×".
+Right: two stat cards. The first, with a teal top border: big gradient "191 / 438 · 44%" and a chip "14× vs silent layers", three small tiles "300 m median warning ahead", "6.1 alerts per well", "1 in 10 alerts matched a record", then four coloured bars: Kupakosh live 191, Kupakosh blind pre-drill 174, field average same alerts 125 (grey), strict alerts 15 (amber).
 The second, with a teal border: big gradient "137 / 438 · 31%" and a chip "4.4× chance", "real problems on the blind top-5 watch-list", then three coloured bars (top 3 / 5 / 10 vs a black "random" tick) and small chips "≥40%: 15/438, 79% right".
 ```
 

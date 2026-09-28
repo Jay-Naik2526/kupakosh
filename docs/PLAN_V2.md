@@ -84,6 +84,7 @@ All V phases are done.
 **Hindsight (absolute alert mode, all 299 testable wells, 34,296 formation×hazard cells; group-level layers such as Nordland Gp are now kept in the column):**
 - Blind alerts were right 11/14 times (79 %). Where Kupakosh stayed silent, only 1 % of layers had a recorded problem: 73× lift (approx. 95 % interval 44–95×).
 - A fair baseline that alerts on the field base rate alone gets 66×.
+- **Learned live policy (round 3, now the headline):** 191/438 forewarned (44 %, CI 39–48 %), median lead 300 m, 6.1 alerts per well, 14.4× lift; same-budget field-average baseline 125/438 (7.4×); blind pre-drill 174/438.
 - **Blind watch-list (round 3):** the top 5 of each well's own layer×hazard cells held 137/438 real problems (31 %) vs 31 by chance (4.4×); top 10: 44 % vs 14 %. Field-rate ranking alone: 133/438.
 - Only 15/438 problems (3.4 %) were forewarned, with a median lead of 786 m.
 - The stricter "elevated" mode flags nothing on this data yet.

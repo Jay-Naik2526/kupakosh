@@ -43,11 +43,19 @@ def formation_intervals(well_id: int) -> list[dict]:
         # A GROUP is replaced by its FORMATION children only where they exist inside it. Groups with no
         # formation-level subdivision (e.g. shallow NORDLAND GP / HORDALAND GP on Sodir) stay in the column,
         # matching TopIndex.at(), which falls back to GROUP when no FORMATION covers a depth.
+        base = t.base_md_m
         if t.level == "GROUP":
             lo, hi = t.top_md_m, t.base_md_m if t.base_md_m is not None else float("inf")
-            if lo is None or any(lo <= m < hi for m in fm_mds):
+            if lo is None:
                 continue
-        out.append({"formation": t.formation, "label": pretty(t.formation), "top_md_m": t.top_md_m, "base_md_m": t.base_md_m,
+            inside = [m for m in fm_mds if lo <= m < hi]
+            if inside:
+                # Partly subdivided group: keep only its upper slice above the first formation child
+                # (e.g. NORDLAND GP above UTSIRA FM), which TopIndex.at() also labels with the group.
+                if min(inside) - lo < 1.0:
+                    continue
+                base = min(inside)
+        out.append({"formation": t.formation, "label": pretty(t.formation), "top_md_m": t.top_md_m, "base_md_m": base,
                     "lithology": t.lithology or lithology().get(t.formation), "lithology_source": "report" if t.lithology else ("lexicon (approx.)" if t.formation in lithology() else None),
                     "source_ref": t.source_ref})
     return out
