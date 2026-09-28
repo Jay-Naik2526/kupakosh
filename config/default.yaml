@@ -79,6 +79,7 @@ hindsight:
   learned:                 # learned alert ranker (engines/hindsight_learned.py), grouped cross-validation by wellbore
     folds: 5
     alert_budget_per_well: 6.0   # threshold is set on TRAINING wells so they average this many alerts per well
+    budget_curve: [6, 10, 15, 20]  # extra alert budgets reported as a trade-off curve (each threshold also set on training wells)
     max_iter: 300
     learning_rate: 0.05
     max_leaf_nodes: 15

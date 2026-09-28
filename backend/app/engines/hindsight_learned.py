@@ -38,6 +38,7 @@ def learned_cfg() -> dict:
         "folds": c.get("folds", 5), "alert_budget_per_well": c.get("alert_budget_per_well", 6.0),
         "max_iter": c.get("max_iter", 300), "learning_rate": c.get("learning_rate", 0.05),
         "max_leaf_nodes": c.get("max_leaf_nodes", 15), "l2": c.get("l2", 1.0), "seed": c.get("seed", 0),
+        "budget_curve": list(c.get("budget_curve", [6, 10, 15, 20])),
         "watchlist_k": list((cfg().get("hindsight") or {}).get("watchlist_k", [3, 5, 10])),
     }
 
@@ -72,8 +73,9 @@ def _threshold_for_budget(scores: np.ndarray, n_wells: int, budget: float) -> fl
     return float(np.sort(scores)[::-1][k - 1])
 
 
-def cross_validated(cells: list[dict], groups: list, live: bool, lc: dict) -> tuple[np.ndarray, np.ndarray]:
-    """Grouped K-fold out-of-fold probabilities, and per-cell flags from a per-fold, training-only threshold."""
+def cross_validated(cells: list[dict], groups: list, live: bool, lc: dict, budgets: list[float] | None = None) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Grouped K-fold out-of-fold probabilities, per-cell flags from a per-fold, training-only threshold at the
+    configured budget, and (optionally) flags for other alert budgets — each threshold also set on training wells only."""
     from sklearn.ensemble import HistGradientBoostingClassifier
     from sklearn.model_selection import GroupKFold
 
@@ -86,6 +88,7 @@ def cross_validated(cells: list[dict], groups: list, live: bool, lc: dict) -> tu
     cat_mask = [False] * n_num + [True] * len(CATS)
     prob = np.zeros(len(cells))
     flag = np.zeros(len(cells), dtype=bool)
+    extra = {b: np.zeros(len(cells), dtype=bool) for b in (budgets or [])}
     n_splits = min(lc["folds"], len(set(groups)))
     for tr, te in GroupKFold(n_splits=n_splits).split(X, y, g):
         m = HistGradientBoostingClassifier(max_iter=lc["max_iter"], learning_rate=lc["learning_rate"], max_leaf_nodes=lc["max_leaf_nodes"],
@@ -95,7 +98,10 @@ def cross_validated(cells: list[dict], groups: list, live: bool, lc: dict) -> tu
         thr = _threshold_for_budget(p_tr, len(set(well_of[tr])), lc["alert_budget_per_well"])
         prob[te] = m.predict_proba(X[te])[:, 1]
         flag[te] = prob[te] >= thr
-    return prob, flag
+        n_tr_wells = len(set(well_of[tr]))
+        for b in extra:
+            extra[b][te] = prob[te] >= _threshold_for_budget(p_tr, n_tr_wells, b)
+    return prob, flag, extra
 
 
 def watchlist_rows(cells: list[dict], score_key: str, events: list[tuple[int, str | None, str]], ks: list[int]) -> list[dict]:
@@ -108,4 +114,40 @@ def watchlist_rows(cells: list[dict], score_key: str, events: list[tuple[int, st
                for w, cs in by_well.items()}
         hits = sum(1 for w, f, h in events if (f, h) in top.get(w, set()))
         out.append({"k": k, "hits": hits, "events": len(events), "share": round(hits / len(events), 4) if events else None})
+    return out
+
+
+def auc_with_ci(y: np.ndarray, score: np.ndarray, wells: np.ndarray, n_boot: int = 200, seed: int = 0) -> dict:
+    """ROC AUC with a 95% bootstrap interval that resamples WELLS (cells of one well stay together)."""
+    from sklearn.metrics import roc_auc_score
+    if len(set(y.tolist())) < 2:
+        return {"auc": None, "ci": None}
+    auc = float(roc_auc_score(y, score))
+    uw = np.unique(wells)
+    idx_by_w = {w: np.where(wells == w)[0] for w in uw}
+    rng = np.random.default_rng(seed)
+    boots = []
+    for _ in range(n_boot):
+        pick = np.concatenate([idx_by_w[w] for w in rng.choice(uw, size=len(uw), replace=True)])
+        if len(set(y[pick].tolist())) == 2:
+            boots.append(roc_auc_score(y[pick], score[pick]))
+    ci = [round(float(np.percentile(boots, 2.5)), 3), round(float(np.percentile(boots, 97.5)), 3)] if boots else None
+    return {"auc": round(auc, 3), "ci": ci}
+
+
+def hazard_in_layer_topk(cells: list[dict], score_key: str, events: list[tuple[int, str | None, str]], ks: list[int], n_hazards: int) -> list[dict]:
+    """For each real problem: within the layer where it happened, was its hazard among the top-k hazards
+    ranked for that layer? Random pick would score k / n_hazards."""
+    by_layer: dict[tuple, list[dict]] = defaultdict(list)
+    for c in cells:
+        by_layer[(c["well_id"], c["formation"])].append(c)
+    out = []
+    for k in ks:
+        hits = 0
+        for w, f, h in events:
+            cs = by_layer.get((w, f))
+            if cs and h in {c["hazard"] for c in sorted(cs, key=lambda c: (-c[score_key], c["hazard"]))[:k]}:
+                hits += 1
+        out.append({"k": k, "hits": hits, "events": len(events), "share": round(hits / len(events), 4) if events else None,
+                    "random_share": round(min(1.0, k / n_hazards), 4)})
     return out

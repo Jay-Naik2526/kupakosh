@@ -29,6 +29,10 @@ export type HindsightSummary = {
   learned?: {
     config?: { alert_budget_per_well: number; folds: number };
     learned_live?: LearnedMode; learned_blind?: LearnedMode;
+    auc?: Record<string, { auc: number | null; ci: [number, number] | null }>;
+    hazard_in_layer_topk?: Record<string, { k: number; hits: number; events: number; share: number | null; random_share: number }[]>;
+    budget_curve?: { budget_per_well: number; alerts_per_well: number | null; forewarned: number; forewarned_share: number | null;
+                     layer_flagged: number; layer_flagged_share: number | null; share_of_cells: number | null; hit_rate: number | null }[];
   } | null;
   lift_other_mode?: { mode: string; model: Rate; baseline: Rate };
   method: string;
@@ -56,11 +60,36 @@ export function HindsightTiles({ s, lang }: { s: HindsightSummary; lang: Lang })
     { label: t("Field average, same number of alerts", "क्षेत्र औसत, उतनी ही चेतावनियाँ"), share: live.baseline_forewarned_share, n: live.baseline_forewarned, color: "#94A3B8" },
     ...(strictFw ? [{ label: t("Strict alerts only (≥ 40%)", "केवल सख़्त चेतावनियाँ (≥ 40%)"), share: strictFw.forewarned_share, n: strictFw.forewarned, color: "#D97706" }] : []),
   ];
+  const L = s.learned!;
+  const auc = L.auc?.learned_live, aucBase = L.auc?.field_average;
+  const b15 = L.budget_curve?.find((r) => r.budget_per_well === 15) ?? L.budget_curve?.[L.budget_curve.length - 1];
+  const top3 = L.hazard_in_layer_topk?.learned_live?.find((r) => r.k === 3);
+  const top3Base = L.hazard_in_layer_topk?.field_average?.find((r) => r.k === 3);
   return (
     <div className="grid gap-4" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr)" }}>
+      <div className="grid gap-4" style={{ gridColumn: "1 / -1", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+        {auc?.auc != null && (
+          <BigTile color="#2563EB" value={`${Math.round(auc.auc * 100)}%`}
+            title={t("ranking accuracy (AUC)", "क्रम सटीकता (AUC)")}
+            body={t(`A layer that really had a problem is ranked above one that did not ${Math.round(auc.auc * 100)} times in 100${auc.ci ? ` (95% range ${Math.round(auc.ci[0] * 100)}–${Math.round(auc.ci[1] * 100)})` : ""}.`, `जिस परत में वास्तव में समस्या थी उसे ${Math.round(auc.auc * 100)}/100 बार ऊपर रखा गया।`)}
+            base={aucBase?.auc != null ? t(`field average alone ${Math.round(aucBase.auc * 100)}% · random 50%`, `केवल क्षेत्र औसत ${Math.round(aucBase.auc * 100)}% · यादृच्छिक 50%`) : ""} />
+        )}
+        {b15 && (
+          <BigTile color="#10B981" value={pct(b15.layer_flagged_share)}
+            title={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, `समस्या परतें पहले चिह्नित (${b15.budget_per_well} चेतावनी/कूप)`)}
+            body={t(`${b15.layer_flagged} of ${f.events} real problems happened in a layer Kupakosh had put on alert before the bit arrived; ${b15.forewarned} with the exact hazard named.`, `${f.events} में से ${b15.layer_flagged} समस्याएँ उस परत में हुईं जिस पर बिट पहुँचने से पहले चेतावनी थी।`)}
+            base={t(`${pct(b15.share_of_cells)} of layer×hazard cells alerted`, `${pct(b15.share_of_cells)} कोशिकाओं पर चेतावनी`)} />
+        )}
+        {top3 && (
+          <BigTile color="#8B5CF6" value={pct(top3.share)}
+            title={t("right hazard in the layer's top 3", "परत के शीर्ष 3 में सही खतरा")}
+            body={t(`Where a problem happened, its hazard was among Kupakosh's top 3 of 8 for that layer ${top3.hits} of ${top3.events} times.`, `जहाँ समस्या हुई, उसका खतरा उस परत के लिए कूपकोश के शीर्ष 3 (8 में से) में ${top3.events} में ${top3.hits} बार था।`)}
+            base={t(`random ${pct(top3.random_share)}${top3Base ? ` · field average ${pct(top3Base.share)}` : ""}`, `यादृच्छिक ${pct(top3.random_share)}`)} />
+        )}
+      </div>
       <Card style={{ borderColor: BRAND.via, borderTopWidth: 4 }}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="label">{t("Real problems forewarned before the bit reached them", "बिट के पहुँचने से पहले पूर्व-चेतावनी दी गई वास्तविक समस्याएँ")}</div>
+          <div className="label">{t("Exact hazard forewarned before the bit reached it (about 6 alerts per well)", "बिट के पहुँचने से पहले पूर्व-चेतावनी दी गई वास्तविक समस्याएँ")}</div>
           {live.lift.lift !== null && (
             <span className="num" style={{ background: BRAND.via, color: "#fff", borderRadius: 999, padding: "2px 10px", fontSize: 13, fontWeight: 700 }}>
               {live.lift.lift.toFixed(1)}× {t("vs silent layers", "मौन परतों की तुलना में")}
@@ -97,13 +126,61 @@ export function HindsightTiles({ s, lang }: { s: HindsightSummary; lang: Lang })
           )}
         </p>
       </Card>
-      {s.watchlist && s.watchlist.rows.length > 0 ? <WatchlistCard s={s} lang={lang} /> : <StrictCard s={s} lang={lang} />}
+      {L.budget_curve?.length ? <BudgetCard curve={L.budget_curve} events={f.events} lang={lang} /> : <StrictCard s={s} lang={lang} />}
       <div className="label" style={{ gridColumn: "1 / -1" }}>
         {t(
           `Method: ${s.n_testable} of ${s.n_candidates} documented wells testable, ${s.n_cells.toLocaleString()} layer×hazard cells. A learned ranker is trained on other wells only (grouped ${s.learned?.config?.folds ?? 5}-fold cross-validation — a well and its sidetracks never train the model that scores them). "Live" also uses the well's own reports, but only for depths shallower than the alert point, as a rig would. The alert threshold is set on the training wells for about ${s.learned?.config?.alert_budget_per_well ?? 6} alerts per well; the tested wells never set it. Assumes the planned formation column equals the recorded one.`,
           `विधि: ${s.n_candidates} में से ${s.n_testable} कूप परीक्षण-योग्य, ${s.n_cells.toLocaleString()} परत×खतरा कोशिकाएँ। सीखा गया क्रमक केवल अन्य कूपों पर प्रशिक्षित (समूहित क्रॉस-वैलिडेशन)। "लाइव" कूप की अपनी रिपोर्ट केवल चेतावनी बिंदु से ऊपर की गहराई के लिए उपयोग करता है। सीमा प्रशिक्षण कूपों पर तय होती है।`
         )}
       </div>
+    </div>
+  );
+}
+
+function BigTile({ color, value, title, body, base }: { color: string; value: string; title: string; body: string; base: string }) {
+  return (
+    <div className="kk-card" style={{ padding: 16, borderTop: `4px solid ${color}`, background: `linear-gradient(160deg, color-mix(in srgb, ${color} 14%, var(--surface)) 0%, var(--surface) 70%)` }}>
+      <div className="num" style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.05, color: `color-mix(in srgb, ${color} 70%, var(--text))` }}>{value}</div>
+      <div style={{ fontWeight: 700, marginTop: 4 }}>{title}</div>
+      <p className="small mt-1" style={{ color: "var(--text)" }}>{body}</p>
+      <div className="label mt-1">{base}</div>
+    </div>
+  );
+}
+
+/** More alerts per well → more problems caught, and each alert is less often right. Thresholds set on training wells. */
+function BudgetCard({ curve, events, lang }: { curve: NonNullable<NonNullable<HindsightSummary["learned"]>["budget_curve"]>; events: number; lang: Lang }) {
+  const t = (en: string, hi: string) => tr(lang, en, hi);
+  return (
+    <Card style={{ borderColor: "#10B981", borderTopWidth: 4 }}>
+      <div className="label">{t("The trade-off: alerts per well vs problems caught", "संतुलन: प्रति कूप चेतावनियाँ बनाम पकड़ी गई समस्याएँ")}</div>
+      <div className="mt-3 grid gap-3" role="list" aria-label={t("alert budget curve", "चेतावनी बजट वक्र")}>
+        {curve.map((r) => (
+          <div key={r.budget_per_well} role="listitem">
+            <div className="flex justify-between items-baseline">
+              <span className="num" style={{ fontWeight: 700 }}>{r.alerts_per_well?.toFixed(0) ?? r.budget_per_well} {t("alerts / well", "चेतावनी / कूप")}</span>
+              <span className="label num">{t("1 in", "हर")} {r.hit_rate ? Math.round(1 / r.hit_rate) : "—"} {t("alerts matched a record", "में एक अभिलेख से मिली")}</span>
+            </div>
+            <div className="grid gap-1 mt-1">
+              <Bar share={r.layer_flagged_share} color="#10B981" label={t("problem layer flagged", "समस्या परत चिह्नित")} n={r.layer_flagged} />
+              <Bar share={r.forewarned_share} color="#2563EB" label={t("exact hazard named", "सटीक खतरा बताया")} n={r.forewarned} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="label mt-3">{t(`Out of ${events} real problems. Each threshold is chosen on the training wells only; the tested wells never set it.`, `${events} वास्तविक समस्याओं में से। हर सीमा केवल प्रशिक्षण कूपों पर तय होती है।`)}</p>
+    </Card>
+  );
+}
+
+function Bar({ share, color, label, n }: { share: number | null; color: string; label: string; n: number }) {
+  return (
+    <div className="grid items-center gap-2" style={{ gridTemplateColumns: "150px minmax(0,1fr) 84px" }}>
+      <span className="label" style={{ color: "var(--text)" }}>{label}</span>
+      <div style={{ height: 12, background: "var(--surface-2)", borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ width: `${(share ?? 0) * 100}%`, height: "100%", background: color, borderRadius: 6 }} />
+      </div>
+      <span className="num" style={{ fontWeight: 700, textAlign: "right" }}>{pct(share)} <span className="label">({n})</span></span>
     </div>
   );
 }

@@ -8,7 +8,7 @@
 > - **India Analogs**;
 > - a "Why this number?" panel.
 >
-> **Round 3 (28 Sept 2026):** colour pass across the whole app (brand-gradient shell, section-coloured navigation, per-hazard / lithology / formation / country colours), maps with Streets / Terrain / Satellite (Esri, no key) / Dark and a layer panel (wells by country or top hazard, clusters, event heatmap, basins, borders, hillshade, radius), a 3D geological block (real formation tops interpolated between wells, auto vertical exaggeration shown on the slider), and a learned Hindsight alert policy: 191/438 real problems forewarned (44 %), median 300 m ahead, vs 125 for the field average with the same alerts; blind watch-list 137/438 on the top-5 list.
+> **Round 3 (28 Sept 2026):** colour pass across the whole app (brand-gradient shell, section-coloured navigation, per-hazard / lithology / formation / country colours), maps with Streets / Terrain / Satellite (Esri, no key) / Dark and a layer panel (wells by country or top hazard, clusters, event heatmap, basins, borders, hillshade, radius), a 3D geological block (real formation tops interpolated between wells, auto vertical exaggeration shown on the slider), and a learned Hindsight ranker: AUC 0.86 (field average 0.70), 83 % of problems in a layer flagged ahead at 15 alerts per well, 74 % right hazard in the layer's top 3, exact hazard at 6 alerts per well 193/438 vs 87 for the field average. A self-leak in the base-rate prior (the tested well was counted in its own prior) was found and fixed.
 >
 > Tests: 86 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
 

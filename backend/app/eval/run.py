@@ -83,6 +83,9 @@ def episodes(db: Session) -> list[EvalResult]:
     ]
 
 
+from app.engines.hindsight import _family  # noqa: E402
+
+
 def hazard_loo(db: Session, log=print) -> list[EvalResult]:
     """Leave-one-well-out: predict each documented well's (formation, hazard) outcomes from its offsets only.
     Sidetracks / wellbores of the same parent well are excluded from the offsets (not independent)."""
@@ -97,9 +100,10 @@ def hazard_loo(db: Session, log=print) -> list[EvalResult]:
     for wid in wells:
         parent = cx.wells[wid].parent_well
         offs = [o for o in offsets_for_well(wid) if cx.wells[o["well_id"]].parent_well != parent]
+        hidden = _family(wid)  # the left-out well and its sidetracks never feed its own base rate / prior
         for f in set(cx.tops.sequence(wid)):
             for h in haz:
-                p = hz.posterior(f, h, offs)
+                p = hz.posterior(f, h, offs, exclude=hidden)
                 y = 1 if (wid, f, h) in cx.ev_wf else 0
                 base = p["prior"]["base_rate"]
                 sq_m += (p["mean"] - y) ** 2
@@ -194,6 +198,23 @@ def hindsight(db: Session, log=print) -> list[EvalResult]:
         EvalResult(name="hindsight", metric="alerts with a recorded event share (secondary)", value=f["alerts_with_event_share"], n=f["alerts"],
                    notes="the rest are 'no recorded event', not false alarms — reports under-record problems; " + note),
     ]
+    L = s.get("learned") or {}
+    if L.get("auc"):
+        lnote = "grouped 5-fold cross-validation by wellbore; live mode sees the well's own reports only above the alert point; " + note
+        for key, label in (("learned_live", "learned ranker, live"), ("learned_blind", "learned ranker, blind pre-drill"),
+                           ("field_average", "field average only (baseline)")):
+            a_ = L["auc"][key]
+            res.append(EvalResult(name="hindsight", metric=f"ranking accuracy AUC, {label}", value=a_["auc"], n=s["n_cells"],
+                                  notes=f"95% interval (bootstrap over wells) {a_['ci']}; 0.5 = random; " + lnote))
+        for row in L.get("budget_curve", []):
+            res.append(EvalResult(name="hindsight", metric=f"problem layer flagged ahead, {row['budget_per_well']:g} alerts/well",
+                                  value=row["layer_flagged_share"], n=s["forewarned"]["events"],
+                                  notes=f"{row['layer_flagged']} problems sat in a layer that had any alert; exact hazard forewarned "
+                                        f"{row['forewarned']} ({row['forewarned_share']}); {row['share_of_cells']} of cells alerted; " + lnote))
+        top3 = next((r for r in L["hazard_in_layer_topk"]["learned_live"] if r["k"] == 3), None)
+        if top3:
+            res.append(EvalResult(name="hindsight", metric="right hazard in top 3 of its layer", value=top3["share"], n=top3["events"],
+                                  notes=f"random pick {top3['random_share']}; " + lnote))
     for src, strat in sorted(s["by_source"].items()):
         if strat["n_wells"] < 3:  # too few wells to report per-source (shown as "Not evaluated" on the Accuracy page)
             continue

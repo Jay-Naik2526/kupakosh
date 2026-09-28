@@ -28,7 +28,11 @@ type HindsightSummary = {
   n_candidates: number;
   lift: { model: { n_flagged: number; k_flagged: number; rate_flagged: number | null; headline: string } };
   forewarned: { events: number; forewarned: number; forewarned_share: number | null; median_lead_m?: number | null };
-  learned?: { learned_live?: { baseline_forewarned: number; alerts_per_well: number | null } } | null;
+  learned?: {
+    learned_live?: { baseline_forewarned: number; alerts_per_well: number | null };
+    auc?: Record<string, { auc: number | null }>;
+    budget_curve?: { budget_per_well: number; layer_flagged: number; layer_flagged_share: number | null }[];
+  } | null;
   watchlist?: { rows: { k: number; hits: number; events: number; share: number | null; x_random: number | null }[] };
   method?: string;
 } | null;
@@ -144,6 +148,9 @@ export default function Home() {
           )}
           {hindsightState === "ok" && hindsight && (() => {
             const f = hindsight.forewarned, live = hindsight.learned?.learned_live;
+            const auc = hindsight.learned?.auc?.learned_live?.auc;
+            const aucBase = hindsight.learned?.auc?.field_average?.auc;
+            const b15 = hindsight.learned?.budget_curve?.find((r) => r.budget_per_well === 15);
             return (
             <div className="mt-3">
               <p>
@@ -153,10 +160,10 @@ export default function Home() {
                 )}
               </p>
               <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-                <StatTile label={t("problems forewarned", "पूर्व-चेतावनी दी गई समस्याएँ")} value={`${f.forewarned} / ${f.events}`} href="/hindsight" color={SECTION_COLOR.operate} />
-                <StatTile label={t("forewarned share", "पूर्व-चेतावनी अंश")} value={f.forewarned_share !== null ? `${Math.round(f.forewarned_share * 100)}%` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.knowledge} />
-                <StatTile label={t("median warning ahead", "माध्यिका अग्रिम चेतावनी")} value={f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.trust} />
-                <StatTile label={t("field average, same alerts", "क्षेत्र औसत, उतनी चेतावनियाँ")} value={live ? `${live.baseline_forewarned} / ${f.events}` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.explore} />
+                {auc != null && <StatTile label={t(`ranking accuracy (AUC)${aucBase != null ? ` · field average ${Math.round(aucBase * 100)}%` : ""}`, "क्रम सटीकता (AUC)")} value={`${Math.round(auc * 100)}%`} href="/hindsight" color={SECTION_COLOR.operate} />}
+                {b15 && <StatTile label={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, "समस्या परतें पहले चिह्नित")} value={b15.layer_flagged_share !== null ? `${Math.round(b15.layer_flagged_share * 100)}%` : "—"} href="/hindsight" color={SECTION_COLOR.trust} />}
+                <StatTile label={t("exact hazard forewarned (6 alerts/well)", "सटीक खतरा पूर्व-चेतावनी (6 चेतावनी/कूप)")} value={`${f.forewarned} / ${f.events}`} href="/hindsight" color={SECTION_COLOR.knowledge} />
+                <StatTile label={t("median warning ahead", "माध्यिका अग्रिम चेतावनी")} value={f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.explore} />
               </div>
             </div>
             ); })()}

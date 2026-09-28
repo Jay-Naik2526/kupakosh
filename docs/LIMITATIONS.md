@@ -25,7 +25,9 @@
     - Dutch-language text rules (English patterns only);
     - Tesseract refuses a few extremely long log-strip pages, so their own text is kept.
 15. **Hindsight: what the forewarned number means.**
-    - Headline (learned live policy, about 6 alerts per well): 191/438 real problems (44 %) forewarned, median 300 m ahead; about 1 in 10 alerts matches a recorded problem. The field average with the same alerts gets 125/438; blind pre-drill (no own reports) 174/438.
+    - Headline measures: ranking accuracy AUC 0.86 (field average 0.70); 83 % of problems fell in a layer on alert at 15 alerts per well (1 in 17 alerts matches a record there); right hazard in the layer's top 3: 74 % (random 38 %). Exact hazard at about 6 alerts per well: 193/438 (44 %), median 356 m ahead; the field average with the same alerts gets 87/438.
+    - AUC is flattered by the many easy layers with no problem at all; "83 % of problem layers flagged" costs 15 alerts per well. Both are shown with their trade-off.
+    - **Fixed 28 Sept 2026:** the field base rate (the prior) used to include the tested well itself, a small leak in every earlier Hindsight number and in the leave-one-well-out Brier. The tested well and its sidetracks are now excluded; the numbers above are after the fix.
     - The ranker is trained on other wells only (grouped cross-validation); live mode uses the well's own reports only above the alert point. It assumes the planned formation column equals the recorded one, which flatters pre-drill results slightly.
     - Precision per alert is low (about 10 %), and FORGE (4 wells) shows no measured lift on its own.
     - Strict alerts (posterior ≥ 40 %) forewarn only 15 of 438 real problems (3.4 %). Their 73× lift comes from just 14 alerts, mostly in the small FORGE set, and a field-average baseline already reaches 66×.

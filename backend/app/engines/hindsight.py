@@ -43,7 +43,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 3  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 4  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -64,6 +64,23 @@ LEARNED_MODES = ("learned_live", "learned_blind")
 
 def _other_mode(mode: str) -> str:
     return "absolute" if mode in LEARNED_MODES or mode == "elevated" else "elevated"
+
+
+_FAMILY: dict | None = None
+
+
+def _family(well_id: int) -> frozenset[int]:
+    """The well plus every well sharing its parent_well (sidetracks / re-entries): all hidden in a blind replay."""
+    global _FAMILY
+    cx = ctx()
+    if _FAMILY is None or _FAMILY.get("_ctx") is not cx:
+        fam: dict = defaultdict(set)
+        for w in cx.wells.values():
+            if w.parent_well:
+                fam[w.parent_well].add(w.id)
+        _FAMILY = {"_ctx": cx, "by_parent": {k: frozenset(v) for k, v in fam.items()}}
+    parent = cx.wells[well_id].parent_well
+    return (_FAMILY["by_parent"].get(parent, frozenset()) | {well_id}) if parent else frozenset({well_id})
 
 
 def _blind_offsets(well_id: int) -> list[dict]:
@@ -109,6 +126,7 @@ def _cells_for_well(well_id: int, light: bool = False):
         bottom = i.get("base_md_m") or nxt or i["top_md_m"]
         info[i["formation"]] = (max(0.0, bottom - i["top_md_m"]), i.get("lithology") or "unknown", k)
     n_offs_doc = sum(1 for o in offs if o["well_id"] in cx.documented)
+    hidden = _family(well_id)  # the tested well and its sidetracks never feed its own prior / base rate
     cells = []
     for f in forms:
         top_md = tops_md[f]
@@ -116,7 +134,7 @@ def _cells_for_well(well_id: int, light: bool = False):
         alert_md = round(max(0.0, top_md - la), 1)
         for h in taxonomy()["hazards"]:
             # source=w.source: "the field base rate of the same source" (SPEC.md §9.5 prior_by_source)
-            p = hz.posterior(f, h, offs, source=w.source)
+            p = hz.posterior(f, h, offs, source=w.source, exclude=hidden)
             base = p["prior"]["base_rate"]  # Laplace-smoothed, so always > 0 (see hazard.base_rate)
             rr = p["mean"] / base if base > 0 else None
             flagged_elevated = p["status"] == "ok" and p["ci"][0] > base and rr is not None and rr >= rr_min
@@ -437,20 +455,52 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
     HL.add_live_features(cells, own)
     groups = [cx.wells[c["well_id"]].parent_well or f"w{c['well_id']}" for c in cells]
     flags: dict[str, dict] = defaultdict(lambda: {m: {} for m in LEARNED_MODES})
+    budgets = list(lc.get("budget_curve") or [])
     for mode, live in (("learned_blind", False), ("learned_live", True)):
-        prob, flag = HL.cross_validated(cells, groups, live, lc)
+        prob, flag, extra = HL.cross_validated(cells, groups, live, lc, budgets)
         for c, p, f in zip(cells, prob, flag):
             c[f"p_{mode}"] = float(p)
             c[f"flagged_{mode}"] = bool(f)
+        for b, fl in extra.items():
+            for c, f in zip(cells, fl):
+                c.setdefault("_budget", {}).setdefault(mode, {})[b] = bool(f)
             if f:
                 flags[str(c["well_id"])][mode][f"{c['formation']}|{c['hazard']}"] = round(float(p), 4)
-    return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags)}
+    return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags), "budgets": budgets}
 
 
 def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tuple], hc: dict) -> dict:
     from app.engines import hindsight_learned as HL
     out: dict = {}
     n_wells = len(per_well)
+    import numpy as np
+    y = np.array([c["y"] for c in cells])
+    wells = np.array([c["well_id"] for c in cells])
+    n_h = len(taxonomy()["hazards"])
+    out["auc"] = {m: HL.auc_with_ci(y, np.array([c[f"p_{m}"] for c in cells]), wells) for m in LEARNED_MODES}
+    out["auc"]["field_average"] = HL.auc_with_ci(y, np.array([c["base"] for c in cells]), wells)
+    out["auc"]["posterior"] = HL.auc_with_ci(y, np.array([c["mean"] for c in cells]), wells)
+    out["hazard_in_layer_topk"] = {
+        "learned_live": HL.hazard_in_layer_topk(cells, "p_learned_live", events, [1, 2, 3], n_h),
+        "field_average": HL.hazard_in_layer_topk(cells, "base", events, [1, 2, 3], n_h),
+    }
+    curve = []
+    budgets = sorted({b for c in cells for b in (c.get("_budget", {}).get("learned_live") or {})})
+    for b in budgets:
+        fl = {(c["well_id"], c["formation"], c["hazard"]) for c in cells if c["_budget"]["learned_live"][b]}
+        layers = {(w, f) for w, f, _ in fl}
+        fw = sum(1 for e in events if e in fl)
+        lay = sum(1 for e in events if (e[0], e[1]) in layers)
+        n_fl = len(fl)
+        k_fl = sum(c["y"] for c in cells if c["_budget"]["learned_live"][b])
+        curve.append({"budget_per_well": b, "alerts_per_well": round(n_fl / n_wells, 2) if n_wells else None,
+                      "forewarned": fw, "forewarned_share": round(fw / len(events), 4) if events else None,
+                      "layer_flagged": lay, "layer_flagged_share": round(lay / len(events), 4) if events else None,
+                      "share_of_cells": round(n_fl / len(cells), 4) if cells else None,
+                      "hit_rate": round(k_fl / n_fl, 4) if n_fl else None})
+    out["budget_curve"] = curve
+    for c in cells:
+        c.pop("_budget", None)
     for mode in LEARNED_MODES:
         key = f"flagged_{mode}"
         lr = lift_report(cells, key)

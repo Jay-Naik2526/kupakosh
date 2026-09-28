@@ -22,12 +22,15 @@ from app.engines.context import ctx
 
 
 @lru_cache(maxsize=4096)
-def base_rate(formation: str, hazard: str, source: str | None = None) -> tuple[float, int, str]:
+def base_rate(formation: str, hazard: str, source: str | None = None, exclude: frozenset[int] | None = None) -> tuple[float, int, str]:
     """Share of documented wells (of the same data source) that penetrated `formation` with a recorded `hazard`.
-    Falls back to the hazard's rate across all formations of that source when fewer than `base_min_wells` wells."""
+    Falls back to the hazard's rate across all formations of that source when fewer than `base_min_wells` wells.
+    `exclude`: wells left out of the rate (the Hindsight test passes the tested well and its sidetracks, so the
+    prior never contains the answer)."""
     cx = ctx()
     c = cfg()["hazard"]
-    same = (lambda w: cx.wells[w].source == source) if source else (lambda w: True)
+    ex = exclude or frozenset()
+    same = (lambda w: cx.wells[w].source == source and w not in ex) if source else (lambda w: w not in ex)
     wells = {w for w in cx.penetrated.get(formation, set()) if same(w)}
     if len(wells) >= c["base_min_wells"]:
         k = sum(1 for w in wells if (w, formation, hazard) in cx.ev_wf)
@@ -37,14 +40,14 @@ def base_rate(formation: str, hazard: str, source: str | None = None) -> tuple[f
     return (k + 0.5) / (len(pairs) + 1), len(pairs), "all_formations" + (f" ({source})" if source else "")
 
 
-def posterior(formation: str, hazard: str, offsets: list[dict], source: str | None = None) -> dict:
+def posterior(formation: str, hazard: str, offsets: list[dict], source: str | None = None, exclude: frozenset[int] | None = None) -> dict:
     c = cfg()["hazard"]
     cx = ctx()
     if source is None:  # the data source of the evidence wells decides the prior
         srcs = [cx.wells[o["well_id"]].source for o in offsets if o["well_id"] in cx.documented]
         source = max(set(srcs), key=srcs.count) if srcs else None
     strength = c.get("prior_by_source", {}).get(source, c["prior_strength"])
-    base, base_n, base_scope = base_rate(formation, hazard, source)
+    base, base_n, base_scope = base_rate(formation, hazard, source, exclude)
     a0, b0 = strength * base, strength * (1 - base)
     sw = swy = sw2 = 0.0
     evidence = []
