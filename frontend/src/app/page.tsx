@@ -161,7 +161,7 @@ export default function Home() {
               </p>
               <div className="grid gap-4 mt-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
                 {auc != null && <StatTile label={t(`ranking accuracy (AUC)${aucBase != null ? ` · field average ${Math.round(aucBase * 100)}%` : ""}`, "क्रम सटीकता (AUC)")} value={`${Math.round(auc * 100)}%`} href="/hindsight" color={SECTION_COLOR.operate} />}
-                {b15 && <StatTile label={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, "समस्या परतें पहले चिह्नित")} value={b15.layer_flagged_share !== null ? `${Math.round(b15.layer_flagged_share * 100)}%` : "—"} href="/hindsight" color={SECTION_COLOR.trust} />}
+                {b15 && <StatTile label={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, "समस्या परतें पहले चिह्नित")} value={b15.layer_flagged_share !== null ? `${(b15.layer_flagged_share * 100).toFixed(1)}%` : "—"} href="/hindsight" color={SECTION_COLOR.trust} />}
                 <StatTile label={t("exact hazard forewarned (6 alerts/well)", "सटीक खतरा पूर्व-चेतावनी (6 चेतावनी/कूप)")} value={`${f.forewarned} / ${f.events}`} href="/hindsight" color={SECTION_COLOR.knowledge} />
                 <StatTile label={t("median warning ahead", "माध्यिका अग्रिम चेतावनी")} value={f.median_lead_m ? `${Math.round(f.median_lead_m)} m` : t("unknown", "अज्ञात")} href="/hindsight" color={SECTION_COLOR.explore} />
               </div>

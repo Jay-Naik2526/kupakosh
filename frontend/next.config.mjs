@@ -4,5 +4,9 @@
 const exportMode = process.env.KK_EXPORT === "1";
 const nextConfig = exportMode
   ? { output: "export", trailingSlash: true, images: { unoptimized: true } }
-  : { async rewrites() { return [{ source: "/api/:path*", destination: "http://localhost:8010/api/:path*" }]; } };
+  : {
+      // KK_DIST lets the production build (`make demo`) live beside the dev server's .next without clashing
+      distDir: process.env.KK_DIST || ".next",
+      async rewrites() { return [{ source: "/api/:path*", destination: "http://localhost:8010/api/:path*" }]; },
+    };
 export default nextConfig;

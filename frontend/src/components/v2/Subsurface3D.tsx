@@ -10,7 +10,7 @@ import { t, type Lang } from "@/lib/i18n";
 import { hazardText } from "@/lib/format";
 import { hazardColor, wellColor, BRAND } from "@/lib/palette";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { Scene, SceneEvent, SceneWell } from "./3d/types";
+import { Scene, SceneEvent } from "./3d/types";
 import {
   DepthTicks, EventSphere, DerrickGlyph, GroundPlane, PathDepthMarkers, RiskBand, SCALE, WellTube, tipStyle,
 } from "./3d/SceneObjects";
@@ -94,7 +94,7 @@ function CameraRig({ viewMode, groundSize, maxDepthM, vertExag, controlsRef, res
     const depthUnits = maxDepthM * SCALE * vertExag;
     const g = Math.max(groundSize, 1);
     let pos: [number, number, number];
-    let target: [number, number, number] = [0, -depthUnits * 0.45, 0];
+    const target: [number, number, number] = [0, -depthUnits * 0.45, 0];
     if (viewMode === "top") pos = [0.001, g * 1.15, 0.001];
     else if (viewMode === "side" || viewMode === "section") pos = [g * 1.1, -depthUnits * 0.35, 0.001];
     else pos = [g * 0.95, -depthUnits * 0.05, g * 0.75];

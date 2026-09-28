@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Box, Play, Pause, Gauge, Ruler, Layers, Clock } from "lucide-react";
@@ -10,15 +11,15 @@ import { Lang } from "@/lib/i18n";
 import { actionText, m, pct } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/v2/ui";
-import { Subsurface3D } from "@/components/v2/Subsurface3D";
 import { NoticeSlip } from "@/components/kk/NoticeSlip";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { CurveTrack, DepthAxis, Pt } from "@/components/kk/CurveTrack";
 import { IntervalBar } from "@/components/kk/IntervalBar";
 import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { MiniMap } from "@/components/kk/MiniMap";
 import { WellPicker } from "@/components/kk/WellPicker";
+const Subsurface3D = dynamic(() => import("@/components/v2/Subsurface3D").then((m) => m.Subsurface3D), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
+const MiniMap = dynamic(() => import("@/components/kk/MiniMap").then((m) => m.MiniMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
 type Sample = { t: string; md_m: number | null; bit_md_m: number | null; torque: number | null; pit_vol: number | null; mw_ppg: number | null; flow_in: number | null; spp: number | null; hookload: number | null; flag?: boolean };
 const H = 520;

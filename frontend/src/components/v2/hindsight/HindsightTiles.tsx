@@ -75,7 +75,7 @@ export function HindsightTiles({ s, lang }: { s: HindsightSummary; lang: Lang })
             base={aucBase?.auc != null ? t(`field average alone ${Math.round(aucBase.auc * 100)}% · random 50%`, `केवल क्षेत्र औसत ${Math.round(aucBase.auc * 100)}% · यादृच्छिक 50%`) : ""} />
         )}
         {b15 && (
-          <BigTile color="#10B981" value={pct(b15.layer_flagged_share)}
+          <BigTile color="#10B981" value={b15.layer_flagged_share !== null ? `${(b15.layer_flagged_share * 100).toFixed(1)}%` : "unknown"}
             title={t(`problem layers flagged ahead (${b15.budget_per_well} alerts/well)`, `समस्या परतें पहले चिह्नित (${b15.budget_per_well} चेतावनी/कूप)`)}
             body={t(`${b15.layer_flagged} of ${f.events} real problems happened in a layer Kupakosh had put on alert before the bit arrived; ${b15.forewarned} with the exact hazard named.`, `${f.events} में से ${b15.layer_flagged} समस्याएँ उस परत में हुईं जिस पर बिट पहुँचने से पहले चेतावनी थी।`)}
             base={t(`${pct(b15.share_of_cells)} of layer×hazard cells alerted`, `${pct(b15.share_of_cells)} कोशिकाओं पर चेतावनी`)} />

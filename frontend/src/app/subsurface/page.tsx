@@ -1,10 +1,11 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { Subsurface3D } from "@/components/v2/Subsurface3D";
 import { get } from "@/lib/api";
+const Subsurface3D = dynamic(() => import("@/components/v2/Subsurface3D").then((m) => m.Subsurface3D), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
 const RADII = [5000, 10000, 20000, 50000];
 const DEFAULT_REPLAY_WELL_NAME = "16B(78)-32";

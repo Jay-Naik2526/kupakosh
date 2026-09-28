@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import json
 import math
+import threading
 import time
 from collections import defaultdict
 from statistics import median
@@ -522,26 +523,66 @@ def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tupl
     return out
 
 
+_LOCK = threading.Lock()          # one computation at a time; concurrent callers wait for it instead of repeating it
+_REFRESHING = threading.Event()   # set while a background refresh of a stale cache is running
+
+
+def _read_cache() -> dict | None:
+    try:
+        return json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _cache_ok(cached: dict | None, fp, n_wanted, hc) -> bool:
+    return bool(cached) and (cached.get("engine_version") == ENGINE_VERSION and cached.get("fingerprint") == fp
+                             and cached.get("max_wells_config") == n_wanted and cached.get("alert_mode_config") == hc["alert_mode"]
+                             and cached.get("rr_min_config") == hc["rr_min"] and cached.get("learned_config") == hc["learned"])
+
+
+def _refresh_in_background(max_wells: int | None) -> None:
+    if _REFRESHING.is_set():
+        return
+    _REFRESHING.set()
+
+    def run():
+        try:
+            summary(max_wells, force=True)
+        finally:
+            _REFRESHING.clear()
+    threading.Thread(target=run, daemon=True, name="hindsight-refresh").start()
+
+
 def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: None) -> dict:
-    """Blind-replay lift, aggregated over every documented, testable well (or `max_wells` of
-    them, first-by-id, for a faster dev/test sample). Cached in
-    data/processed/hindsight_summary.json, keyed by a DB fingerprint plus the sample size and
-    alert-rule config, so the API is fast and `force=True` (bootstrap/eval) always recomputes.
-    Offsets are computed exactly once per well and reused for every (formation, hazard) cell."""
+    """Cached blind-replay summary. A request never waits a minute for a recompute when an older
+    result exists: the older result is returned (marked "stale": true) and a single background thread
+    refreshes it. With no cache at all, callers share ONE computation under a lock."""
     cx = ctx()
     hc = _hindsight_cfg()
     n_wanted = max_wells if max_wells is not None else hc["max_wells"]
     fp = _fingerprint(cx)
-    if not force and CACHE_PATH.exists():
-        try:
-            cached = json.loads(CACHE_PATH.read_text())
-            if (cached.get("engine_version") == ENGINE_VERSION and cached.get("fingerprint") == fp and cached.get("max_wells_config") == n_wanted
-                    and cached.get("alert_mode_config") == hc["alert_mode"] and cached.get("rr_min_config") == hc["rr_min"]
-                    and cached.get("learned_config") == hc["learned"]):
+    if not force:
+        cached = _read_cache()
+        if _cache_ok(cached, fp, n_wanted, hc):
+            return cached
+        if cached and cached.get("max_wells_config") == n_wanted:
+            _refresh_in_background(max_wells)
+            return {**cached, "stale": True}
+    with _LOCK:
+        if not force:
+            cached = _read_cache()
+            if _cache_ok(cached, fp, n_wanted, hc):
                 return cached
-        except (json.JSONDecodeError, OSError):
-            pass
+        return _compute(max_wells, log)
 
+
+def _compute(max_wells: int | None = None, log=lambda *a: None) -> dict:
+    """Blind-replay lift over every documented, testable well (or `max_wells` of them, first-by-id).
+    Written to data/processed/hindsight_summary.json, keyed by a DB fingerprint plus the config."""
+    cx = ctx()
+    hc = _hindsight_cfg()
+    n_wanted = max_wells if max_wells is not None else hc["max_wells"]
+    fp = _fingerprint(cx)
     t0 = time.perf_counter()
     candidates = _candidates(cx, n_wanted)
     mode = hc["alert_mode"]

@@ -3,7 +3,7 @@ PY      := backend/.venv/bin/python
 DYLD    := DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
 API_PORT ?= 8010
 
-.PHONY: setup data data-core bootstrap api web test e2e eval up share
+.PHONY: setup data data-core bootstrap api web demo test e2e eval up share
 
 setup:            ## python 3.11 venv + backend deps + frontend deps
 	cd backend && uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements.txt
@@ -23,6 +23,9 @@ api:              ## FastAPI on :$(API_PORT)  (do not wrap in nohup: macOS strip
 
 web:              ## Next.js on :3000 (expects the API on :$(API_PORT))
 	cd frontend && NEXT_PUBLIC_API=http://localhost:$(API_PORT) npm run dev
+
+demo:             ## production build of the website on :3001 (pre-compiled pages: fast, smooth navigation; expects the API on :$(API_PORT))
+	cd frontend && KK_DIST=.next-prod npm run build && KK_DIST=.next-prod npx next start -p 3001
 
 test:             ## backend tests + frontend type-check + frontend unit tests
 	cd backend && $(DYLD) .venv/bin/python -m pytest -q tests

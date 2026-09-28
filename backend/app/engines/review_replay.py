@@ -37,6 +37,10 @@ def run(db, log=print) -> dict:
             ev.hazard = a.get("hazard", ev.hazard)
             ev.needs_review = a.get("needs_review", ev.needs_review)
             ev.method = a.get("method", "human")
+            # an AI or human reviewer may add a depth quoted verbatim from the evidence (scripts/apply_ai_review.py)
+            if "md_m" in a and a.get("method") == "ai_review":
+                ev.md_m = a["md_m"]          # verified depth, or None when the reviewer could not verify one
+                ev.formation = a.get("formation")
         n["applied"] += 1
     db.flush()
     log(f"review replay: {n}")

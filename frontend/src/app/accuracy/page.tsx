@@ -6,7 +6,6 @@ import { Drawer } from "@/components/kk/Drawer";
 import { UploadReport } from "@/components/kk/UploadReport";
 import { useApp } from "@/lib/state";
 import { t } from "@/lib/i18n";
-import { Card } from "@/components/v2/ui";
 import { countryColor } from "@/lib/palette";
 
 const FIG_COLORS = ["var(--info)", "#0891B2", "#8B5CF6", "var(--ok)"];

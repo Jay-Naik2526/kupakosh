@@ -24,7 +24,11 @@ def _warm():
     """Build the shared in-memory context before serving (first requests would otherwise all wait on it)."""
     import threading
     from app.engines.context import ctx
-    threading.Thread(target=ctx, daemon=True).start()
+    def warm():
+        ctx()
+        from app.engines import hindsight
+        hindsight.summary()  # fills or refreshes the Hindsight cache before the first visitor asks
+    threading.Thread(target=warm, daemon=True, name="warm").start()
 
 
 @app.get("/health")

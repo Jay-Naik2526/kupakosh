@@ -10,7 +10,9 @@
 >
 > **Round 3 (28 Sept 2026):** colour pass across the whole app (brand-gradient shell, section-coloured navigation, per-hazard / lithology / formation / country colours), maps with Streets / Terrain / Satellite (Esri, no key) / Dark and a layer panel (wells by country or top hazard, clusters, event heatmap, basins, borders, hillshade, radius), a 3D geological block (real formation tops interpolated between wells, auto vertical exaggeration shown on the slider), and a learned Hindsight ranker: AUC 0.86 (field average 0.70), 83 % of problems in a layer flagged ahead at 15 alerts per well, 74 % right hazard in the layer's top 3, exact hazard at 6 alerts per well 193/438 vs 87 for the field average. A self-leak in the base-rate prior (the tested well was counted in its own prior) was found and fixed.
 >
-> Tests: 86 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
+> **Performance (28 Sept 2026):** the Hindsight summary no longer recomputes (about 60 s) inside a request: one computation at a time under a lock, an older result served instantly while a background thread refreshes it, and a warm-up at server start; that recompute had exhausted the DB pool and frozen every page. SQLite pool enlarged (20 + 20, 5 s timeout) with busy_timeout and a 64 MB cache. three.js and MapLibre load only on the pages and tabs that use them. `make demo` serves a production build on :3001 (pages about 2 ms, in-app navigation 20–150 ms).
+>
+> > Tests: 86 backend, 18/18 Playwright. See `docs/PLAN_V2.md`. The visual rules of SPEC.md §11 were superseded at the user's request; the honesty rules still apply.
 
 Status as of **27 Sept 2026** (end-to-end build). Phases are those of SPEC.md §15, plus the extension plan in `docs/PLAN.md`.
 

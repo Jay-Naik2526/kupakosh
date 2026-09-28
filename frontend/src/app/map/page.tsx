@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
@@ -8,7 +9,8 @@ import { t } from "@/lib/i18n";
 import { Card, PageHeader, Button, Badge } from "@/components/v2/ui";
 import { CountryFilter } from "@/components/kk/CountryFilter";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { WellMap, type SelectedWell, type SelectedBasin, type FlyTarget } from "@/components/v2/WellMap";
+import type { SelectedWell, SelectedBasin, FlyTarget } from "@/components/v2/WellMap";
+const WellMap = dynamic(() => import("@/components/v2/WellMap").then((m) => m.WellMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
 type WellDetail = {
   id: number; name: string; country: string | null; lat: number | null; lon: number | null;

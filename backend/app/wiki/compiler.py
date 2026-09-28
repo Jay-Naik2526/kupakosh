@@ -358,8 +358,13 @@ def compile_all(db: Session, scope: str = "all", log=print, limit_wells: int | N
     existing = {p.slug: p for p in db.scalars(select(WikiPage))}
     counters = Counter(p.ref_no.split("/")[2] for p in existing.values())
     pending_notes = []
+    produced: dict[str, tuple[str, object]] = {}
     for kind, key in targets:
         slug, title, pb = {"hazard": hazard_page, "formation": formation_page, "well": well_page, "basin": basin_page}[kind](db, key)
+        if slug in produced and produced[slug] != (kind, key):
+            # two records can normalise to one slug (e.g. "Baghjan-5" and "Baghjan--5"): keep both pages, distinct
+            slug = f"{slug}-{key}"
+        produced[slug] = (kind, key)
         body = pb.body()
         bad = check_citations(body)
         if bad:

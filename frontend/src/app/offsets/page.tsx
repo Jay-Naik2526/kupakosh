@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { scaleLinear } from "d3-scale";
 import { get } from "@/lib/api";
@@ -7,15 +8,15 @@ import { Lang } from "@/lib/i18n";
 import { glyph, hazardLabel, hazardText, m } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { Card, Tabs } from "@/components/v2/ui";
-import { Subsurface3D } from "@/components/v2/Subsurface3D";
 import { LithologyColumn } from "@/components/kk/LithologyColumn";
 import { DepthAxis } from "@/components/kk/CurveTrack";
 import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
-import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { CountryFilter } from "@/components/kk/CountryFilter";
 import { formationColor, wellColor } from "@/lib/palette";
+const Subsurface3D = dynamic(() => import("@/components/v2/Subsurface3D").then((m) => m.Subsurface3D), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
+const MiniMap = dynamic(() => import("@/components/kk/MiniMap").then((m) => m.MiniMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
 const H = 560, COLW = 120, GAP = 44;
 const HAZ = Object.keys(hazardLabel);

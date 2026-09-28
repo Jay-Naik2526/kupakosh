@@ -1,13 +1,14 @@
 "use client";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { API, get, post } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { m, pct, ppg } from "@/lib/format";
-import { MiniMap } from "@/components/kk/MiniMap";
 import { SourceFootnote } from "@/components/kk/SourceFootnote";
 import { t } from "@/lib/i18n";
 import { Card, PageHeader } from "@/components/v2/ui";
 import { hazardColor, formationColor } from "@/lib/palette";
+const MiniMap = dynamic(() => import("@/components/kk/MiniMap").then((m) => m.MiniMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
 export default function Brief() {
   const { wellId, ready, lang } = useApp();
