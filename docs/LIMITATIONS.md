@@ -25,7 +25,9 @@
     - Dutch-language text rules (English patterns only);
     - Tesseract refuses a few extremely long log-strip pages, so their own text is kept.
 15. **Hindsight has thin coverage and a small FORGE-driven lift.**
-    - It forewarns only 15 of 438 real problems (3.4 %). Its 81× lift comes from just 14 alerts, mostly in the small FORGE set, and a field-average baseline already reaches 74×.
+    - Strict alerts (posterior ≥ 40 %) forewarn only 15 of 438 real problems (3.4 %). Their 73× lift comes from just 14 alerts, mostly in the small FORGE set, and a field-average baseline already reaches 66×.
+    - The blind top-5 watch-list per well holds 137/438 (31 %, 4.4× chance), but ranking by the field-wide layer rate alone does about as well (133/438): nearby-well weighting adds little on this data.
+    - 44 problems sit in layers missing from their well's formation column and can never be listed.
     - The stricter "elevated" rule flags nothing yet. Testable wells are Norway and USA only.
 16. **India Analogs** use lithology and depth analogues from outside India. They are not Indian well records, and the fixes shown are scoped per well, not per interval.
 17. **3D view assumptions.** Wells without a survey are drawn vertical (labelled "assumed vertical"). Positions are projected locally, which is valid within about 50 km.

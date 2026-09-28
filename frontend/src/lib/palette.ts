@@ -50,7 +50,7 @@ export const wellColor = (i: number) => WELL_SERIES[i % WELL_SERIES.length];
 /** One colour per country (maps, charts, chips). */
 export const COUNTRY_COLOR: Record<string, string> = {
   India: "#F97316", Norway: "#2563EB", "United Kingdom": "#7C3AED", Netherlands: "#F59E0B",
-  USA: "#DC2626", Australia: "#10B981", "New Zealand": "#0EA5E9", Canada: "#E11D48",
+  USA: "#DC2626", Australia: "#10B981", "New Zealand": "#0EA5E9", Canada: "#DB2777",
 };
 export const countryColor = (c?: string | null) => (c && COUNTRY_COLOR[c]) || "#64748B";
 

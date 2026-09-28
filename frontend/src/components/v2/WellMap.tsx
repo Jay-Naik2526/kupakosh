@@ -233,8 +233,8 @@ export function WellMap({
     m.flyTo({ center: [flyTo.lon, flyTo.lat], zoom: 10, duration: 800 });
   }, [flyTo]);
 
-  const legendCountries = Object.keys(COUNTRY_COLOR).filter((c) => wellsRef.current.some((w) => w.country === c)).slice(0, 6);
-  const legendHazards = Object.keys(HAZARD_COLOR).filter((h) => wellsRef.current.some((w) => w.topHazard === h)).slice(0, 6);
+  const legendCountries = Object.keys(COUNTRY_COLOR).filter((c) => wellsRef.current.some((w) => w.country === c));
+  const legendHazards = Object.keys(HAZARD_COLOR).filter((h) => wellsRef.current.some((w) => w.topHazard === h));
 
   return (
     <div className={className} style={{ position: "relative", height, width: "100%" }}>

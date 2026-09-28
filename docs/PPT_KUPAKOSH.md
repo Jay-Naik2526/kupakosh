@@ -19,9 +19,10 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 **New headline USPs (put them on slide 2, "The idea", and the comparison table):**
 1. **Hindsight Test: it proves itself on real history.**
    - Each real well is replayed *blind*: its own reports are hidden and alerts come from other wells only. Then the page reveals what really happened.
-   - When Kupakosh alerted, a problem was recorded in that layer **11 of 14 times (79 %)**, versus **1 %** where it stayed silent: **81× lift**.
-   - A fair baseline that alerts on the field average alone gets 74×.
-   - Honest line: it forewarned **15 of 438** problems (3.4 %) and stays silent when the evidence is thin.
+   - When Kupakosh alerted, a problem was recorded in that layer **11 of 14 times (79 %)**, versus **1 %** where it stayed silent: **73× lift**.
+   - A fair baseline that alerts on the field average alone gets 66×.
+   - **Blind watch-list:** each well's own top-5 layer risks (about 4 % of its layer×hazard cells) already held **137 of 438 real problems (31 %)**, against 31 by chance (**4.4×**). The top 10 held 44 % against 14 %.
+   - Honest lines: strict alerts (≥ 40 %) forewarned only 15 of 438. Ranking layers by their field-wide rate alone catches about the same as the watch-list (133/438); the value is Kupakosh's compiled memory of every layer.
    - No public PS 26121 project shows blind, measured proof (`docs/COMPETITORS.md`).
 2. **India Analogs.**
    - For an Indian basin, the rock types are taken from its NDR summary (cited). Kupakosh then finds the same rock at the same depth in **thousands of public wells worldwide** and shows what went wrong and what fixed it.
@@ -53,8 +54,8 @@ This follows the NiyamKosh deck: same 6 slides, same layout and same template. I
 Title in bold navy: "HINDSIGHT TEST". Subtitle in grey: "Each real well replayed blind — its own reports hidden".
 Left: a tall vertical depth strip (0 m at the top, down to 3,000 m) with two lanes labelled "ALERTS (blind)" and "WHAT REALLY HAPPENED".
 The alerts lane has red dots with small labels. The real lane has markers joined to the alerts by dashed brackets labelled "lead".
-Right: two stat cards. The first: big "11 / 14" and "alerts matched a recorded problem (79%)", then "81× lift vs silent layers · fair baseline 74×".
-The second, with an amber border: big "15 / 438" and "problems forewarned — it stays silent when evidence is thin".
+Right: two stat cards. The first: big "11 / 14" and "alerts matched a recorded problem (79%)", then "73× lift vs silent layers · fair baseline 66×".
+The second, with a teal border: big gradient "137 / 438 · 31%" and a chip "4.4× chance", "real problems on the blind top-5 watch-list", then three coloured bars (top 3 / 5 / 10 vs a black "random" tick) and small chips "≥40%: 15/438, 79% right".
 ```
 
 ## Part A: slide content

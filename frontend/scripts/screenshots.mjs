@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 
 const BASE = process.env.KK_URL ?? "http://localhost:3000";
 const OUT = fileURLToPath(new URL("../../docs/screenshots/", import.meta.url));
-const b = await chromium.launch();
+// SwiftShader WebGL so the 3D canvas renders in headless Chromium.
+const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const page = await b.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
 const shot = async (name) => { await page.screenshot({ path: OUT + name + ".png" }); console.log("saved", name); };
 const go = async (path, wait = 3000) => { await page.goto(BASE + path); await page.waitForLoadState("load"); await page.waitForTimeout(wait); };
@@ -44,8 +45,25 @@ await shot("07-copilot");
 
 // New v2 screens (owned by other agents building in parallel; skip gracefully if not shipped yet)
 await goSafe("/map", "10-map", 9000);
-await goSafe("/subsurface", "11-subsurface", 9000);
+await goSafe("/subsurface", "11-subsurface", 12000);
+// 11b: the same 3D room on a Norwegian well (15/9-19 S, id from the live DB) — 41 wells, 40+ real formations.
+const nor = await page.evaluate(async () => (await (await fetch("/api/wells?q=15/9-19%20S&limit=1")).json())[0]?.id).catch(() => null);
+if (nor) {
+  await page.evaluate((id) => localStorage.setItem("kk.wellId", JSON.stringify(id)), nor);
+  await goSafe("/subsurface", "11b-subsurface-norway", 14000);
+  await page.evaluate(() => localStorage.removeItem("kk.wellId"));
+}
+// 10b: map on satellite imagery
+await go("/map", 6000);
+await page.getByRole("button", { name: "Satellite" }).click().catch(() => {});
+await page.waitForTimeout(6000);
+await shot("10b-map-satellite");
 await goSafe("/analogs", "12-analogs", 4000);
 await goSafe("/hindsight", "13-hindsight", 4000);
+
+// 14: Home in dark mode
+await page.evaluate(() => localStorage.setItem("kk.theme", JSON.stringify("dark")));
+await goSafe("/", "14-home-dark", 3000);
+await page.evaluate(() => localStorage.setItem("kk.theme", JSON.stringify("light")));
 
 await b.close();
