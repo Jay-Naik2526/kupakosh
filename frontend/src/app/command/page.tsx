@@ -294,7 +294,10 @@ function StatusFigure({ label, value, rig, mono = true, icon: Icon, valueColor }
       )}
       <div>
         <div className="label">{label}</div>
-        <div className={mono ? "num" : "font-semibold"} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15, color: valueColor }}>{value}</div>
+        <div className={`${mono ? "num" : "font-semibold"} flex items-center gap-2`} style={{ fontSize: rig ? 26 : 22, lineHeight: 1.15 }}>
+          {valueColor && <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: 2, background: valueColor, border: "1px solid var(--border)", flex: "0 0 auto" }} />}
+          {value}
+        </div>
       </div>
     </div>
   );
