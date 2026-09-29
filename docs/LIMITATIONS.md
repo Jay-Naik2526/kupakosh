@@ -25,8 +25,8 @@
     - Dutch-language text rules (English patterns only);
     - Tesseract refuses a few extremely long log-strip pages, so their own text is kept.
 15. **Hindsight: what the forewarned number means.**
-    - Headline measures: ranking accuracy AUC 0.86 (field average 0.70); 83 % of problems fell in a layer on alert at 15 alerts per well (1 in 17 alerts matches a record there); right hazard in the layer's top 3: 74 % (random 38 %). Exact hazard at about 6 alerts per well: 193/438 (44 %), median 356 m ahead; the field average with the same alerts gets 87/438.
-    - AUC is flattered by the many easy layers with no problem at all; "83 % of problem layers flagged" costs 15 alerts per well. Both are shown with their trade-off.
+    - Headline measures (live, 29 Sept 2026, after the leak fix and the AI review in item 18; 304 wells, 449 real problems, 36,776 layer cells): ranking accuracy AUC 0.86 (field average 0.69); problem layer flagged before the bit arrived 61.7 / 70.2 / 79.5 / 84.2 % at 6 / 10 / 15 / 20 alerts per well; right hazard in the layer's top 3: 74.4 % (random 37.5 %). Exact hazard at about 6 alerts per well: 193/449 (43 %), median 348 m ahead; the field average with the same alerts gets 86/449. The older figures below (438 problems) are kept as history.
+    - AUC is flattered by the many easy layers with no problem at all; "79.5 % of problem layers flagged" costs 15 alerts per well. Both are shown with their trade-off.
     - **Fixed 28 Sept 2026:** the field base rate (the prior) used to include the tested well itself, a small leak in every earlier Hindsight number and in the leave-one-well-out Brier. The tested well and its sidetracks are now excluded; the numbers above are after the fix.
     - The ranker is trained on other wells only (grouped cross-validation); live mode uses the well's own reports only above the alert point. It assumes the planned formation column equals the recorded one, which flatters pre-drill results slightly.
     - Precision per alert is low (about 10 %), and FORGE (4 wells) shows no measured lift on its own.
