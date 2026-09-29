@@ -16,7 +16,7 @@ import {
 } from "./3d/SceneObjects";
 import { GeoBlock, buildFormationLayers, type FormationLayer } from "./3d/GeoBlock";
 import { DepthProfileStrip } from "./3d/DepthProfileStrip";
-import { Controls, DEFAULT_TOGGLES, type LayerToggles, type ViewMode } from "./3d/Controls";
+import { Controls, ControlsBar, DEFAULT_TOGGLES, type LayerToggles, type ViewMode } from "./3d/Controls";
 import { useThemeColors } from "./3d/useThemeColors";
 
 /** Props: reusable so the Well Room / Offsets screens can embed the same 3D room. */
@@ -160,12 +160,20 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
   if (loading || !scene) return <div className="kk-card" style={{ height: height ?? 480, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>{t("subsurfaceLoading", lang)}</div>;
   if (!scene.wells.length) return <EmptyState title={t("subsurfaceNoLocation", lang)} why={t("subsurfaceProjectionNote", lang)} />;
 
+  const hazardsPresent = Array.from(new Set(scene.wells.flatMap((w) => w.events.map((e) => e.hazard))));
+  const resetAll = () => { setViewMode("3d"); setVertExag(1); setOpacity(0.55); setResetKey((k) => k + 1); };
   const activeWell = scene.wells.find((w) => w.is_active) ?? null;
   const offsetWells = scene.wells.filter((w) => !w.is_active);
   const sky = colors.bg; // flat paper tone, no sky gradient — same in light and dark
 
   return (
     <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 8 }}>
+      {!compact && (
+        <ControlsBar
+          lang={lang} toggles={toggles} setToggles={setToggles} viewMode={viewMode} setViewMode={setViewMode}
+          opacity={opacity} setOpacity={setOpacity} vertExag={vertExag} setVertExag={setVertExag} onReset={resetAll}
+        />
+      )}
       <div style={{ position: "relative", height: height ?? 520, borderRadius: "var(--radius-lg)", overflow: "hidden", border: "1px solid var(--border)", background: sky }}>
         <Canvas
           camera={{ position: [6, 0.8, 4.5], fov: 45, near: 0.01, far: 2000 }}
@@ -215,47 +223,15 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
           <CameraRig viewMode={viewMode} groundSize={groundSize} maxDepthM={maxDepthM} vertExag={vertExag} controlsRef={controlsRef} resetKey={resetKey} />
         </Canvas>
 
-        {/* Controls (left) */}
-        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
+        {/* Controls (left) — compact embeds only; the full page uses the toolbar above */}
+        {compact && <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
           <Controls
             lang={lang} toggles={toggles} setToggles={setToggles} viewMode={viewMode} setViewMode={setViewMode}
             opacity={opacity} setOpacity={setOpacity} vertExag={vertExag} setVertExag={setVertExag}
-            onReset={() => { setViewMode("3d"); setVertExag(1); setOpacity(0.55); setResetKey((k) => k + 1); }}
+            onReset={resetAll}
             compact={compact}
           />
-        </div>
-
-        {/* Legend (top-right) — built only from what's actually in the scene */}
-        {!compact && (
-          <div style={{ position: "absolute", top: 10, right: 10, zIndex: 20, ...tipStyle, whiteSpace: "normal", width: 210, overflowY: "auto", maxHeight: "calc(100% - 20px)" }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("subsurfaceLegend", lang)}</div>
-            <LegendRow color={BRAND.via} label={t("subsurfaceActiveWell", lang)} />
-            {offsetWells.slice(0, 6).map((w, i) => <LegendRow key={w.well_id} color={wellColor(i)} label={w.name} />)}
-            {offsetWells.length > 6 && <div className="label">+{offsetWells.length - 6} {tr(lang, "more wells", "और कूप")}</div>}
-            {formationLayers.length > 0 && <div style={{ marginTop: 6, fontWeight: 600 }}>{tr(lang, "Formations", "संरचनाएँ")}</div>}
-            {formationLayers.slice(0, 6).map((f) => <LegendRow key={f.formation} color={f.color} label={f.label} />)}
-            {(() => {
-              const hazardsPresent = Array.from(new Set(scene.wells.flatMap((w) => w.events.map((e) => e.hazard))));
-              return (
-                <>
-                  {hazardsPresent.length > 0 && <div style={{ marginTop: 6, fontWeight: 600 }}>{tr(lang, "Hazards", "जोखिम")}</div>}
-                  {hazardsPresent.map((h) => <LegendRow key={h} color={hazardColor(h)} label={hazardText(h, lang)} />)}
-                  {toggles.riskBands && riskBands.length > 0 && (
-                    <>
-                      <div style={{ marginTop: 6, fontWeight: 600 }}>{tr(lang, "Risk layers", "जोखिम परतें")}</div>
-                      {[...riskBands].sort((a, b) => b.z - a.z).map((b) => (
-                        <button key={b.formation} type="button" onClick={() => setSelectedBand(b)} title={bandTag(b, lang)}
-                          style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", borderRadius: 4, padding: "1px 2px", background: selectedBand?.formation === b.formation ? "var(--surface-2)" : "transparent" }}>
-                          <LegendRow color={b.color} label={`${b.label} · ${b.nWells} ${b.nWells === 1 ? tr(lang, "well", "कूप") : tr(lang, "wells", "कूप")}`} />
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        )}
+        </div>}
 
         {scene.wells.some((w) => w.assumed_vertical) && !(selected || selectedLayer || selectedBand) && (
           <div style={{ position: "absolute", bottom: compact ? 10 : 46, left: 10, zIndex: 20, ...tipStyle, color: "var(--caution)" }}>
@@ -291,6 +267,36 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
         )}
 
       </div>
+      {!compact && (
+        <LegendStrip>
+          <LegendGroup title={tr(lang, "Wells", "कूप")}>
+            <LegendRow color={BRAND.via} label={t("subsurfaceActiveWell", lang)} />
+            {offsetWells.slice(0, 6).map((w, i) => <LegendRow key={w.well_id} color={wellColor(i)} label={w.name} />)}
+            {offsetWells.length > 6 && <span className="label">+{offsetWells.length - 6} {tr(lang, "more", "और")}</span>}
+          </LegendGroup>
+          {formationLayers.length > 0 && (
+            <LegendGroup title={tr(lang, "Formations", "संरचनाएँ")}>
+              {formationLayers.slice(0, 8).map((f) => <LegendRow key={f.formation} color={f.color} label={f.label} />)}
+              {formationLayers.length > 8 && <span className="label">+{formationLayers.length - 8} {tr(lang, "more (click a layer)", "और (परत पर क्लिक करें)")}</span>}
+            </LegendGroup>
+          )}
+          {hazardsPresent.length > 0 && (
+            <LegendGroup title={tr(lang, "Events (spheres)", "घटनाएँ")}>
+              {hazardsPresent.map((h) => <LegendRow key={h} color={hazardColor(h)} label={hazardText(h, lang)} />)}
+            </LegendGroup>
+          )}
+          {toggles.riskBands && riskBands.length > 0 && (
+            <LegendGroup title={tr(lang, "Risk layers (click)", "जोखिम परतें")}>
+              {[...riskBands].sort((a, b) => b.z - a.z).map((b) => (
+                <button key={b.formation} type="button" onClick={() => setSelectedBand(b)} title={bandTag(b, lang)}
+                  style={{ all: "unset", cursor: "pointer", borderRadius: 4, padding: "0 3px", outline: selectedBand?.formation === b.formation ? "1.5px solid var(--text)" : "none" }}>
+                  <LegendRow color={b.color} label={`${b.label} · ${b.nWells}`} />
+                </button>
+              ))}
+            </LegendGroup>
+          )}
+        </LegendStrip>
+      )}
       <div className="label" style={{ margin: "0 2px" }}>{scene.projection}</div>
 
       {activeWell && <DepthProfileStrip well={activeWell} bitMd={bitMd} lang={lang} />}
@@ -298,9 +304,22 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
   );
 }
 
+function LegendStrip({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: "grid", gap: 6, fontSize: 12, padding: "8px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", background: "var(--surface)" }}>{children}</div>;
+}
+
+function LegendGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+      <span className="eyebrow" style={{ flex: "0 0 120px", fontSize: 10.5 }}>{title}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", columnGap: 14, rowGap: 2, alignItems: "center" }}>{children}</div>
+    </div>
+  );
+}
+
 function LegendRow({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <span style={{ width: 10, height: 10, borderRadius: 3, background: color, display: "inline-block", flex: "0 0 auto", border: "1px solid rgba(0,0,0,.15)" }} />
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
     </div>

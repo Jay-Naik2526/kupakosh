@@ -84,3 +84,55 @@ export function Controls({ lang, toggles, setToggles, viewMode, setViewMode, opa
     </div>
   );
 }
+
+/** Full-page variant: one slim toolbar above the canvas, so nothing sits on top of the 3D view.
+ *  Layer switches live in a small drop-down; view buttons, the two sliders and reset stay visible. */
+export function ControlsBar({ lang, toggles, setToggles, viewMode, setViewMode, opacity, setOpacity, vertExag, setVertExag, onReset }: {
+  lang: Lang; toggles: LayerToggles; setToggles: (t: LayerToggles) => void;
+  viewMode: ViewMode; setViewMode: (v: ViewMode) => void;
+  opacity: number; setOpacity: (n: number) => void; vertExag: number; setVertExag: (n: number) => void;
+  onReset: () => void;
+}) {
+  const toggle = (k: keyof LayerToggles) => setToggles({ ...toggles, [k]: !toggles[k] });
+  const layers: [keyof LayerToggles, string][] = [
+    ["activeWell", tr(lang, "Active well", "सक्रिय कूप")],
+    ["offsetWells", tr(lang, "Offset wells", "निकटवर्ती कूप")],
+    ["formations", tr(lang, "Formation block", "संरचना खंड")],
+    ["riskBands", tr(lang, "Risk bands", "जोखिम पट्टी")],
+    ["labels", tr(lang, "Labels", "लेबल")],
+    ["depthMarkers", tr(lang, "Depth markers", "गहराई चिह्न")],
+    ["grid", tr(lang, "Grid", "ग्रिड")],
+  ];
+  const on = layers.filter(([k]) => toggles[k]).length;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
+      <div style={{ display: "flex", gap: 4 }} role="group" aria-label={tr(lang, "View", "दृश्य")}>
+        {(["3d", "top", "side", "section"] as ViewMode[]).map((v) => (
+          <button key={v} type="button" aria-pressed={viewMode === v} style={btnStyle(viewMode === v)} onClick={() => setViewMode(v)}>
+            {v === "3d" ? "3D" : v === "top" ? tr(lang, "Top", "ऊपर") : v === "side" ? tr(lang, "Side", "बगल") : tr(lang, "Section", "काट")}
+          </button>
+        ))}
+      </div>
+      <details style={{ position: "relative" }}>
+        <summary className="btn" style={{ listStyle: "none", cursor: "pointer", padding: "3px 10px" }}>
+          {tr(lang, "Layers", "परतें")} <span className="mono">{on}/{layers.length}</span> ▾
+        </summary>
+        <div style={{ ...tipStyle, position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 30, display: "grid", gap: 3, minWidth: 170 }}>
+          {layers.map(([key, label]) => (
+            <label key={key} style={rowStyle}><input type="checkbox" checked={toggles[key]} onChange={() => toggle(key)} /> {label}</label>
+          ))}
+        </div>
+      </details>
+      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="label">{tr(lang, "Opacity", "अपारदर्शिता")}</span>
+        <input type="range" min={0.15} max={0.95} step={0.05} value={opacity} style={{ width: 90, accentColor: "var(--accent)" }} onChange={(e) => setOpacity(Number(e.target.value))} />
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span className="label">{tr(lang, "Vertical ×", "ऊर्ध्वाधर ×")}</span>
+        <input type="range" min={1} max={8} step={0.5} value={vertExag} style={{ width: 90, accentColor: "var(--accent)" }} onChange={(e) => setVertExag(Number(e.target.value))} />
+        <span className="mono">{vertExag}×</span>
+      </label>
+      <button type="button" className="btn" style={{ marginLeft: "auto", padding: "3px 10px" }} onClick={onReset}>{tr(lang, "Reset view", "दृश्य रीसेट")}</button>
+    </div>
+  );
+}
