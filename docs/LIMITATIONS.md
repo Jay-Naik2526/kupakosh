@@ -18,7 +18,7 @@
 10. **Depths are MD.** Most exploration wells have no public trajectory here, so the mud window and correlation are approximate for deviated wells. FORGE wells have full surveys.
 11. **The live look-ahead is a replay** of recorded FORGE sensor data. There is no WITSML/eRTMAC adapter.
 12. **Target stack not verified.** It runs on SQLite. PostGIS, pgvector, Alembic and Docker are described but not verified on the build machine.
-13. **Reviewer names are demo placeholders** (R. Das, A. Sharma) from `config/default.yaml`. No wiki page is approved until a person approves it.
+13. **Reviewer names are demo placeholders** (R. Das, A. Sharma) from `config/default.yaml`. Wiki approvals so far are AI approvals (item 19), not engineer approvals.
 14. **Not built:**
     - Volve DDR XML ingest (licence access);
     - "Send for review" on the brief;
@@ -37,4 +37,4 @@
 16. **India Analogs** use lithology and depth analogues from outside India. They are not Indian well records, and the fixes shown are scoped per well, not per interval.
 17. **3D view assumptions.** Wells without a survey are drawn vertical (labelled "assumed vertical"). Positions are projected locally, which is valid within about 50 km.
 18. **AI-reviewed events (28 Sept 2026).** The 1,851 low-confidence events in the review queue were reviewed by an AI pass (8 AI reviewers reading each verbatim sentence; brief in `docs/AI_REVIEW.md`), at the project lead's explicit request because no engineer was available. Result: 993 confirmed, 86 relabelled, 772 rejected; 20 depths added only when quoted verbatim from the sentence, 36 unverifiable auto-depths cleared. These events carry `method = ai_review` (reviewer "AI review, authorised by Jay Naik") and are **not** engineer-verified. Afterwards: 1,851 trusted events (1,079 AI-reviewed); Hindsight AUC 0.86, problem layer flagged ahead 79.5 % at 15 alerts per well and 84.2 % at 20; extraction recall on the AI-made gold set fell from 0.92 to 0.87 because some rule events the gold set counts were rejected.
-
+19. **AI-approved wiki pages (29 Sept 2026).** At the project lead's explicit request (no engineer available), all 951 wiki pages were approved by `backend/scripts/approve_wiki_ai.py`. It re-ran the compiler's citation check on every page (every sentence must carry a citation; the compiler had already rejected unsupported numbers) and required at least one cited source; all 950 pending pages passed. Each approval is a normal noting para and git commit with reviewer "AI review, authorised by Jay Naik" and role "AI reviewer (not engineer-verified)". This checks form (citations present), not engineering judgement. A page whose content changes on a recompile goes back to draft.

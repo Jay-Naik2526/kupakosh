@@ -43,7 +43,7 @@ On top of these sit an honest hazard model, a look-ahead alert that warns before
 
 | Feature | In one line |
 |---|---|
-| **Well Wiki** | Compiled once, cited on every sentence, approved by an engineer through government-file-style noting, versioned in git. Uncited sentences and unsupported numbers are rejected by the compiler. |
+| **Well Wiki** | Cited on every sentence, approved through government-file-style noting (Approve / Edit / Return, each a numbered note and a git commit), versioned in git. Uncited sentences and unsupported numbers are rejected by the compiler. |
 | **"What actually worked" ledger** | Each fix is ranked by its success rate *and* the lower bound of that rate (Wilson). Cases, median time to resolve, and **"made worse"** counts are shown. Fewer than 3 cases is tagged *anecdotal*. |
 | **Hindsight test** | The model is replayed blind on real history: for each well, it only sees *other* wells, then we check whether it flagged the layer where trouble really happened. |
 | **Honest hazard model** | Probability with an 80 % range and the evidence count behind it. When the evidence is thin, it says **"insufficient evidence"** instead of guessing. |
@@ -121,7 +121,7 @@ We replayed **304 public wells** (Norway and the USA) layer by layer. For every 
 | Casing strings | **9,133** |
 | Mud checks | **35,975** |
 | Real rig-sensor samples (replay) | **3,50,172** |
-| Wiki pages compiled | **951** |
+| Wiki pages approved | **951** |
 
 <details>
 <summary><b>By country</b></summary>
@@ -215,9 +215,9 @@ data/       raw downloads and the built database (gitignored)
 
 - **Stand-in data.** Public records from other countries, not Oil India's. Reports under-record problems, so rates are rates of *recorded* problems.
 - **The hazard model alone has no measured skill** (its Brier score equals the base rate's). The learned ranker in the Hindsight test is what adds the lift.
-- **Gold labels and 1,079 event reviews were made by an AI pass**, at the project lead's request, and are marked `ai_review`. They still need an engineer's check before any external claim.
+- **Gold labels, 1,079 event reviews and the wiki approvals were made by an AI pass**, at the project lead's request, and are marked `ai_review`. They still need an engineer's check before any external claim.
 - **The live feed is a replay** of recorded Utah FORGE sensor data, labelled `REPLAY`. There is no eRTMAC/WITSML adapter yet.
-- **Reviewer names are demo placeholders.** A wiki page counts as approved only after a person approves it.
+- **All 951 wiki pages were approved by an AI review**, marked "AI review, authorised by Jay Naik", after a check that every sentence is cited. An engineer should re-approve them before use. The names R. Das and A. Sharma are demo placeholders.
 
 The full list, with numbers: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md).
 
