@@ -48,3 +48,9 @@ def test_review_creates_commit_and_noting(db_ready):
     assert r["status"] == "returned"
     assert len(c.get(f"/api/wiki/{slug}/noting").json()) == len(before) + 1
     assert len(c.get(f"/api/wiki/{slug}/history").json()) == len(hist0) + 1
+    # This test runs against the real database: put the page back the way it was so a test run never
+    # leaves a reviewed page "returned".
+    prev = next((n for n in reversed(before) if n["action"] in ("approve", "return", "edit")), None)
+    if prev and prev["action"] == "approve":
+        c.post(f"/api/wiki/{slug}/review", json={"action": "approve", "reviewer": prev["author"], "role": "restored after test",
+                                                  "note": "Status restored after automated test"})

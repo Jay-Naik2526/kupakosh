@@ -14,7 +14,6 @@ import re
 from functools import lru_cache
 
 import numpy as np
-from rank_bm25 import BM25Okapi
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -42,11 +41,13 @@ def tok(s: str) -> list[str]:
 
 @lru_cache(maxsize=1)
 def _index():
+    """Keyword index over every report sentence. Same scores as rank_bm25.BM25Okapi, stored sparse (app/search/bm25.py);
+    tokens are recomputed on demand for the few candidates that need them, so the index fits a 2 GB server."""
     from app.db.session import SessionLocal
+    from app.search.bm25 import LazyTokens, SparseBM25
     with SessionLocal() as db:
-        rows = db.execute(select(Passage.id, Passage.text, Passage.document_id, Passage.locator, Passage.well_id)).all()
-    docs = [tok(r[1]) for r in rows]
-    return BM25Okapi(docs), rows, docs
+        rows = [tuple(r) for r in db.execute(select(Passage.id, Passage.text, Passage.document_id, Passage.locator, Passage.well_id)).all()]
+    return SparseBM25(tok(r[1]) for r in rows), rows, LazyTokens([r[1] for r in rows], tok)
 
 
 @lru_cache(maxsize=1)
@@ -137,10 +138,9 @@ def _dense_scores(q: str) -> np.ndarray | None:
     m = _dense_map()
     if m is None:
         return None
-    ids, vec = embeddings.index()
     c = cfg()["embeddings"]
     qv = embeddings.model().encode([c["query_prefix"] + q], normalize_embeddings=True)[0].astype(np.float32)
-    s = vec @ qv
+    s = embeddings.cosine(qv)
     return np.where(m >= 0, s[np.maximum(m, 0)], -1.0)
 
 

@@ -64,9 +64,20 @@ def build(db, log=print, rebuild: bool = False) -> dict:
 
 @lru_cache(maxsize=1)
 def index():
+    """(passage ids, vectors). Vectors stay float16 as stored (half the memory of float32); cosine() widens a chunk at a time."""
     if not (VEC.exists() and IDS.exists()):
         return None
-    return np.load(IDS), np.load(VEC).astype(np.float32)
+    return np.load(IDS), np.load(VEC)
+
+
+def cosine(qv: np.ndarray, chunk: int = 32768) -> np.ndarray:
+    """Cosine of a normalised query vector with every stored vector, computed in float32 chunks."""
+    _, vec = index()
+    qv = qv.astype(np.float32)
+    out = np.empty(len(vec), dtype=np.float32)
+    for s in range(0, len(vec), chunk):
+        out[s:s + chunk] = vec[s:s + chunk].astype(np.float32) @ qv
+    return out
 
 
 def available() -> bool:
@@ -81,7 +92,7 @@ def search(q: str, n: int) -> list[tuple[int, float]]:
     ids, vec = ix
     c = cfg()["embeddings"]
     qv = model().encode([c["query_prefix"] + q], normalize_embeddings=True)[0].astype(np.float32)
-    s = vec @ qv
+    s = cosine(qv)
     top = np.argpartition(-s, min(n, len(s) - 1))[:n]
     top = top[np.argsort(-s[top])]
     return [(int(ids[i]), float(s[i])) for i in top]
