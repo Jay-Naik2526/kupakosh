@@ -188,7 +188,7 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
 
               {toggles.riskBands && riskBands.map((b) => (
                 <RiskBand key={b.formation} half={half} z={b.z} color={b.color} vertExag={vertExag}
-                  label={toggles.labels ? bandTag(b, lang) : ""} onSelect={() => setSelectedBand(b)} />
+                  label={toggles.labels ? bandTag(b, lang) : ""} active={selectedBand?.formation === b.formation} onSelect={() => setSelectedBand(b)} />
               ))}
 
               {activeWell && toggles.activeWell && (
@@ -216,7 +216,7 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
         </Canvas>
 
         {/* Controls (left) */}
-        <div style={{ position: "absolute", top: 10, left: 10 }}>
+        <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
           <Controls
             lang={lang} toggles={toggles} setToggles={setToggles} viewMode={viewMode} setViewMode={setViewMode}
             opacity={opacity} setOpacity={setOpacity} vertExag={vertExag} setVertExag={setVertExag}
@@ -227,7 +227,7 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
 
         {/* Legend (top-right) — built only from what's actually in the scene */}
         {!compact && (
-          <div style={{ position: "absolute", top: 10, right: 10, ...tipStyle, maxWidth: 220 }}>
+          <div style={{ position: "absolute", top: 10, right: 10, zIndex: 20, ...tipStyle, whiteSpace: "normal", width: 210, overflowY: "auto", maxHeight: "calc(100% - 20px)" }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>{t("subsurfaceLegend", lang)}</div>
             <LegendRow color={BRAND.via} label={t("subsurfaceActiveWell", lang)} />
             {offsetWells.slice(0, 6).map((w, i) => <LegendRow key={w.well_id} color={wellColor(i)} label={w.name} />)}
@@ -240,21 +240,32 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
                 <>
                   {hazardsPresent.length > 0 && <div style={{ marginTop: 6, fontWeight: 600 }}>{tr(lang, "Hazards", "जोखिम")}</div>}
                   {hazardsPresent.map((h) => <LegendRow key={h} color={hazardColor(h)} label={hazardText(h, lang)} />)}
+                  {toggles.riskBands && riskBands.length > 0 && (
+                    <>
+                      <div style={{ marginTop: 6, fontWeight: 600 }}>{tr(lang, "Risk layers", "जोखिम परतें")}</div>
+                      {[...riskBands].sort((a, b) => b.z - a.z).map((b) => (
+                        <button key={b.formation} type="button" onClick={() => setSelectedBand(b)} title={bandTag(b, lang)}
+                          style={{ all: "unset", cursor: "pointer", display: "block", width: "100%", borderRadius: 4, padding: "1px 2px", background: selectedBand?.formation === b.formation ? "var(--surface-2)" : "transparent" }}>
+                          <LegendRow color={b.color} label={`${b.label} · ${b.nWells} ${b.nWells === 1 ? tr(lang, "well", "कूप") : tr(lang, "wells", "कूप")}`} />
+                        </button>
+                      ))}
+                    </>
+                  )}
                 </>
               );
             })()}
           </div>
         )}
 
-        {scene.wells.some((w) => w.assumed_vertical) && (
-          <div style={{ position: "absolute", bottom: compact ? 10 : 46, left: 10, ...tipStyle, color: "var(--caution)" }}>
+        {scene.wells.some((w) => w.assumed_vertical) && !(selected || selectedLayer || selectedBand) && (
+          <div style={{ position: "absolute", bottom: compact ? 10 : 46, left: 10, zIndex: 20, ...tipStyle, color: "var(--caution)" }}>
             ⚠ {t("subsurfaceAssumedVertical", lang)}: {scene.wells.filter((w) => w.assumed_vertical).length}
           </div>
         )}
 
         {/* Selected-event / layer / band side card (bottom-left) */}
         {(selected || selectedLayer || selectedBand) && (
-          <div style={{ position: "absolute", bottom: 10, left: 10, maxWidth: 320, ...tipStyle }}>
+          <div style={{ position: "absolute", bottom: 10, left: 10, zIndex: 20, maxWidth: 320, ...tipStyle }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
               <strong>{selected ? hazardText(selected.hazard, lang) : selectedLayer ? selectedLayer.label : selectedBand?.label}</strong>
               <button className="btn" style={{ padding: "1px 7px" }} onClick={() => { setSelected(null); setSelectedLayer(null); setSelectedBand(null); }} aria-label="close">✕</button>
@@ -279,8 +290,8 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
           </div>
         )}
 
-        <div style={{ position: "absolute", bottom: 10, right: 10, ...tipStyle, maxWidth: 240 }}>{scene.projection}</div>
       </div>
+      <div className="label" style={{ margin: "0 2px" }}>{scene.projection}</div>
 
       {activeWell && <DepthProfileStrip well={activeWell} bitMd={bitMd} lang={lang} />}
     </div>

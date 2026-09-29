@@ -15,7 +15,7 @@ export const tipStyle: CSSProperties = {
   background: "var(--surface, #fff)", color: "var(--text, #101828)", border: "1px solid var(--border, #E4E7EC)",
   borderRadius: 6, padding: "6px 9px", fontSize: 12, lineHeight: 1.4, whiteSpace: "nowrap",
 };
-const tickStyle: CSSProperties = { color: "var(--text-2, #5D6673)", fontSize: 10, fontFamily: "var(--font-plex-mono), ui-monospace, monospace", fontWeight: 600 };
+const tickStyle: CSSProperties = { color: "var(--text-2, #5D6673)", fontSize: 10, fontFamily: "var(--font-plex-mono), ui-monospace, monospace", fontWeight: 600, whiteSpace: "nowrap", transform: "translate(6px, -50%)" };
 
 export function toScene(x: number, y: number, z: number, vertExag: number): [number, number, number] {
   // three.js: Y is "up". Scene y (screen-vertical) = depth; scene z (screen-depth) = geographic north.
@@ -73,14 +73,14 @@ export function DerrickGlyph({ well, color, half, isActive }: { well: SceneWell;
         <meshStandardMaterial color={color} roughness={0.4} metalness={0.3} emissive={color} emissiveIntensity={isActive ? 0.35 : 0.1} />
       </mesh>
       {(isActive || hover) && (
-        <Html position={[0, s * 3.6, 0]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, s * 3.6, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
           <div style={{ ...tipStyle, fontWeight: isActive ? 700 : 500, borderColor: color }}>
             {well.name}{isActive ? " ★" : ""}
           </div>
         </Html>
       )}
       {hover && (
-        <Html position={[0, s * 1.2, 0]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, s * 1.2, 0]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
           <div style={tipStyle}>
             {well.country ?? "—"}{well.field ? ` · ${well.field}` : ""}
             {well.distance_m !== undefined && <div>{Math.round(well.distance_m).toLocaleString("en-IN")} m away</div>}
@@ -110,7 +110,7 @@ export function EventSphere({ ev, vertExag, lang, onSelect }: { ev: SceneEvent; 
         <meshBasicMaterial color={color} transparent opacity={hover ? 0.28 : 0.16} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
       {hover && (
-        <Html style={{ pointerEvents: "none" }}>
+        <Html zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
           <div style={tipStyle}>
             <strong style={{ color }}>{hazardText(ev.hazard, lang)}</strong>
             <div>{Math.round(ev.md)} m{ev.formation ? ` · ${ev.formation}` : ""}</div>
@@ -123,8 +123,8 @@ export function EventSphere({ ev, vertExag, lang, onSelect }: { ev: SceneEvent; 
 }
 
 /** A glowing translucent depth band where recorded events cluster in a formation, tagged with a real count. */
-export function RiskBand({ half, z, color, label, vertExag, onSelect }: {
-  half: number; z: number; color: string; label: string; vertExag: number; onSelect?: () => void;
+export function RiskBand({ half, z, color, label, vertExag, active, onSelect }: {
+  half: number; z: number; color: string; label: string; vertExag: number; active?: boolean; onSelect?: () => void;
 }) {
   const [hover, setHover] = useState(false);
   const y = z * SCALE * vertExag;
@@ -139,9 +139,12 @@ export function RiskBand({ half, z, color, label, vertExag, onSelect }: {
         <ringGeometry args={[r * 0.9, r * 1.08, 64]} />
         <meshBasicMaterial color={color} transparent opacity={hover ? 0.28 : 0.14} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
-      <Html position={[r * 1.05, 0, r * 1.05]} style={{ pointerEvents: "none" }}>
-        <div style={{ ...tipStyle, borderColor: color, fontWeight: 600 }}>{label}</div>
-      </Html>
+      {/* Label only on hover/selection: always-on labels for every band piled on top of each other. The legend lists them all. */}
+      {label && (hover || active) && (
+        <Html position={[r * 1.05, 0, r * 1.05]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+          <div style={{ ...tipStyle, borderColor: color, fontWeight: 600 }}>{label}</div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -157,7 +160,7 @@ export function FormationTopMarker({ x, y, z, color, vertExag, hoverLabel }: { x
         <ringGeometry args={[0.05, 0.075, 20]} />
         <meshBasicMaterial color={color} side={THREE.DoubleSide} />
       </mesh>
-      {hover && <Html style={{ pointerEvents: "none" }}><div style={tipStyle}>{hoverLabel}</div></Html>}
+      {hover && <Html zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}><div style={tipStyle}>{hoverLabel}</div></Html>}
     </group>
   );
 }
@@ -187,7 +190,7 @@ export function PathDepthMarkers({ well, vertExag }: { well: SceneWell; vertExag
         const p = interpAtMd(well.trajectory, md);
         if (!p) return null;
         return (
-          <Html key={md} position={toScene(p[0], p[1], p[2], vertExag)} style={{ pointerEvents: "none" }}>
+          <Html key={md} position={toScene(p[0], p[1], p[2], vertExag)} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
             <div style={{ ...tickStyle, background: "var(--surface, #fff)", border: "1px solid var(--border,#E4E7EC)", borderRadius: 4, padding: "1px 5px" }}>{md.toLocaleString("en-IN")} m</div>
           </Html>
         );
@@ -225,7 +228,7 @@ function NorthArrow({ size, colors }: { size: number; colors: ThemeColors }) {
         <coneGeometry args={[len * 0.12, len * 0.3, 8]} />
         <meshBasicMaterial color={colors.text} />
       </mesh>
-      <Html position={[tip[0], tip[1], tip[2] + len * 0.15]} style={{ pointerEvents: "none" }}>
+      <Html position={[tip[0], tip[1], tip[2] + len * 0.15]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
         <div style={{ ...tipStyle, fontWeight: 700 }}>N</div>
       </Html>
     </group>
@@ -243,10 +246,10 @@ export function DepthTicks({ maxDepthM, x, zPos, colors, vertExag }: { maxDepthM
   return (
     <group>
       <Line points={[[x, 0, zPos], [x, -maxDepthM * SCALE * vertExag, zPos]]} color={colors.text2} lineWidth={1.5} />
-      {ticks.map((d) => (
+      {ticks.filter((d) => d > 0).map((d) => (
         <group key={d}>
           <Line points={[[x, -d * SCALE * vertExag, zPos], [x + 0.06, -d * SCALE * vertExag, zPos]]} color={colors.text2} lineWidth={1.5} />
-          <Html position={[x, -d * SCALE * vertExag, zPos]} style={{ pointerEvents: "none" }}>
+          <Html position={[x, -d * SCALE * vertExag, zPos]} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
             <div style={tickStyle}>{d.toLocaleString("en-IN")} m</div>
           </Html>
         </group>

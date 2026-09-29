@@ -94,7 +94,7 @@ function FormationSlab({ layer, bottomZ, half, vertExag, opacity, showLabel, cli
         <lineBasicMaterial color={layer.color} clippingPlanes={clip} />
       </lineSegments>
       {showLabel && (
-        <Html position={labelPos} style={{ pointerEvents: "none" }}>
+        <Html position={labelPos} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
           <div style={{ ...tipStyle, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: layer.color, flex: "0 0 auto", border: "1px solid rgba(0,0,0,.2)" }} />
             <strong>{layer.label}</strong>
