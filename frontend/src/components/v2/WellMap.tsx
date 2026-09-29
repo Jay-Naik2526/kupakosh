@@ -54,12 +54,14 @@ export function WellMap({
   const [n, setN] = useState(0);
   const [err, setErr] = useState<string | null>(null);
   const [base, setBase] = useState<BaseStyleId>(theme === "dark" ? "dark" : "streets");
-  const [layersOpen, setLayersOpen] = useState(true);
   const [layers, setLayers] = useState<Layers>(DEFAULT_LAYERS);
   const [colorMode, setColorMode] = useState<WellColorMode>("country");
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const is3D = base === "terrain" || layers.terrain;
+  const drawRef = useRef<() => void>(() => {});
+  const is3DRef = useRef(is3D);
+  is3DRef.current = is3D;
 
   const draw = useCallback(() => {
     const m = map.current;
@@ -84,6 +86,7 @@ export function WellMap({
     setBordersLabelsVisible(m, layers.borders);
     setHillshadeVisible(m, is3D);
   }, [country, activeWell, radiusKm, colorMode, layers, is3D]);
+  drawRef.current = draw;
 
   // Init map + load data once.
   useEffect(() => {
@@ -99,9 +102,10 @@ export function WellMap({
     m.addControl(new maplibregl.FullscreenControl(), "top-right");
     m.addControl(new maplibregl.AttributionControl({ compact: false }), "bottom-right");
 
-    m.on("load", () => { setLoaded(true); draw(); });
-    // A style swap (base-style switch, theme change) wipes runtime-added sources/layers — redraw after it settles.
-    m.on("style.load", () => draw());
+    // "style.load" (not "load") marks the map usable: "load" waits for every tile to finish, and with a busy
+    // basemap it can arrive very late or not at all, which left the wells undrawn and the style buttons dead.
+    // It also fires after every setStyle(), so runtime layers are redrawn after a base-style switch.
+    m.on("style.load", () => { setLoaded(true); drawRef.current(); if (is3DRef.current) enableTerrain(m); else m.setTerrain(null); });
     m.on("mousemove", (e) => setCoords({ lat: e.lngLat.lat, lon: e.lngLat.lng }));
 
     const onClusterClick = (e: maplibregl.MapMouseEvent) => {
@@ -170,17 +174,18 @@ export function WellMap({
     Promise.all([
       get<any>("/api/geo/wells").then((r) => { wellsRef.current = decodeGeoWells(r); }),
       get<any>("/api/geo/basins").then((r) => { basinsRef.current = r; }),
-    ]).then(() => { if (m.isStyleLoaded()) draw(); setDataLoaded(true); }).catch((e) => setErr(String(e?.message ?? e)));
+    ]).then(() => setDataLoaded(true)).catch((e) => setErr(String(e?.message ?? e)));
 
     return () => { if (pulseRaf.current) cancelAnimationFrame(pulseRaf.current); m.remove(); map.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Redraw when filters/props that affect layers change (cheap: sources already loaded, this just calls setData).
-  useEffect(() => { if (loaded) draw(); }, [loaded, draw]);
+  // During a base-style swap the style is briefly not loaded; skip then — the "style.load" handler redraws.
+  useEffect(() => { if (loaded && dataLoaded) { try { draw(); } catch { /* style mid-swap */ } } }, [loaded, dataLoaded, draw]);
 
   // Well colour mode (country vs top hazard) — cheap paint-property swap, no redraw needed.
-  useEffect(() => { if (map.current && loaded) setWellColorMode(map.current, colorMode); }, [colorMode, loaded]);
+  useEffect(() => { if (map.current && loaded) { try { setWellColorMode(map.current, colorMode); } catch { /* style mid-swap */ } } }, [colorMode, loaded]);
 
   // Base style switch: swap the style; "style.load" (registered above) redraws our runtime layers.
   const baseRef = useRef(base);
@@ -188,7 +193,7 @@ export function WellMap({
     const m = map.current;
     if (!m || !loaded || baseRef.current === base) return;
     baseRef.current = base;
-    m.setStyle(styleFor(base) as any);
+    m.setStyle(styleFor(base) as any, { diff: false });
   }, [base, loaded]);
 
   // Keep base in sync with the app-wide light/dark theme (only when the user hasn't picked Satellite/Terrain explicitly at init time).
@@ -198,8 +203,8 @@ export function WellMap({
   useEffect(() => {
     const m = map.current;
     if (!m || !loaded) return;
-    if (is3D) { enableTerrain(m); m.easeTo({ pitch: 60, bearing: -10, duration: 600 }); }
-    else { disableTerrain(m); m.easeTo({ pitch: 0, bearing: 0, duration: 600 }); }
+    if (is3D) { try { enableTerrain(m); } catch { /* style mid-swap; style.load re-applies it */ } m.easeTo({ pitch: 60, bearing: -10, duration: 600 }); }
+    else { try { disableTerrain(m); } catch { /* style mid-swap: the new style starts without terrain anyway */ } m.easeTo({ pitch: 0, bearing: 0, duration: 600 }); }
   }, [is3D, loaded]);
 
   // Pulsing active-well marker (real location, animation only — no invented data).
@@ -209,7 +214,7 @@ export function WellMap({
     const t0 = performance.now();
     const tick = (t: number) => {
       const phase = ((t - t0) / 1400) % 1;
-      setActiveWellPulse(m, 9 + phase * 10, 0.9 * (1 - phase));
+      try { setActiveWellPulse(m, 9 + phase * 10, 0.9 * (1 - phase)); } catch { /* style mid-swap */ }
       pulseRaf.current = requestAnimationFrame(tick);
     };
     pulseRaf.current = requestAnimationFrame(tick);
@@ -236,84 +241,83 @@ export function WellMap({
   const legendCountries = Object.keys(COUNTRY_COLOR).filter((c) => wellsRef.current.some((w) => w.country === c));
   const legendHazards = Object.keys(HAZARD_COLOR).filter((h) => wellsRef.current.some((w) => w.topHazard === h));
 
+  const layerCount = [layers.wells, layers.clusters, layers.heatmap, layers.basins, layers.borders, is3D, layers.radius].filter(Boolean).length;
+
   return (
-    <div className={className} style={{ position: "relative", height, width: "100%" }}>
-      <div ref={el} style={{ position: "absolute", inset: 0, borderRadius: "var(--radius-lg, 12px)", overflow: "hidden",
-                              border: "1px solid var(--border, #E4E7EC)" }} role="img" aria-label="map of wells" />
-
-      {/* Base-style switcher */}
-      <div style={{ position: "absolute", left: 12, top: 12, zIndex: 1, display: "flex", background: "var(--surface, #FBFAF6)",
-                    border: "1px solid var(--border, #E4E7EC)", borderRadius: 6, padding: 3, gap: 2 }}
-           role="group" aria-label="map base style">
-        {BASE_STYLES.map((s) => (
-          <button key={s.id} type="button" aria-pressed={base === s.id} onClick={() => setBase(s.id)}
-            style={{ font: "600 11px IBM Plex Sans, sans-serif", padding: "5px 9px", borderRadius: 4, cursor: "pointer", border: "none",
-                     background: base === s.id ? "var(--text, #1B1A17)" : "transparent",
-                     color: base === s.id ? "var(--surface, #FBFAF6)" : "var(--text, #1B1A17)" }}>
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Layers panel */}
-      <div style={{ position: "absolute", left: 12, top: 50, zIndex: 1, width: layersOpen ? 190 : "auto",
-                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 6,
-                    overflow: "hidden" }}>
-        <button type="button" onClick={() => setLayersOpen((v) => !v)} aria-expanded={layersOpen}
-          style={{ width: "100%", textAlign: "left", font: "700 11px IBM Plex Sans, sans-serif", padding: "6px 10px", border: "none",
-                   background: "transparent", cursor: "pointer", color: "var(--text, #1B1A17)" }}>
-          {layersOpen ? "▾ Layers" : "▸ Layers"}
-        </button>
-        {layersOpen && (
-          <div style={{ padding: "2px 10px 8px", display: "flex", flexDirection: "column", gap: 5 }}>
+    <div className={className} style={{ display: "flex", flexDirection: "column", gap: 8, height, width: "100%", minWidth: 0 }}>
+      {/* Toolbar above the map: nothing floats over the map except MapLibre's own zoom buttons. */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", fontSize: 12.5 }}>
+        <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 6, padding: 2, gap: 2, background: "var(--surface)" }}
+             role="group" aria-label="map base style">
+          {BASE_STYLES.map((s) => (
+            <button key={s.id} type="button" aria-pressed={base === s.id} onClick={() => setBase(s.id)} disabled={!loaded}
+              style={{ font: "600 12px IBM Plex Sans, sans-serif", padding: "4px 10px", borderRadius: 4, cursor: loaded ? "pointer" : "wait", border: "none",
+                       background: base === s.id ? "var(--text)" : "transparent",
+                       color: base === s.id ? "var(--surface)" : "var(--text)" }}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <details style={{ position: "relative" }}>
+          <summary className="btn" style={{ listStyle: "none", cursor: "pointer", padding: "4px 10px" }}>
+            Layers <span className="mono">{layerCount}/7</span> ▾
+          </summary>
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 30, minWidth: 190, display: "flex", flexDirection: "column", gap: 5,
+                        background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "8px 10px" }}>
             <LayerCheck label="Wells" checked={layers.wells} onChange={(v) => setLayers((l) => ({ ...l, wells: v }))} />
-            <div style={{ display: "flex", gap: 8, paddingLeft: 18, font: "11px IBM Plex Sans, sans-serif", color: "var(--text-2, #5E5A50)" }}>
-              <label style={{ display: "flex", gap: 3, alignItems: "center", cursor: "pointer" }}>
-                <input type="radio" name="wellcolor" checked={colorMode === "country"} onChange={() => setColorMode("country")} /> country
-              </label>
-              <label style={{ display: "flex", gap: 3, alignItems: "center", cursor: "pointer" }}>
-                <input type="radio" name="wellcolor" checked={colorMode === "hazard"} onChange={() => setColorMode("hazard")} /> hazard
-              </label>
-            </div>
             <LayerCheck label="Clusters" checked={layers.clusters} onChange={(v) => setLayers((l) => ({ ...l, clusters: v }))} />
             <LayerCheck label="Event heatmap" checked={layers.heatmap} onChange={(v) => setLayers((l) => ({ ...l, heatmap: v }))} />
             <LayerCheck label="Indian basins" checked={layers.basins} onChange={(v) => setLayers((l) => ({ ...l, basins: v }))} />
             <LayerCheck label="Borders & labels" checked={layers.borders} onChange={(v) => setLayers((l) => ({ ...l, borders: v }))} />
-            <LayerCheck label="Hillshade / 3D terrain" checked={is3D} onChange={(v) => setLayers((l) => ({ ...l, terrain: v }))} />
+            <LayerCheck label="Hillshade / 3D terrain" checked={is3D} onChange={(v) => { setLayers((l) => ({ ...l, terrain: v })); if (!v && base === "terrain") setBase("streets"); }} />
             <LayerCheck label="Radius circle" checked={layers.radius} onChange={(v) => setLayers((l) => ({ ...l, radius: v }))} />
           </div>
-        )}
+        </details>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }} role="radiogroup" aria-label="colour wells by">
+          <span className="label">Colour by</span>
+          <label style={{ display: "flex", gap: 4, alignItems: "center", cursor: "pointer" }}>
+            <input type="radio" name="wellcolor" checked={colorMode === "country"} onChange={() => setColorMode("country")} style={{ accentColor: "var(--accent)" }} /> country
+          </label>
+          <label style={{ display: "flex", gap: 4, alignItems: "center", cursor: "pointer" }}>
+            <input type="radio" name="wellcolor" checked={colorMode === "hazard"} onChange={() => setColorMode("hazard")} style={{ accentColor: "var(--accent)" }} /> hazard
+          </label>
+        </div>
+        <span className="mono" style={{ marginLeft: "auto", color: "var(--text-2)" }}>
+          {loaded && dataLoaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}
+        </span>
       </div>
 
-      {/* Legend + well count */}
-      <div style={{ position: "absolute", left: 12, bottom: 28, zIndex: 1, fontSize: 12, color: "var(--text, #1B1A17)",
-                    background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)", borderRadius: 6,
-                    padding: "8px 10px", maxWidth: 220 }}>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>{loaded ? `${n.toLocaleString()} located wells` : "Loading wells…"}</div>
+      <div style={{ position: "relative", flex: "1 1 auto", minHeight: 320 }}>
+        <div ref={el} style={{ position: "absolute", inset: 0, borderRadius: "var(--radius-lg, 12px)", overflow: "hidden",
+                                border: "1px solid var(--border, #E4E7EC)" }} role="img" aria-label="map of wells" />
+        {coords && (
+          <div style={{ position: "absolute", left: 10, top: 10, zIndex: 1, font: "11px IBM Plex Mono, monospace",
+                        color: "var(--text-2)", background: "var(--surface)", border: "1px solid var(--border)",
+                        borderRadius: 4, padding: "2px 6px", pointerEvents: "none" }}>
+            {coords.lat.toFixed(3)}, {coords.lon.toFixed(3)}
+          </div>
+        )}
+        {err && <div role="alert" style={{ position: "absolute", left: 12, right: 12, top: 12, background: "#FEF2F2", color: "#991B1B",
+                                            border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>{err}</div>}
+      </div>
+
+      {/* Legend strip below the map */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 14, rowGap: 3, fontSize: 12,
+                    padding: "6px 10px", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)", background: "var(--surface)" }}>
+        <span className="eyebrow" style={{ fontSize: 10.5 }}>{colorMode === "country" ? "Wells by country" : "Wells by top hazard"}</span>
         {colorMode === "country" ? (
           legendCountries.length
             ? legendCountries.map((c) => <LegendRow key={c} color={countryColor(c)} shape="circle" label={c} />)
-            : <LegendRow color="#94A3B8" shape="circle" label="wells (no country data yet)" />
+            : <LegendRow color="#94A3B8" shape="circle" label="no country data yet" />
         ) : (
           legendHazards.length
             ? legendHazards.map((h) => <LegendRow key={h} color={hazardColor(h)} shape="circle" label={h.replace(/_/g, " ")} />)
             : <LegendRow color="#94A3B8" shape="circle" label="no recorded hazards yet" />
         )}
-        <LegendRow color="#64748B" shape="square" label="Block / field aggregates" />
-        <LegendRow color="transparent" ring="#0F766E" shape="dashed" label="Indian sedimentary basins" />
+        <span style={{ width: 1, height: 14, background: "var(--border)" }} aria-hidden="true" />
+        <LegendRow color="#64748B" shape="square" label="Block / field aggregate" />
+        <LegendRow color="transparent" ring="#1F5F66" shape="dashed" label="Indian sedimentary basin" />
       </div>
-
-      {/* Coordinates readout */}
-      {coords && (
-        <div style={{ position: "absolute", right: 12, bottom: 28, zIndex: 1, font: "12px IBM Plex Mono, monospace",
-                      color: "var(--text-2, #5E5A50)", background: "var(--surface, #FBFAF6)", border: "1px solid var(--border, #E4E7EC)",
-                      borderRadius: 6, padding: "4px 8px" }}>
-          {coords.lat.toFixed(3)}, {coords.lon.toFixed(3)}
-        </div>
-      )}
-
-      {err && <div role="alert" style={{ position: "absolute", left: 12, right: 12, top: 52, background: "#FEF2F2", color: "#991B1B",
-                                          border: "1px solid #FCA5A5", borderRadius: 6, padding: "6px 10px", fontSize: 13 }}>{err}</div>}
     </div>
   );
 }
@@ -336,7 +340,7 @@ function LegendRow({ color, ring, shape, label }: { color: string; ring?: string
       <span style={{ width: 10, height: 10, borderRadius: 999, background: color, border: ring ? `1.5px solid ${ring}` : undefined, display: "inline-block", flex: "0 0 auto" }} />
     );
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2, whiteSpace: "nowrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
       {swatch}
       <span style={{ color: "var(--text-2, #5E5A50)" }}>{label}</span>
     </div>
