@@ -18,3 +18,5 @@ frontend/test-results/
 data/wiki_new/
 brag-output*/composition/node_modules/
 brag-output*/
+SPEC.md
+.claude/
