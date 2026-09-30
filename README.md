@@ -49,6 +49,7 @@ On top of these sit an honest hazard model, a look-ahead alert that warns before
 | **Honest hazard model** | Probability with an 80 % range and the evidence count behind it. When the evidence is thin, it says **"insufficient evidence"** instead of guessing. |
 | **Mud-weight window + casing lessons** | Safe mud-weight range per formation from real leak-off tests (LOT/FIT), kicks and losses, each point linked to its source. |
 | **Report checker** | Cross-checks reports against tables, other reports and rig sensors, and flags where they disagree. |
+| **Upper Assam column** | Oil India's own formations, Dhekiajuli down to Disang. Rock type, age and role (reservoir, source rock, cap rock) are all quoted from public DGH/NDR sentences with a citation on each fact. Beside each one: measured problem rates in the same rock type abroad, with range and evidence count, and what worked there. |
 | **India Analogs** | For 23 Indian sedimentary basins (NDR/DGH), finds wells abroad drilled through similar rock at similar depths, and shows what went wrong there. |
 
 ## Screens
@@ -75,7 +76,7 @@ On top of these sit an honest hazard model, a look-ahead alert that warns before
 <td><img src="docs/screenshots/08b-brief-preview.png" alt="Brief"><br><b>Brief</b> — a pre-drill brief as an official-style A4 document, downloadable as a PDF.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/12-analogs.png" alt="India Analogs"><br><b>India Analogs</b> — similar rock abroad for each Indian basin, with the source of every match.</td>
+<td><img src="docs/screenshots/12-analogs.png" alt="India Analogs"><br><b>India Analogs</b> — the Upper Assam column from cited DGH/NDR records, and similar rock abroad for each Indian basin, with the source of every match.</td>
 <td><img src="docs/screenshots/09-accuracy.png" alt="Accuracy"><br><b>Accuracy</b> — the honesty page: counts, data sources, measured accuracy and known limits.</td>
 </tr>
 </table>

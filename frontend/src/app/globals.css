@@ -142,3 +142,13 @@ html[data-theme="dark"] .kk-contours { background-image: url("data:image/svg+xml
   .kk-sidebar-collapse-btn { display: none; }
   .kk-topbar-tools .kk-hide-mobile { display: none; }
 }
+
+/* Upper Assam column (components/v2/analogs/AssamColumn.tsx): lithology strip · formation · Indian records · analogues */
+.assam-row { display: grid; grid-template-columns: 28px minmax(170px, 1fr) minmax(260px, 2.2fr) minmax(230px, 1.5fr); gap: 16px; padding: 0 20px 0 0; border-bottom: 1px solid var(--border); align-items: start; }
+.assam-row > [role="cell"] { padding: 12px 0; }
+.assam-head { padding-top: 8px; padding-bottom: 8px; background: var(--surface-2); align-items: center; }
+@media (max-width: 900px) {
+  .assam-row { grid-template-columns: 14px 1fr; }
+  .assam-row > [role="cell"]:nth-child(n+3) { grid-column: 2; padding-top: 0; }
+  .assam-head > :nth-child(n+3) { display: none; }
+}

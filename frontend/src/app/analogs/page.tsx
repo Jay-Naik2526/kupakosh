@@ -10,6 +10,7 @@ import { actionText } from "@/lib/format";
 import { BasinPicker, type Basin, type Suggestion } from "@/components/v2/analogs/BasinPicker";
 import { AnalogEvidence, type AnalogResult } from "@/components/v2/analogs/AnalogEvidence";
 import { tr } from "@/components/v2/analogs/trLocal";
+import { AssamColumn } from "@/components/v2/analogs/AssamColumn";
 
 /**
  * /analogs — "What happened in rock like this, anywhere in the world?" (docs/PLAN_V2.md USP).
@@ -73,6 +74,15 @@ export default function Analogs() {
         )}
       />
 
+      <section aria-label="Upper Assam column" className="mb-6">
+        <AssamColumn lang={lang} onPick={(l) => {
+          setLithology(l); setTop(0); setBase(6000);
+          document.getElementById("analog-query")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }} />
+      </section>
+
+      {/* Zone B: the analog query tool — picker, evidence and fixes are one zone */}
+      <section id="analog-query" aria-label="analog query">
       <section aria-label="basin and lithology" className="mb-6">
         {basins.length === 0 ? (
           <div className="label">{t("Loading…", "लोड हो रहा है…")}</div>
@@ -100,6 +110,7 @@ export default function Analogs() {
           <Register rows={result.fixes} cols={fixCols} empty={t("No fixes recorded.", "कोई उपाय दर्ज नहीं।")} />
         </section>
       )}
+      </section>
     </div>
   );
 }

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.engines import assam
 from app.engines.analogs import acfg, basin_suggestions, find_analogs
 
 router = APIRouter(prefix="/api")
@@ -38,3 +39,10 @@ def analogs_basins():
     """Indian basins with lithology/formation/depth suggestions grounded in that basin's own NDR
     summary passages (never invented — see app.engines.analogs.basin_suggestions)."""
     return {"basins": basin_suggestions()}
+
+
+@router.get("/analogs/assam")
+def analogs_assam():
+    """The Upper Assam column: each formation's rock type, age, role and depth mentions quoted from public
+    DGH/NDR sentences, with analogue drilling-problem evidence from public wells abroad in the same rock type."""
+    return assam.column()

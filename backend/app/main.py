@@ -28,6 +28,8 @@ def _warm():
         ctx()
         from app.engines import hindsight
         hindsight.summary()  # fills or refreshes the Hindsight cache before the first visitor asks
+        from app.engines import assam
+        assam.column()  # Upper Assam column (~10 s to build from the DGH/NDR sentences)
     threading.Thread(target=warm, daemon=True, name="warm").start()
 
 

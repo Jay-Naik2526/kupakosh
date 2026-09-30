@@ -1,0 +1,61 @@
+# Upper Assam column (V3 USP): Oil India's home geology, told only in the words of public DGH/NDR records,
+# joined to measured analog evidence from public wells abroad (app/engines/assam.py).
+#
+# Honesty rules (SPEC.md §0.4, §0.7):
+# - The list below only says which names to LOOK FOR and in what order to show them. Every fact shown for a
+#   formation (rock type, age, role, depth mention, field) must come from a sentence in a loaded public
+#   record, quoted with its source_ref. A formation with no such sentence is shown as "not in the records".
+# - The drilling-problem numbers are ANALOGUE evidence: public wells outside India in rock of the same class.
+#   They are never presented as Assam or Oil India records.
+
+caveat: "Geology quoted from public DGH/NDR records. Drilling-problem rates are analogue evidence from public wells outside India in the same rock type, not Assam well records."
+
+# Documents searched: any loaded document whose title contains one of these, plus any document where one of
+# the formation names below appears (so DGH activity reports that list Assam discoveries are included).
+doc_title_hints: ["Assam"]
+
+# Top (youngest) to bottom (oldest), as the units are commonly listed for the Upper Assam shelf.
+# `names` are matched as whole words, case-insensitive.
+formations:
+  - {key: dhekiajuli, label: "Dhekiajuli", names: [Dhekiajuli]}
+  - {key: dupitila,   label: "Dupitila",   names: [Dupitila]}
+  - {key: girujan,    label: "Girujan Clay", names: [Girujan]}
+  - {key: tipam,      label: "Tipam Sandstone", names: [Tipam]}
+  - {key: surma,      label: "Surma (Bokabil, Bhuban)", names: [Surma, Bokabil, Bhuban]}
+  - {key: barail,     label: "Barail", names: [Barail]}
+  - {key: kopili,     label: "Kopili", names: [Kopili]}
+  - {key: sylhet,     label: "Sylhet Limestone", names: [Sylhet]}
+  - {key: narpuh,     label: "Narpuh", names: [Narpuh]}
+  - {key: lakadong,   label: "Lakadong + Therria", names: [Lakadong, Therria]}
+  - {key: langpar,    label: "Langpar", names: [Langpar]}
+  - {key: disang,     label: "Disang", names: [Disang]}
+
+# Rock type: count lithology keywords (config/analogs.yaml `keywords`) that sit within this many characters
+# after a formation name ("Tipam Sandstone", "Girujan Clay", "Kopili Formation, consisting of shales").
+lithology_window_chars: 60
+# Extra words for this column only, on top of the analog keywords: DGH discovery tables write "Barail Sand",
+# "Langpar Sand", "Lakadong + Therria Sand".
+extra_keywords: {sandstone: [sand]}
+# If the second most frequent class has at least this share of the top class's count, call it "mixed".
+mixed_ratio: 0.5
+
+# Geological age: the epoch word closest to the formation name, within this many characters.
+age_window_chars: 40
+age_pattern: "\\b((?:Upper|Lower|Middle|Late|Early)\\s+)?(Precambrian|Cretaceous|Palaeocene|Paleocene|Eocene|Oligocene|Miocene|Pliocene|Pleistocene)\\b"
+
+# Roles, each with the phrases that establish it in a sentence mentioning the formation.
+roles:
+  reservoir: ["reservoir", "oil occurs", "oil reserves", "accumulations", "discovered", "oil & gas", "(oil)", "(gas)"]
+  source_rock: ["source rock", "source potential", "toc"]
+  cap_rock: ["cap rock", "cap rocks"]
+
+# Depth mentions such as "3350-m Lower Tipam sand" in DGH discovery tables (quoted as-is; not used as a
+# formation depth, because the tables do not say whether it is the top of the unit or the well's depth).
+depth_pattern: "(\\d{3,4})\\s*-?\\s*m\\b"
+
+# Analog query band. The public records do not give formation depths, so analogs are matched by rock
+# type at any drilled depth, and the page says so.
+analog_band_m: [0, 6000]
+max_quotes: 4
+max_hazards: 3
+max_fixes: 3
