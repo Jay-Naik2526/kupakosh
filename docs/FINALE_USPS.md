@@ -23,23 +23,26 @@ only differences we can show live and defend under questioning. Nothing here is 
 ## Our USPs, in the order to pitch them
 
 1. **The Hindsight test: proven blind on real history, including real daily drilling reports.**
-   - Results on 306 public wells and 578 real recorded problems, where the model never saw the well it was tested on:
-     - AUC 0.84 (0.81–0.86), against a field average of 0.68;
-     - 78.4 % of problem layers flagged before the bit arrived, at 15 alerts per well;
-     - right hazard in the layer's top 3 in 68.2 % of cases;
-     - exact hazard forewarned for 222 of 578, a median 394 m ahead (field average 113).
+   - Results on 306 public wells and 571 real recorded problems, where the model never saw the well it was tested on (nested cross-validation: even the model choice is made on training wells only):
+     - AUC 0.85 (0.83–0.87), against a field average of 0.68;
+     - 82.7 % of problem layers flagged before the bit arrived, at 15 alerts per well;
+     - right hazard in the layer's top 3 in 76.9 % of cases (field average 62.4 %);
+     - exact hazard forewarned for 269 of 571 (47 %), a median 383 m ahead (field average 113).
+   - **Rig hours at stake** (same page): logged rig-hours of the real Volve problems, and how many of them were in problems it had warned about blind.
    - **Why it wins:** among competitors, only PLANNS reports a real-data early warning, and that is one stuck pipe on one well (15/9-F-9A).
    - **Demo:** Hindsight page. Pick 15/9-19 S (176 daily reports): 32 of its 58 problems were forewarned, the baseline caught 0. Press "Reveal what really happened".
 2. **What actually worked, from real day-by-day reports.**
    - 1,759 real Volve daily drilling reports (23,447 timed activities) are linked problem → action → outcome over the following days.
-   - Example: jarring freed stuck pipe in 5 of 10 cases, median 0.5 h; pulling out of hole in 36 of 78.
+   - Example: jarring freed stuck pipe in 9 of 13 cases, median 0.5 h; pulling out of hole in 55 of 92.
    - **Why it wins:** PLANNS and anshu2k24 hold the same public reports but use them only for summaries and regex; nobody tracks outcomes.
-   - Events from these reports are measured: precision 0.75 on 40 random trusted events.
+   - Events from these reports are measured on a fresh random sample never used for tuning: precision 0.88 (53/60).
 3. **Compiled, cited, approved memory.**
    - 951 wiki pages, every sentence cited; the compiler rejects uncited sentences and unsupported numbers.
    - Government-file noting approval, with git history.
 4. **Honest uncertainty.** Every probability has an 80 % range and an evidence count, and says "insufficient evidence" below 3 wells.
 5. **Deployed and running**: https://kupakosh.duckdns.org (HTTPS).
+6. **Made for the rig crew**: a one-page shift-handover note in English or हिंदी (Well Room ▸ "Shift handover note"), and alerts that learn from the engineer's "problem happened / no problem" verdict without ever inflating the measured accuracy.
+7. **Honest about what failed**: episode outcomes are measured blind (0.55), and a sensor "déjà vu" idea that tested below chance is shown as a negative result, not hidden.
 
 The Upper Assam column (India Analogs page) is useful context for Oil India judges, but it is **not** a USP: it rearranges public geology text. Show it only if asked about Assam.
 

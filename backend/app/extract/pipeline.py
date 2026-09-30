@@ -36,6 +36,9 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
     db.flush()
     import re
     ctx_rx = re.compile(c["drilling_context"], re.I)
+    planned_rx = re.compile(c["planned_intervention"], re.I) if c.get("planned_intervention") else None
+    strong_rx = re.compile(c["strong_problem"], re.I) if c.get("strong_problem") else None
+    planned_kinds = set(c.get("planned_review_kinds") or [])
     tops = TopIndex(db)
     wells = {w.id: w for w in db.scalars(select(Well))}
     mud: dict[int, list[MudCheck]] = defaultdict(list)
@@ -78,11 +81,14 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
                     formation = tops.at(well.id, md)
                 if formation is None and act is not None and act.formation:
                     formation = act.formation  # no recorded tops for this well: use the formation the report line itself names
+                # planned intervention work (P&A, completion, wireline) with no clearly stated problem: keep, but for review
+                planned = (doc.kind in planned_kinds and planned_rx is not None and bool(planned_rx.search(p.text))
+                           and not (strong_rx and strong_rx.search(p.text)))
                 ev = Event(
                     well_id=well.id, passage_id=p.id, activity_id=act.id if act else None, hazard=h.hazard, md_m=md,
                     formation=formation, t=act.t_start if act else None, severity=h.severity, quantity=h.quantity, quantity_unit=h.quantity_unit,
                     mud_weight_ppg=mw, mud_weight_source=mw_src, confidence=round(min(conf, 1.0), 3),
-                    method="rule", needs_review=conf < c["review_threshold"], evidence_span=p.text,
+                    method="rule", needs_review=conf < c["review_threshold"] or planned, evidence_span=p.text,
                     source_ref=source_ref(doc, p, well),
                 )
                 db.add(ev)

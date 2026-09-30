@@ -61,9 +61,9 @@ def formation_intervals(well_id: int) -> list[dict]:
     return out
 
 
-def assess(db: Session, well_id: int, bit_md: float, anomaly: dict | None = None) -> dict:
+def assess(db: Session, well_id: int, bit_md: float, anomaly: dict | None = None, lookahead_m: float | None = None) -> dict:
     c = cfg()
-    la = c["lookahead"]["lookahead_m"]
+    la = lookahead_m if lookahead_m is not None else c["lookahead"]["lookahead_m"]
     thr = c["hazard"]["alert_threshold"]
     offs, prof = _profile(well_id)
     ints = formation_intervals(well_id)

@@ -44,8 +44,11 @@ On top of these sit an honest hazard model, a look-ahead alert that warns before
 | Feature | In one line |
 |---|---|
 | **Well Wiki** | Cited on every sentence, approved through government-file-style noting (Approve / Edit / Return, each a numbered note and a git commit), versioned in git. Uncited sentences and unsupported numbers are rejected by the compiler. |
-| **"What actually worked" ledger** | Follows each problem through the next days of **real daily drilling reports** to its outcome (e.g. Volve: jarring freed stuck pipe in 5 of 10 cases, median 0.5 h). Each fix is ranked by its success rate *and* the lower bound of that rate (Wilson), with median time to resolve and **"made worse"** counts. Fewer than 3 cases is tagged *anecdotal*. |
+| **"What actually worked" ledger** | Follows each problem through the next days of **real daily drilling reports** to its outcome (e.g. Volve: jarring freed stuck pipe in 9 of 13 cases, median 0.5 h). Each fix is ranked by its success rate *and* the lower bound of that rate (Wilson), with median time to resolve and **"made worse"** counts. Fewer than 3 cases is tagged *anecdotal*. |
 | **Hindsight test** | The model is replayed blind on real history: for each well, it only sees *other* wells, then we check whether it flagged the layer where trouble really happened. |
+| **Rig hours at stake** | From the timed lines of real daily reports: how many logged rig-hours the real problems took, and how many of those hours were in problems Kupakosh had warned about blind. Hours only, no invented money figure. |
+| **Shift-handover note (English / हिंदी)** | One page for the next shift at the current bit depth: layers coming up, what to watch for with probability and range, what worked before (k of n) and a real offset report line. A plain-text copy fits a chat message. |
+| **Self-correcting alerts** | The engineer marks an alert "problem happened / no problem". A "problem" verdict becomes a human-labelled record that estimates for other wells learn from at once. The Hindsight test never scores on these labels, so feedback cannot inflate the measured accuracy. |
 | **Honest hazard model** | Probability with an 80 % range and the evidence count behind it. When the evidence is thin, it says **"insufficient evidence"** instead of guessing. |
 | **Mud-weight window + casing lessons** | Safe mud-weight range per formation from real leak-off tests (LOT/FIT), kicks and losses, each point linked to its source. |
 | **Report checker** | Cross-checks reports against tables, other reports and rig sensors, and flags where they disagree. |
@@ -60,7 +63,7 @@ On top of these sit an honest hazard model, a look-ahead alert that warns before
 <td width="50%"><img src="docs/screenshots/01-command-replay.png" alt="Well Room"><br><b>Well Room</b> — a <code>REPLAY</code> of real rig-sensor data. About 150 m before a risky layer, the alert shows the hazard, its probability and range, and what worked before.</td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/13-hindsight.png" alt="Hindsight"><br><b>Hindsight</b> — the blind test on 578 real problems, with its trade-off curve; pick any well, see its alerts blind, then reveal what really happened.</td>
+<td><img src="docs/screenshots/13-hindsight.png" alt="Hindsight"><br><b>Hindsight</b> — the blind test on 571 real problems, with its trade-off curve; pick any well, see its alerts blind, then reveal what really happened.</td>
 <td><img src="docs/screenshots/10-map.png" alt="Map"><br><b>Map</b> — every located well in 8 countries, Indian basins, radius search; Streets, Terrain (3D), Satellite and Dark base maps.</td>
 </tr>
 <tr>
@@ -85,14 +88,14 @@ Also: **Mud Window**, **Checker**, a **Ctrl+K** command palette, an **EN / ह�
 
 ## The proof: the Hindsight test
 
-We replayed **306 public wells** (Norway and the USA), including wells whose problems come from **real Volve daily drilling reports**, layer by layer. For every well, the model was trained on *other* wells only (grouped 5-fold cross-validation by well family). In live mode it may read the well's own reports only from above the alert point. Then we checked it against **449 real recorded problems** across **36,776 layer cells**.
+We replayed **306 public wells** (Norway and the USA), including wells whose problems come from **real Volve daily drilling reports**, layer by layer. For every well, the model was trained on *other* wells only (grouped 5-fold cross-validation by well family). In live mode it may read the well's own reports only from above the alert point. Then we checked it against **571 real recorded problems** across **37,160 layer cells**. The model itself (one tree model, an average of three, or that average plus the neighbouring layers' estimates) is chosen inside each training fold by a second cross-validation, so the tested wells never pick it (**nested** cross-validation).
 
 | Measure | Kupakosh | Comparison | What it means |
 |---|:-:|:-:|---|
-| **Ranking accuracy (AUC)** | **0.84** <sub>(95 % CI 0.814–0.859)</sub> | field average 0.68 | Picks a real problem layer over a quiet one 84 times in 100. |
-| **Problem layer flagged before the bit arrived** | **78.4 %** | — | At 15 alerts per well. The trade-off: 57.1 % at 6 · 68.9 % at 10 · 83.6 % at 20. |
-| **Right hazard in the layer's top 3** | **68.2 %** | random 37.5 % · field average 59.7 % | When trouble came, the true hazard was among the three named. |
-| **Exact hazard forewarned** | **222 / 578** | field average 113 / 578 | At about 6 alerts per well, a median **394 m** before the bit got there. |
+| **Ranking accuracy (AUC)** | **0.85** <sub>(95 % CI 0.828–0.874)</sub> | field average 0.68 | Picks a real problem layer over a quiet one 85 times in 100 (blind pre-drill: 0.83). |
+| **Problem layer flagged before the bit arrived** | **82.7 %** | — | At 15 alerts per well. The trade-off: 62.7 % at 6 · 70.6 % at 10 · 86.0 % at 20. |
+| **Right hazard in the layer's top 3** | **76.9 %** | random 37.5 % · field average 62.4 % | When trouble came, the true hazard was among the three named (top 1: 50.8 %). |
+| **Exact hazard forewarned** | **269 / 571** <sub>(47 %)</sub> | field average 113 / 571 | At about 6 alerts per well, a median **383 m** before the bit got there. |
 
 > [!NOTE]
 > These are not "alerts that were right". Most alerts do not match a recorded event (about 1 in 10 does), partly because reports under-record problems. The thresholds are chosen on training wells only. The tested well and its sidetracks are excluded from their own prior. Full detail: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) item 15.
@@ -102,12 +105,13 @@ We replayed **306 public wells** (Norway and the USA), including wells whose pro
 | Evaluation | Result | n | How it was measured |
 |---|:-:|:-:|---|
 | Event extraction — precision | **0.92** | 36 | Hand-labelled report lines (AI-labelled, pending human check) |
-| Events from real daily reports (Volve) — precision | **0.75** | 40 | Random trusted events, each judged from its own report line (AI-labelled, pending human check) |
+| Events from real daily reports (Volve) — precision | **0.88** | 60 | Fresh random trusted events never used to tune the rules, each judged from its full report line (AI-labelled, pending human check). Before this round: 0.75–0.85 |
 | Event extraction — recall | **0.87** | 38 | same set |
 | Depth within ±30 m | **0.92** | 13 | same set |
-| Episode outcome — precision | **0.78** | 18 | 30 sampled problem → action → outcome episodes |
+| Episode outcome — accuracy | **0.55** | 31 | Fresh blind sample, labelled before the predictions were seen (was 0.44 before this round; 0.80 on the set used for tuning). The weakest part — see limits |
 | Copilot — cites the right source | **1.00** | 25 | templated questions (optimistic, see limits) |
 | Copilot — refuses when it should | **1.00** | 30 | includes questions with no answer in the records |
+| Tried and rejected: sensor "déjà vu" match | 0.28 | 15 | percentile of the real pre-problem hour (chance 0.50): no skill, so not used |
 | Hazard model — Brier score (leave-one-well-out) | 0.0035 | 41,848 | **equal to the base rate: no measured skill on its own**, which is why the UI shows ranges and says "insufficient evidence" |
 
 ## What's inside
@@ -118,8 +122,8 @@ We replayed **306 public wells** (Norway and the USA), including wells whose pro
 | Report sentences, each traceable to its page and line | **2,49,222** |
 | Real daily drilling reports, day by day (Volve 1,759 · Utah FORGE 290) | **2,049** |
 | Formation tops | **1,54,058** |
-| Recorded drilling problems (events) | **2,488** |
-| Problem → action → outcome episodes | **2,488** |
+| Recorded drilling problems (events) | **2,457** |
+| Problem → action → outcome episodes | **2,457** |
 | Leak-off / formation-integrity tests | **3,752** |
 | Casing strings | **9,133** |
 | Mud checks | **35,975** |

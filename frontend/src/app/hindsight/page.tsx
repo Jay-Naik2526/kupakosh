@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/kk/EmptyState";
 import { HindsightTiles, type HindsightSummary } from "@/components/v2/hindsight/HindsightTiles";
 import { HindsightTimeline, type WellRow, type WellDetail } from "@/components/v2/hindsight/HindsightTimeline";
 import { HindsightStrataTable } from "@/components/v2/hindsight/HindsightStrataTable";
+import { RigHours } from "@/components/v2/hindsight/RigHours";
 import { tr } from "@/components/v2/hindsight/trLocal";
 
 /**
@@ -59,6 +60,7 @@ export default function Hindsight() {
           />
         )}
         {summaryState === "ok" && summary && <HindsightTiles s={summary} lang={lang} />}
+        {summaryState === "ok" && summary && <RigHours lang={lang} />}
       </section>
 
       <section aria-label="blind replay viewer" className="mb-8">

@@ -24,11 +24,22 @@ def _after_trigger(text: str, hazard: str) -> str:
     """Part of the event sentence after the hazard keyword (so 'losses ... became total' counts, but
     words before the problem do not)."""
     hz, _, _ = _compiled()
-    for p in hz[hazard][0]:
-        m = p.search(text)
-        if m:
-            return text[m.end():]
-    return text
+    # the EARLIEST hazard mention in the sentence, not the first pattern in taxonomy order: in "Losses were
+    # controlled by pumping lost circulation materials" the outcome follows "Losses were", not "lost circulation"
+    ends = [m.end() for p in hz[hazard][0] if (m := p.search(text))]
+    return text[min(ends):] if ends else text
+
+
+def _anywhere(text: str) -> tuple[str, str] | None:
+    """Outcome phrases that count wherever they sit in the event sentence (taxonomy outcome_anywhere)."""
+    import re
+    from app.config import taxonomy
+    for k, pats in (taxonomy().get("outcome_anywhere") or {}).items():
+        for pat in pats:
+            m = re.search(pat, text, re.I)
+            if m:
+                return k, m.group(0)
+    return None
 
 
 def run(db: Session, log=print, well_ids: set[int] | None = None) -> dict:
@@ -89,7 +100,8 @@ def run(db: Session, log=print, well_ids: set[int] | None = None) -> dict:
         outcome, oref, otext, hours = "unknown", None, None, None
         for i, p in enumerate(window):
             text = _after_trigger(p.text, ev.hazard) if i == 0 else p.text
-            o = find_outcome(text)
+            o = _anywhere(p0.text) if i == 0 else None
+            o = o or find_outcome(text)
             if o:
                 outcome, otext = o[0], p.text
                 oref = f"doc:{p.document_id}#{p.locator}"

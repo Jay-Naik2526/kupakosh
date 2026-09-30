@@ -44,7 +44,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 5  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 6  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -140,7 +140,7 @@ def _cells_for_well(well_id: int, light: bool = False):
             rr = p["mean"] / base if base > 0 else None
             flagged_elevated = p["status"] == "ok" and p["ci"][0] > base and rr is not None and rr >= rr_min
             flagged_absolute = p["status"] == "ok" and p["mean"] >= thr
-            y = 1 if (well_id, f, h) in cx.ev_wf else 0
+            y = 1 if (well_id, f, h) in cx.ev_wf_records else 0  # written records only: engineer feedback never becomes a test label
             cell = {
                 "well_id": well_id, "source": w.source, "country": w.country,
                 "formation": f, "formation_label": pretty(f), "hazard": h, "label": p["label"],
@@ -433,7 +433,7 @@ def operating_points(cells: list[dict], events: list[tuple[int, str | None, str]
 def _fingerprint(cx) -> list[int]:
     n_events_depth = sum(1 for lst in cx.events.values() for e in lst if e.md_m is not None)
     n_tops = sum(len(cx.tops.penetrated(wid)) for wid in cx.documented)
-    return [len(cx.wells), len(cx.documented), n_events_depth, n_tops]
+    return [len(cx.wells), len(cx.documented), n_events_depth, n_tops] + ([cx.n_feedback] if cx.n_feedback else [])
 
 
 LEARNED_METHOD = ("Alerts come from a learned ranker (gradient-boosted trees) trained on OTHER wells only: grouped 5-fold "
@@ -441,7 +441,9 @@ LEARNED_METHOD = ("Alerts come from a learned ranker (gradient-boosted trees) tr
                   "saw them. 'Live' adds the well's own reports, but only events recorded shallower than the alert point (layer "
                   "top minus the look-ahead distance) — what a rig would already know. The alert threshold is chosen on the "
                   "training wells for a fixed budget of alerts per well (hindsight.learned.alert_budget_per_well); the test "
-                  "wells never set it. Assumption: the planned formation column equals the recorded one.")
+                  "wells never set it. The model itself (one tree model, an average of three, or that average plus layer-context "
+                  "features) is chosen inside each training fold by a second, inner cross-validation, so the test wells never "
+                  "pick it (nested cross-validation). Assumption: the planned formation column equals the recorded one.")
 
 
 def _learned(per_well: list[tuple], cx) -> dict | None:
@@ -457,8 +459,10 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
     groups = [cx.wells[c["well_id"]].parent_well or f"w{c['well_id']}" for c in cells]
     flags: dict[str, dict] = defaultdict(lambda: {m: {} for m in LEARNED_MODES})
     budgets = list(lc.get("budget_curve") or [])
+    chosen: dict[str, list[str]] = {}
     for mode, live in (("learned_blind", False), ("learned_live", True)):
         prob, flag, extra = HL.cross_validated(cells, groups, live, lc, budgets)
+        chosen[mode] = list(getattr(HL.cross_validated, "last_choice", []))
         for c, p, f in zip(cells, prob, flag):
             c[f"p_{mode}"] = float(p)
             c[f"flagged_{mode}"] = bool(f)
@@ -467,7 +471,8 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
         for b, fl in extra.items():
             for c, f in zip(cells, fl):
                 c.setdefault("_budget", {}).setdefault(mode, {})[b] = bool(f)
-    return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags), "budgets": budgets}
+    return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags), "budgets": budgets,
+            "model_chosen_per_fold": chosen}
 
 
 def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tuple], hc: dict) -> dict:

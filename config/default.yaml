@@ -17,6 +17,12 @@ extract:
   # sentence also has drilling / well-operations context
   context_required_kinds: [INCIDENT_REPORT]
   drilling_context: '\b(drill\w*|trip(ping|ped)?|mud|circulat\w*|bop|blow[ -]?out|casing|cement\w*|hole|string|workover|completion|wellbore|kick|influx|well control|coiled tubing|wireline|bha|bit)\b'
+  # Daily reports also log PLANNED intervention work (plug & abandonment, completion, wireline) where overpull,
+  # stalling, "fishing" and squeezes are normal steps. On such a line an event goes to human review (not trusted)
+  # unless the line also states a clear downhole problem. Measured on fresh random samples, see data/eval/volve_ddr_*.
+  planned_review_kinds: [DDR_XML, DDR_PDF]
+  planned_intervention: '\b(wire ?line|w/l|slick ?line|s/l|e-line|tractor|logging tool|correlat\w*|NPR|DHSV|xmas tree|spear|corr(osion)? cap|wellhead|WH\b|casing hanger|CH\b|cutter|cut [\d /"]*(tubing|casing)|cement retainer|P&A|adjustment sub|retrieval tool|running tool|RRT|RT\b|seat protector|wear ?bushing|lock ?down|kill mud|FLO\b|swab|muleshoe|toolstring|landing string)'
+  strong_problem: '\b(packed[- ]off|pack(ed|ing)[- ]off|tight (hole|spots?)|pipe (was |became )?stuck|string (was |became )?stuck|lost returns|losses of \d|loss(es)? \d|losing mud|kick|influx|pit gain|(recovered|found)[^.]{0,30}junk|junk (preventing|in hole)|left in (the )?hole|fished lost|lost toolstring|waiting (on|for) fishing tools|stalled out several times)\b'
 
 episodes: {window_h: 72, window_sentences: 4}
 ledger: {min_n_display: 3, z: 1.96, partial_credit: 0.5}
@@ -34,6 +40,9 @@ hazard:
   alert_threshold: 0.4
 anomaly: {window_s: 300, z_thresh: 3.5, cusum_k: 0.5, cusum_h: 5, min_samples: 20, persist: 3, min_flow_gpm: 100}
 lookahead: {lookahead_m: 150, cooldown_s: 120}
+handover:                 # shift-handover note (engines/handover.py)
+  lookahead_m: 500        # a 12-hour shift can drill a few hundred metres: look further ahead than the live alert
+  max_hazards: 4          # hazards listed in "watch for" (alerts first, then notices), most likely first
 auditor: {depth_tol_m: 30, time_tol_min: 60, mw_tol_ppg: 0.3, pit_drop_bbl: 5}
 mudwindow: {near_edge_ppg: 0.3}
 replay: {default_speed: 60, max_speed: 600, tick_ms: 500}
@@ -85,3 +94,10 @@ hindsight:
     max_leaf_nodes: 15
     l2: 1.0
     seed: 0
+    # round 4 (accuracy): each outer fold chooses among these by an inner grouped CV on its training wells only
+    candidates: [single, ensemble, ensemble_ctx]
+    inner_folds: 4
+    members:                      # ensemble = the average of these tree configurations (overrides of the values above)
+      - {}
+      - {max_iter: 800, max_leaf_nodes: 63}
+      - {max_iter: 300, learning_rate: 0.1, max_leaf_nodes: 31}

@@ -54,14 +54,7 @@ def extraction(db: Session) -> list[EvalResult]:
     ]
 
 
-def episodes(db: Session) -> list[EvalResult]:
-    p = EVAL_DIR / "episodes_gold.csv"
-    if not p.exists():
-        return []
-    rows = list(csv.DictReader(p.open()))
-    by = {}
-    for ep, ev in db.execute(select(Episode, Event).join(Event, Event.id == Episode.event_id)):
-        by[(ev.source_ref, ep.hazard)] = ep.outcome
+def _episode_scores(rows: list[dict], by: dict) -> tuple[int, int, int, int, int]:
     correct = n = known_ok = known_n = not_ep = 0
     for r in rows:
         pred = by.get((r["event_source_ref"], r["hazard"]))
@@ -75,12 +68,40 @@ def episodes(db: Session) -> list[EvalResult]:
         if pred != "unknown":
             known_n += 1
             known_ok += pred == r["true_outcome"]
-    note = f"{len(rows)} sampled episodes; {not_ep} were not real problem episodes (extraction errors) and are excluded; {_labeller_note(rows)}"
-    return [
-        EvalResult(name="episodes", metric="outcome precision", value=known_ok / known_n if known_n else None, n=known_n, notes="among episodes where an outcome was assigned; " + note),
-        EvalResult(name="episodes", metric="outcome accuracy", value=correct / n if n else None, n=n, notes="including 'unknown'; " + note),
-        EvalResult(name="episodes", metric="not-an-episode rate", value=not_ep / len(rows) if rows else None, n=len(rows), notes=note),
-    ]
+    return correct, n, known_ok, known_n, not_ep
+
+
+def episodes(db: Session) -> list[EvalResult]:
+    """Outcome of each problem episode (resolved / partial / unresolved / worsened / unknown) against hand labels.
+
+    The headline is the LATEST fresh blind sample (episodes_fresh_r*.csv): random episodes never used to tune the
+    outcome rules, labelled before the prediction was looked at. episodes_gold.csv and earlier fresh rounds were
+    used to improve the rules, so they are reported as tuning-set numbers only."""
+    gold = EVAL_DIR / "episodes_gold.csv"
+    fresh = sorted(EVAL_DIR.glob("episodes_fresh_r*.csv"), key=lambda f: (len(f.stem), f.stem))
+    if not gold.exists() and not fresh:
+        return []
+    by = {}
+    for ep, ev in db.execute(select(Episode, Event).join(Event, Event.id == Episode.event_id)):
+        by[(ev.source_ref, ep.hazard)] = ep.outcome
+    out = []
+    if fresh:
+        rows = list(csv.DictReader(fresh[-1].open()))
+        c, n, ko, kn, na = _episode_scores(rows, by)
+        hist = "; ".join(f"{f.stem}: {(_s := _episode_scores(list(csv.DictReader(f.open())), by))[0]}/{_s[1]}" for f in fresh[:-1])
+        note = (f"fresh blind sample {fresh[-1].name}: {len(rows)} random episodes never used to tune the rules; {na} were not real "
+                f"problem episodes (legal text, tables) and are excluded; earlier rounds (now tuning sets): {hist}; {_labeller_note(rows)}")
+        out += [
+            EvalResult(name="episodes", metric="outcome accuracy", value=c / n if n else None, n=n, notes="including 'unknown'; " + note),
+            EvalResult(name="episodes", metric="outcome precision", value=ko / kn if kn else None, n=kn, notes="among episodes where an outcome was assigned; " + note),
+            EvalResult(name="episodes", metric="not-an-episode rate", value=na / len(rows) if rows else None, n=len(rows), notes=note),
+        ]
+    if gold.exists():
+        rows = list(csv.DictReader(gold.open()))
+        c, n, ko, kn, na = _episode_scores(rows, by)
+        out.append(EvalResult(name="episodes", metric="outcome accuracy (tuning set)", value=c / n if n else None, n=n,
+                              notes="episodes_gold.csv was used to improve the outcome rules, so this is optimistic; " + _labeller_note(rows)))
+    return out
 
 
 from app.engines.hindsight import _family  # noqa: E402
@@ -227,20 +248,30 @@ def hindsight(db: Session, log=print) -> list[EvalResult]:
 
 def volve_ddr(db: Session) -> list[EvalResult]:
     """Precision of events extracted from the real Volve daily drilling reports: a random sample of events
-    the system trusts (needs_review = false), each judged real problem / not a problem from its own report line."""
-    p = EVAL_DIR / "volve_ddr_events_check.csv"
-    if not p.exists():
+    the system trusts (needs_review = false), each judged real problem / not a problem from its full report line.
+
+    Measured in rounds. After each round the extraction rules were improved, and the NEXT round is a fresh random
+    sample of events never looked at before, so no round grades the rules that were tuned on it. The headline is
+    the latest round; earlier rounds are kept in the notes as the before-numbers."""
+    files = sorted(EVAL_DIR.glob("volve_ddr_events_check*.csv"), key=lambda f: (len(f.stem), f.stem))
+    rounds = []
+    for f in files:
+        rows = list(csv.DictReader(f.open()))
+        if rows:
+            rounds.append((f.name, sum(r["is_real_problem"] == "yes" for r in rows), len(rows), rows[0]["labelled_by"]))
+    if not rounds:
         return []
-    rows = list(csv.DictReader(p.open()))
-    yes = sum(r["is_real_problem"] == "yes" for r in rows)
-    who = rows[0]["labelled_by"] if rows else ""
-    return [EvalResult(name="volve_ddr", metric="event precision (real daily reports)", value=yes / len(rows) if rows else None,
-                       n=len(rows), notes=f"random sample of trusted events from 1,759 Volve daily drilling reports; labels: {who}")]
+    name, yes, n, who = rounds[-1]
+    history = "; ".join(f"round {i + 1}: {k}/{m}" for i, (_, k, m, _) in enumerate(rounds))
+    return [EvalResult(name="volve_ddr", metric="event precision (real daily reports)", value=yes / n, n=n,
+                       notes=(f"fresh random sample of trusted events from 1,759 Volve daily drilling reports, never used to tune "
+                              f"the rules ({name}); all rounds (rules improved between rounds): {history}; labels: {who}"))]
 
 
 def run_all(db: Session, log=print):
     db.execute(delete(EvalResult))
-    res = extraction(db) + volve_ddr(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log)
+    from app.eval import dejavu
+    res = extraction(db) + volve_ddr(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log) + dejavu.run(db)
     db.add_all(res)
     db.flush()
     for r in res:

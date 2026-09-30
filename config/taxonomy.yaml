@@ -21,6 +21,8 @@ hazards:
       - '\bfluid loss (additive|control|value)|\bAPI fluid loss|\bHTHP\b'
       - 'without (any )?(significant )?losses'
       - 'weight loss|heat loss|loss of (signal|power|communication|data)|pressure loss|production loss'
+      - '\bobserved for (fluid )?returns\b'   # pressure / connection test: "observed for fluid returns ... No returns observed"
+      - '\bacid\b.{0,160}\b(loss rate|losses)\b|\blosses during swabbing\b'   # planned stimulation: losses after an acid job are expected
   kick:
     label: Kick / influx
     include:
@@ -37,6 +39,7 @@ hazards:
       - 'kick-?off point'
       - '\bno (kick|influx)'
       - 'shut[ -]in (at|during) (the )?time of|at (the )?time of (the )?(accident|incident)|shut[ -]in for (maintenance|repairs?|the storm|hurricane)'
+      - '\blined up (to|on) (the )?kill (mud|line)\b'   # routine line-up during a planned displacement
   stuck_pipe:
     label: Stuck pipe
     include:
@@ -58,11 +61,15 @@ hazards:
       - '\b(EZSV|bridge plug|cement retainer|retainer|plug)\b.{0,80}\boverpull|\bset (the )?(EZSV|bridge plug|packer|plug)\b'
       - '\bcut (the )?(casing|riser|tubing|conductor|pipe)\b|\bcutter\b|\bgood indication of cut\b'
       - '\b(slickline|s/l|wireline|e-line)\b.{0,40}\bstuck\b|\bstuck\b.{0,20}\b(slickline|s/l|wireline|toolstring|tool string)\b'
+      # planned retrieval of completion / wellhead parts: "Released seat protector with 20 MT overpull", "Pulled muleshoe free with 17 t overpull"
+      - '\b(muleshoe|seat protector|bore protector|wear ?bushing|test plug|RTTS|storm valve|PBR|tubing hanger|pulling tool|lock ?down (assembly|sleeve|ring)|retrieval tool|RRT)\b.{0,100}\b(overpull|free)\b'
+      - '\b(tool ?string|toolstring)\b.{0,20}\bstuck\b|\bjarring tool ?string\b|\bstuck (thread )?protectors?\b|\bin tension with an overpull\b'
   torque_spike:
     label: Torque spike
     include:
       - '\bhigh torque\b|\berratic torque\b|\btorque spikes?\b|\bexcessive torque\b|\bstalling\b|\bstalled\b|\bstick[- ]slip\b'
-    exclude: []
+    exclude:
+      - '\btractor\b'   # a wireline tractor stalling is a logging-tool issue, not the drill string
   overpressure:
     label: Overpressure / gas
     include:
@@ -80,6 +87,7 @@ hazards:
       - '\bcement(ing)? (was )?lost|\blosses during cementing'
     exclude:
       - 'barite squeezed'
+      - '\bsqueeze pressure\b'   # the normal closing figure of a planned plug / P&A cement job ("Final squeeze pressure 208 bar")
   fishing:
     label: Fishing / junk
     include:
@@ -90,6 +98,8 @@ hazards:
       - 'fishing (vessel|boat|fleet|activity|ground)'
       - '\bfish(ing|ery|eries|ermen)?\b.{0,20}\b(communit(y|ies)|folk|livelihoods?|villagers?|villages?|nets?|ponds?|wetlands?|dolphins?|species|population)\b|\bfishermen\b|\bfisheries\b'
       - 'junk (slot|throat|basket|sub|mill)'
+      - '\bto fish [\d /.]*(in|")? ?(tubing|casing)\b'   # planned P&A retrieval of cut tubing / casing
+      - '\bcasing parted from\b|\bindications? that (the )?casing parted\b|\bcasing hanger\b.{0,80}\bparted\b'   # planned P&A cut / milling
       - '\b(cranes?|slings?|shackles?|whip ?lines?|headache ball|lifting spear|rigging|personnel basket|load (fell|dropped)|off[- ]tour|recreational)\b'
   wellbore_instability:
     label: Wellbore instability
@@ -119,10 +129,15 @@ actions:
   cut_and_abandon: ['\bstring (had to be )?cut\b|\bcut off\b|\bbacked off\b|\bback-?off\b|\bpermanently abandoned\b|\bjunk well\b']
 
 outcomes:
-  resolved: ['\bfreed\b|\bgot free\b|\bpipe (was|came|got) free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
-  partial: ['\breduced (the )?losses\b|\blosses (were )?reduced\b|\bpartial(ly)?\b|\bslowed\b|\bminimi[sz]ed\b']
-  unresolved: ['\bunsuccessful\b|\bno success\b|\bwithout success\b|\bhad to be (cut|abandoned|plugged|sidetracked)\b|\bwas (cut|backed off)\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
-  worsened: ['\bbecame total\b|\bincreased losses\b|\blosses increased\b|\bworsened\b|\ba second\b.*\bkick\b|\bfurther (lost circulation|losses|problems)\b|\bstuck (deeper|again)\b|\bled to\b.*\b(sidetrack|abandon)']
+  resolved: ['\b(pipe|string) free\b|\bfreeing the pipe\b|\bstabili[sz]ed\b|\b(shakers|hole) (were |was )?clean\b|\bcirculated (the )?hole clean\b|\breleased (the )?torque and continued\b|\b(with|had) no (further )?problems\b|\ball ok\b|\bpassed (through|with no|without|ok)\b|\b(came|broke|jarred|worked|pulled|was|got) (\w+ )?(free|loose)\b|\bresumed\b|\blubricated (past|through)\b|\bfreed\b|\bgot free\b|\bpipe (was|came|got) free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
+  partial: ['\bnot (entirely|fully|completely) successful\b|\b(drilled|drilling) (ahead )?with (up to |minor |some )?[\d.]* ?(bbl/hr |m3/hr |m3/h )?losses\b|\bmost of (it|the \w+( \w+)?) (was|were) recovered\b|\bpart(ly)? of the (fish|junk) (was|were) recovered\b|\breduced (the )?losses\b|\blosses (were )?reduced\b|\bpartial(ly)?\b|\bslowed\b|\bminimi[sz]ed\b']
+  unresolved: ['\b(plugged|cemented) back\b|\b(technically |technical )?side ?-?tracked\b|\bcontinued\b[^.]{0,60}\bloss(es| rate)\b|\bre-?spud\w*\b|\btechnical sidetracks?\b|\bunsuccessful\b|\bno success\b|\bwithout success\b|\bhad to be (cut|abandoned|plugged|sidetracked)\b|\bwas (cut|backed off)\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
+  worsened: ['\b(well|it) (still )?flowed\b|\bcaught (on )?fire\b|\bwell control incident\b|\bunderground blow ?-?out\b|\bbecame total\b|\bincreased losses\b|\blosses increased\b|\bworsened\b|\ba second\b.*\bkick\b|\bfurther (lost circulation|losses|problems)\b|\bstuck (deeper|again)\b|\bled to\b.*\b(sidetrack|abandon)']
+
+# phrases that settle the outcome even when they come BEFORE the hazard word in the event sentence
+# ("after unsuccessful fishing, a technical sidetrack was performed"): checked on the whole event sentence
+outcome_anywhere:
+  unresolved: ['\b(after|following) (an? )?unsuccessful\b|\bunsuccessful fishing\b|\btechnical sidetracks? (was|were) (performed|drilled|made)|\brequiring a re-?spud\b']
 
 # event glyphs (UI) — text/glyph pairs so colour is never the only signal
 glyphs: {lost_circulation: "▲", kick: "◆", stuck_pipe: "■", cementing_issue: "○", overpressure: "△", fishing: "✕", torque_spike: "≋", wellbore_instability: "▽"}

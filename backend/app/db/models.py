@@ -329,3 +329,20 @@ class DataSource(Base):
     records: Mapped[int]
     loaded_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+class AlertFeedback(Base):
+    """An engineer's verdict on an alert (self-correcting alerts). A "problem" verdict becomes a human-labelled
+    record for that (well, layer, hazard): later estimates for OTHER wells learn from it. The Hindsight test never
+    scores on these labels (it uses the written records only), so feedback cannot inflate the measured accuracy."""
+    __tablename__ = "alert_feedback"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    well_id: Mapped[int] = mapped_column(ForeignKey("well.id"), index=True)
+    formation: Mapped[str] = mapped_column(String, index=True)
+    hazard: Mapped[str] = mapped_column(String, index=True)
+    verdict: Mapped[str]            # problem | no_problem | unsure
+    md_m: Mapped[float | None]
+    note: Mapped[str | None] = mapped_column(Text)
+    reviewer: Mapped[str]
+    role: Mapped[str | None]
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

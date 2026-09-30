@@ -18,6 +18,8 @@ import { IntervalBar } from "@/components/kk/IntervalBar";
 import { Drawer } from "@/components/kk/Drawer";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { WellPicker } from "@/components/kk/WellPicker";
+import { HandoverNote } from "@/components/v2/HandoverNote";
+import { AlertFeedback } from "@/components/v2/AlertFeedback";
 const Subsurface3D = dynamic(() => import("@/components/v2/Subsurface3D").then((m) => m.Subsurface3D), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 const MiniMap = dynamic(() => import("@/components/kk/MiniMap").then((m) => m.MiniMap), { ssr: false, loading: () => <div className="kk-card" style={{ minHeight: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-2)" }}>Loading…</div> });
 
@@ -41,8 +43,9 @@ export default function Command() {
   const [anomaly, setAnomaly] = useState<any>(null);
   const [rig, setRig] = useState(false);
   const [show3d, setShow3d] = useState(false);
-  const [drawer, setDrawer] = useState<null | "offsets" | "alerts">(null);
+  const [drawer, setDrawer] = useState<null | "offsets" | "alerts" | "handover">(null);
   const [offsets, setOffsets] = useState<any[]>([]);
+  const [handoverMd, setHandoverMd] = useState(0); // bit depth frozen when the note is opened (the replay keeps moving)
   const [ended, setEnded] = useState(false);
   const ws = useRef<WebSocket | null>(null);
 
@@ -196,11 +199,13 @@ export default function Command() {
                     ))}
                   </ul>
                   <div className="label mt-2">{t("cmdEvidencePrefix", lang)} {top.evidence.filter((e: any) => e.y).map((e: any) => e.name).join(", ") || t("cmdNone", lang)} · {t("cmdPrior", lang)} {pct(top.prior.base_rate)} ({top.prior.scope.replace("_", " ")})</div>
+                  {wellId && <AlertFeedback key={`${top.formation}|${top.hazard}`} wellId={wellId} formation={top.formation} hazard={top.hazard} mdM={bit} />}
                 </NoticeSlip>
               )}
               <div className="flex gap-2 mt-4 flex-wrap">
                 <button className="btn" onClick={() => setDrawer("offsets")}>{t("cmdOffsetWellsBtn", lang)} ({offsets.length}) ▸</button>
                 {more > 0 && <button className="btn" onClick={() => setDrawer("alerts")}>{t("cmdFurtherAlertsBtn", lang)} ({more}) ▸</button>}
+                <button className="btn" onClick={() => { setHandoverMd(bit ?? (startMd === "" ? 0 : Number(startMd))); setDrawer("handover"); }}>{tr(lang, "Shift handover note", "शिफ्ट हैंडओवर नोट")} ▸</button>
               </div>
             </section>
           </div>
@@ -219,6 +224,9 @@ export default function Command() {
           ))}
           {offsets.length === 0 && <li className="small">{t("cmdNoWellsInRadius", lang)}</li>}
         </ul>
+      </Drawer>
+      <Drawer open={drawer === "handover"} onClose={() => setDrawer(null)} title={tr(lang, "Shift handover note", "शिफ्ट हैंडओवर नोट")} width={560}>
+        {wellId && drawer === "handover" && <HandoverNote wellId={wellId} bitMd={handoverMd} lang={lang} />}
       </Drawer>
       <Drawer open={drawer === "alerts"} onClose={() => setDrawer(null)} title={t("cmdAllLookahead", lang)}>
         {[...(la?.alerts ?? []), ...(la?.notices ?? [])].slice(1).map((a: any, i: number) => (

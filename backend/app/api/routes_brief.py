@@ -37,3 +37,13 @@ def brief_pdf(body: BriefIn, db: Session = Depends(get_db)):
     except OSError as e:  # pango not found
         raise HTTPException(503, f"PDF renderer unavailable: {e}. Use /api/brief/html and print to PDF.")
     return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{b["ref_no"].replace("/", "-")}.pdf"'})
+
+
+@router.get("/handover/{well_id}")
+def handover(well_id: int, bit_md: float, lang: str = "en", db: Session = Depends(get_db)):
+    """Shift-handover note (English or Hindi) at the given bit depth: layers ahead, what to watch for, what worked."""
+    from app.engines import handover as ho
+    try:
+        return ho.build(db, well_id, bit_md, "hi" if lang == "hi" else "en")
+    except KeyError:
+        raise HTTPException(404, "well not found")

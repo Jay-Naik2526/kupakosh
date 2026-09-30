@@ -46,6 +46,13 @@ def wells(max_wells: int | None = None, country: str | None = None, source: str 
     return sorted(rows, key=lambda r: -r["events"])
 
 
+@router.get("/rig-hours")
+def rig_hours():
+    """Logged rig hours of real problems in the timed daily reports, and the share Kupakosh warned about blind."""
+    from app.engines import righours
+    return righours.summary()
+
+
 @router.get("/{well_id}")
 def well(well_id: int):
     try:
