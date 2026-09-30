@@ -50,7 +50,7 @@ def run(db: Session, log=print, well_ids: set[int] | None = None) -> dict:
     # timed sequences: all DDR activities of a well in time order (a window may cross into the next day's report)
     act_t = {a.passage_id: a.t_start for a in db.scalars(select(Activity)) if a.passage_id and a.t_start}
     by_well_timed: dict[int, list[Passage]] = defaultdict(list)
-    for p in db.scalars(select(Passage).join(Document).where(Document.kind == "DDR_PDF")):
+    for p in db.scalars(select(Passage).join(Document).where(Document.kind.in_(("DDR_PDF", "DDR_XML")))):
         if p.id in act_t:
             by_well_timed[p.well_id].append(p)
     for lst in by_well_timed.values():

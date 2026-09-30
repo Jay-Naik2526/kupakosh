@@ -316,3 +316,16 @@ def test_learned_threshold_uses_budget():
     scores = np.array([0.9, 0.8, 0.7, 0.1, 0.05, 0.01])
     assert _threshold_for_budget(scores, n_wells=2, budget=1.0) == 0.8   # 2 wells x 1 alert = top 2
     assert _threshold_for_budget(scores, n_wells=2, budget=0.0) == float("inf")
+
+
+def test_per_well_view_shows_the_alerts_the_summary_counted():
+    """Regression: the learned alert flags were stored for one cell only (loop indentation), so every per-well
+    blind view showed 'no alerts' while the summary counted them."""
+    from app.engines import hindsight as hs
+    s = hs.summary()
+    if s.get("stale") or s.get("engine_version") != hs.ENGINE_VERSION:
+        s = hs.recompute()  # the served copy may be an older cache still refreshing in the background
+    rows = [r for r in s["wells"] if r["alerts"] > 0]
+    assert len((s.get("learned") or {}).get("flags", {})) >= len(rows) > 1
+    for r in sorted(rows, key=lambda r: -r["alerts"])[:3]:
+        assert len(hs.run_well(r["well_id"])["alerts"]) == r["alerts"], r["name"]

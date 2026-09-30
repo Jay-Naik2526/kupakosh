@@ -21,7 +21,7 @@ def source_ref(doc: Document, p: Passage, well: Well) -> str:
     return f"doc:{doc.id}#{p.locator}"
 
 
-def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF", "DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT",
+def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_PDF", "DDR_XML", "DGH_REPORT", "AUDIT_REPORT", "SAFETY_ALERT",
                                                          "JUDGMENT", "PAPER", "BASIN_REPORT", "WCR_PDF", "EOWR_PDF",
                                                          "INCIDENT_REPORT"), doc_ids: set[int] | None = None) -> dict:
     """Full run (doc_ids=None) replaces all events/actions; an incremental run (upload) replaces only those of `doc_ids`."""
@@ -76,6 +76,8 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
                 act = act_by_passage.get(p.id)
                 if formation is None and well and md is not None:
                     formation = tops.at(well.id, md)
+                if formation is None and act is not None and act.formation:
+                    formation = act.formation  # no recorded tops for this well: use the formation the report line itself names
                 ev = Event(
                     well_id=well.id, passage_id=p.id, activity_id=act.id if act else None, hazard=h.hazard, md_m=md,
                     formation=formation, t=act.t_start if act else None, severity=h.severity, quantity=h.quantity, quantity_unit=h.quantity_unit,

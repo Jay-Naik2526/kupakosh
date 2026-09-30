@@ -14,6 +14,7 @@ export type WellRow = {
   well_id: number; name: string; field: string | null; country: string; source: string;
   n_offsets: number; events: number; forewarned: number; missed: number; median_lead_m: number | null;
   alerts: number; alerts_with_event: number; alerts_without_record: number;
+  daily_reports?: number;
 };
 
 type Formation = { formation: string; label: string; top_md_m: number; base_md_m: number; lithology: string | null; source_ref: string };
@@ -79,6 +80,7 @@ export function HindsightTimeline({
           {sorted.map((w) => (
             <option key={w.well_id} value={w.well_id}>
               {w.name} · {w.field ?? w.country} · {w.events} {t("events", "घटनाएँ")} · {w.forewarned}/{w.events} {t("forewarned", "पूर्व-चेतावनी")}
+              {w.daily_reports ? ` · ${w.daily_reports} ${t("daily reports", "दैनिक रिपोर्ट")}` : ""}
             </option>
           ))}
         </select>

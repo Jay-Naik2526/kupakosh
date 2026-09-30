@@ -192,6 +192,29 @@ india() {
 }
 
 # force2020: 98-well lithology-competition dataset (small, needed for the FORCE-2020 similarity work).
+volve_ddr() {
+  # Equinor Volve daily drilling reports (1,759), published on HuggingFace as bengsoon/volve_alpaca (CC-BY-2.0).
+  # Converted once to JSON lines for app/ingest/ext/no_volve_ddr.py (needs `uv`; pyarrow is used only here).
+  local d="$RAW/volve_ddr"; mkdir -p "$d"
+  for s in train test; do
+    [ -s "$d/$s.parquet" ] || curl -sSL -o "$d/$s.parquet" "https://huggingface.co/datasets/bengsoon/volve_alpaca/resolve/main/data/$s-00000-of-00001.parquet"
+  done
+  if [ ! -s "$d/volve_ddr.jsonl" ]; then
+    (cd "$d" && uv run --quiet --with pyarrow python -c "
+import json, pyarrow.parquet as pq
+with open('volve_ddr.jsonl', 'w') as f:
+    for s in ('train', 'test'):
+        for r in pq.read_table(s + '.parquet').to_pylist():
+            r['split'] = s; f.write(json.dumps(r) + '\\n')
+")
+  fi
+  if [ -s "$d/volve_ddr.jsonl" ]; then
+    STATUS_OK+=("$d/volve_ddr.jsonl"); echo "  [ok]   $d/volve_ddr.jsonl ($(wc -l < "$d/volve_ddr.jsonl" | tr -d ' ') daily reports)"
+  else
+    STATUS_MISSING+=("$d/volve_ddr.jsonl (HuggingFace bengsoon/volve_alpaca)"); echo "  [FAIL] $d/volve_ddr.jsonl"
+  fi
+}
+
 force2020() {
   echo "== FORCE 2020 (lithology competition) =="
   mkdir -p "$RAW/force2020"
@@ -379,7 +402,7 @@ canada() {
 }
 
 # =================================================================================================
-ALL_SECTIONS=(core india force2020 uk netherlands australia usa nz canada)
+ALL_SECTIONS=(core india volve_ddr force2020 uk netherlands australia usa nz canada)
 ARGS=("$@")
 [ "${#ARGS[@]}" -eq 0 ] && ARGS=("${ALL_SECTIONS[@]}")
 if [ "${ARGS[0]}" = "core" ] && [ "${#ARGS[@]}" -eq 1 ]; then
@@ -393,6 +416,7 @@ for s in "${ARGS[@]}"; do
   case "$s" in
     core) core ;;
     india) india ;;
+    volve_ddr) volve_ddr ;;
     force2020) force2020 ;;
     uk) uk ;;
     netherlands) netherlands ;;

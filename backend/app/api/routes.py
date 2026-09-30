@@ -67,7 +67,7 @@ def status(db: Session = Depends(get_db)):
         "counts": {
             "wells": n(Well, Well.well_type.is_(None) | Well.well_type.not_in(NOT_WELLS)),
             "aggregate_locations": n(Well, Well.well_type.in_(NOT_WELLS)), "documented_wells": len(ctx().documented), "formation_tops": n(FormationTop),
-            "documents": n(Document), "report_entries": n(Passage), "ddr_reports": n(Document, Document.kind == "DDR_PDF"),
+            "documents": n(Document), "report_entries": n(Passage), "ddr_reports": n(Document, Document.kind.in_(("DDR_PDF", "DDR_XML"))),
             "history_documents": n(Document, Document.kind == "WELL_HISTORY"), "events": n(Event),
             "events_trusted": n(Event, Event.needs_review.is_(False)), "events_needs_review": n(Event, Event.needs_review.is_(True)),
             "episodes": n(Episode), "episodes_known_outcome": n(Episode, Episode.outcome != "unknown"),

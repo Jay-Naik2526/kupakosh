@@ -34,6 +34,15 @@ def wells(max_wells: int | None = None, country: str | None = None, source: str 
         rows = [r for r in rows if r["country"] == country]
     if source:
         rows = [r for r in rows if r["source"] == source]
+    # how many real daily drilling reports each well has (Volve WITSML-derived, FORGE PDFs): the wells whose
+    # problems come from day-by-day records rather than a well-history summary
+    from sqlalchemy import func, select
+    from app.db.models import Document
+    from app.db.session import SessionLocal
+    with SessionLocal() as db:
+        ddr = dict(db.execute(select(Document.well_id, func.count()).where(Document.kind.in_(("DDR_XML", "DDR_PDF")))
+                              .group_by(Document.well_id)).all())
+    rows = [{**r, "daily_reports": ddr.get(r["well_id"], 0)} for r in rows]
     return sorted(rows, key=lambda r: -r["events"])
 
 

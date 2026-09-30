@@ -22,34 +22,26 @@ only differences we can show live and defend under questioning. Nothing here is 
 
 ## Our USPs, in the order to pitch them
 
-1. **The Hindsight test: proven blind on real history.**
-   - On 304 public wells and 449 real recorded problems, the model never saw the well it was tested on.
-   - Results:
-     - AUC 0.86, against a field average of 0.69;
-     - 79.5 % of problem layers flagged before the bit arrived, at 15 alerts per well;
-     - right hazard in the layer's top 3 in 74.4 % of cases;
-     - 193/449 exact hazards forewarned, a median 348 m ahead.
-   - **Why it wins:** nobody else measures prediction on held-out wells. Their accuracy numbers, where they show
-     any, come from generated data or are not reported at all.
-   - **Demo:** Hindsight page, then one well's replay.
-2. **The Upper Assam column (new, built 30 Sept).**
-   - Oil India's own formations, from Dhekiajuli down to Disang. Rock type, age, role (reservoir, source rock or
-     cap rock) and depth mentions are all quoted from public DGH/NDR sentences, with a citation on each fact.
-   - Beside each formation, the measured problem rates in the same rock type abroad, with range and evidence
-     count, and what worked there.
-   - **Why it wins:** competitors show Assam names on invented numbers; we show real Assam geology plus real
-     measured analog evidence, and say plainly which is which.
-   - **Demo:** India Analogs page, top section.
-3. **What actually worked.**
-   - Fixes ranked by real outcomes with a Wilson lower bound, median time to resolve, and a "made worse" count.
-   - Others list "recommended actions"; we show outcome evidence.
-4. **Compiled, cited, approved memory.**
+1. **The Hindsight test: proven blind on real history, including real daily drilling reports.**
+   - Results on 306 public wells and 578 real recorded problems, where the model never saw the well it was tested on:
+     - AUC 0.84 (0.81–0.86), against a field average of 0.68;
+     - 78.4 % of problem layers flagged before the bit arrived, at 15 alerts per well;
+     - right hazard in the layer's top 3 in 68.2 % of cases;
+     - exact hazard forewarned for 222 of 578, a median 394 m ahead (field average 113).
+   - **Why it wins:** among competitors, only PLANNS reports a real-data early warning, and that is one stuck pipe on one well (15/9-F-9A).
+   - **Demo:** Hindsight page. Pick 15/9-19 S (176 daily reports): 32 of its 58 problems were forewarned, the baseline caught 0. Press "Reveal what really happened".
+2. **What actually worked, from real day-by-day reports.**
+   - 1,759 real Volve daily drilling reports (23,447 timed activities) are linked problem → action → outcome over the following days.
+   - Example: jarring freed stuck pipe in 5 of 10 cases, median 0.5 h; pulling out of hole in 36 of 78.
+   - **Why it wins:** PLANNS and anshu2k24 hold the same public reports but use them only for summaries and regex; nobody tracks outcomes.
+   - Events from these reports are measured: precision 0.75 on 40 random trusted events.
+3. **Compiled, cited, approved memory.**
    - 951 wiki pages, every sentence cited; the compiler rejects uncited sentences and unsupported numbers.
    - Government-file noting approval, with git history.
-5. **Honest uncertainty.** Every probability has an 80 % range and an evidence count, and says "insufficient
-   evidence" below 3 wells. Nobody else shows ranges.
-6. **Deployed and running**: https://kupakosh.duckdns.org (HTTPS). The live replay, copilot, maps, 3D and PDF
-   brief all work there.
+4. **Honest uncertainty.** Every probability has an 80 % range and an evidence count, and says "insufficient evidence" below 3 wells.
+5. **Deployed and running**: https://kupakosh.duckdns.org (HTTPS).
+
+The Upper Assam column (India Analogs page) is useful context for Oil India judges, but it is **not** a USP: it rearranges public geology text. Show it only if asked about Assam.
 
 ## Where competitors still lead (be ready)
 - **Logins and roles (JWT/RBAC):** several have them; we show a read-only guest.

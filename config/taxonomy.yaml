@@ -50,6 +50,14 @@ hazards:
       - '(break\w*|broke) off (the )?core|check\w* (for )?overpull|every \d+.{0,5} to check'
       - '\b(cranes?|whip ?lines?|slings?|shackles?|headache ball|personnel basket|rigging)\b'
       - 'stuck (logging |wireline )?tool|\b(RFT|FMT|MDT|RCI|DST|logging|wireline|MWD|LWD)[- ]?(tool|string)s?\b.{0,30}\bstuck|stuck.{0,20}\b(RFT|FMT|MDT|RCI|logging tool|wireline)'
+      # equipment checks in daily reports, not a stuck string: "Performed 5 ton overpull test, OK",
+      # "pull tested with 25t overpull", "checked lockring engaged with 22 ton overpull"
+      - '\boverpull[- ]test|\bpull[- ]?test(ed|ing)?\b|overpull.{0,20}\b(ok|confirmed|test)\b'
+      - '\b(latch\w*|lockring|lock ring|connector|engaged|landed|seal assembly|wear ?bushing|hanger|slips|packer|running tool|RT)\b.{0,60}\boverpull|\boverpull.{0,40}\b(latch\w*|lockring|connector|engaged|landed|seal assembly|wear ?bushing|hanger|packer|running tool)\b'
+      # planned plug-and-abandonment work: setting a plug/retainer with overpull, cutting casing/riser/tubing
+      - '\b(EZSV|bridge plug|cement retainer|retainer|plug)\b.{0,80}\boverpull|\bset (the )?(EZSV|bridge plug|packer|plug)\b'
+      - '\bcut (the )?(casing|riser|tubing|conductor|pipe)\b|\bcutter\b|\bgood indication of cut\b'
+      - '\b(slickline|s/l|wireline|e-line)\b.{0,40}\bstuck\b|\bstuck\b.{0,20}\b(slickline|s/l|wireline|toolstring|tool string)\b'
   torque_spike:
     label: Torque spike
     include:

@@ -225,9 +225,22 @@ def hindsight(db: Session, log=print) -> list[EvalResult]:
     return res
 
 
+def volve_ddr(db: Session) -> list[EvalResult]:
+    """Precision of events extracted from the real Volve daily drilling reports: a random sample of events
+    the system trusts (needs_review = false), each judged real problem / not a problem from its own report line."""
+    p = EVAL_DIR / "volve_ddr_events_check.csv"
+    if not p.exists():
+        return []
+    rows = list(csv.DictReader(p.open()))
+    yes = sum(r["is_real_problem"] == "yes" for r in rows)
+    who = rows[0]["labelled_by"] if rows else ""
+    return [EvalResult(name="volve_ddr", metric="event precision (real daily reports)", value=yes / len(rows) if rows else None,
+                       n=len(rows), notes=f"random sample of trusted events from 1,759 Volve daily drilling reports; labels: {who}")]
+
+
 def run_all(db: Session, log=print):
     db.execute(delete(EvalResult))
-    res = extraction(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log)
+    res = extraction(db) + volve_ddr(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log)
     db.add_all(res)
     db.flush()
     for r in res:

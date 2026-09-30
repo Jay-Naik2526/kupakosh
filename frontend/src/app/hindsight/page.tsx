@@ -27,7 +27,9 @@ export default function Hindsight() {
     get("/api/hindsight/summary").then((d) => { setSummary(d); setSummaryState("ok"); }).catch(() => setSummaryState("none"));
     get("/api/hindsight/wells").then((rows: WellRow[]) => {
       setWells(rows);
-      const preferred = rows.find((r) => r.name.includes("16B(78)-32")) ?? rows.filter((r) => r.events > 0).sort((a, b) => b.events - a.events)[0];
+      // open on the well whose problems come from the most real daily drilling reports (Volve 15/9-19 S)
+      const preferred = [...rows].filter((r) => r.events > 0 && (r.daily_reports ?? 0) > 0).sort((a, b) => (b.daily_reports ?? 0) - (a.daily_reports ?? 0))[0]
+        ?? rows.filter((r) => r.events > 0).sort((a, b) => b.events - a.events)[0];
       if (preferred) setWellId(preferred.well_id);
     }).catch(() => setWells([]));
   }, []);

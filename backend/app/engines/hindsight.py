@@ -44,7 +44,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 4  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 5  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -462,11 +462,11 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
         for c, p, f in zip(cells, prob, flag):
             c[f"p_{mode}"] = float(p)
             c[f"flagged_{mode}"] = bool(f)
+            if f:  # every flagged cell, so the per-well blind view (run_well) shows the same alerts the summary counted
+                flags[str(c["well_id"])][mode][f"{c['formation']}|{c['hazard']}"] = round(float(p), 4)
         for b, fl in extra.items():
             for c, f in zip(cells, fl):
                 c.setdefault("_budget", {}).setdefault(mode, {})[b] = bool(f)
-            if f:
-                flags[str(c["well_id"])][mode][f"{c['formation']}|{c['hazard']}"] = round(float(p), 4)
     return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags), "budgets": budgets}
 
 
