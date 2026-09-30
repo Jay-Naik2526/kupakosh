@@ -2,6 +2,9 @@
 # Update the live site (https://kupakosh.duckdns.org) from this Mac.
 # Needs: `aws login` done in this terminal, and ~/.ssh/kupakosh.pem.
 # Steps: allow SSH from this Mac's current IP -> build the static site -> upload code, config and site -> restart -> check.
+#   bash scripts/deploy_aws.sh          code + site only
+#   bash scripts/deploy_aws.sh --data   also the database, search index and wiki (needed after new data, e.g. the Volve DDRs;
+#                                       ~400 MB, slow on a mobile connection)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -22,6 +25,13 @@ echo "Uploading…"
 rsync -az -e "ssh -i $KEY" --exclude __pycache__ backend/app backend/scripts backend/tests backend/requirements.txt "$HOST":kupakosh/backend/
 rsync -az -e "ssh -i $KEY" config "$HOST":kupakosh/
 rsync -az --delete -e "ssh -i $KEY" frontend/out "$HOST":kupakosh/frontend/
+if [ "${1:-}" = "--data" ]; then
+  echo "Uploading data (database, search index, wiki)…"
+  sqlite3 data/kupakosh.db "PRAGMA wal_checkpoint(TRUNCATE);" >/dev/null
+  ssh -i "$KEY" "$HOST" 'sudo systemctl stop kupakosh'
+  rsync -az --partial --progress -e "ssh -i $KEY" data/kupakosh.db data/processed "$HOST":kupakosh/data/
+  rsync -az -e "ssh -i $KEY" wiki "$HOST":kupakosh/
+fi
 
 echo "Restarting…"
 ssh -i "$KEY" "$HOST" 'source ~/.local/bin/env && cd ~/kupakosh/backend && uv pip install -q --python .venv -r requirements.txt && sudo systemctl restart kupakosh'
