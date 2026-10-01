@@ -53,6 +53,13 @@ def rig_hours():
     return righours.summary()
 
 
+@router.get("/repeats")
+def repeats():
+    """Preventable repeats: real problems already recorded in the same layer by an older well (nearby, and anywhere)."""
+    from app.engines import repeats as rp
+    return rp.summary()
+
+
 @router.get("/{well_id}")
 def well(well_id: int):
     try:

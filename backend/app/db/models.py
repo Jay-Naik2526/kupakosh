@@ -184,6 +184,7 @@ class Episode(Base):
     npt_hours: Mapped[float | None]  # lost time explicitly stated in the source
     confidence: Mapped[float]
     reviewed_by: Mapped[str | None]
+    outcome_method: Mapped[str | None] = mapped_column(String, default="rule")  # rule | local_llm
 
 
 class PressureTest(Base):

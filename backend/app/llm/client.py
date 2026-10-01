@@ -53,17 +53,37 @@ def _groq(prompt: str, schema: dict) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
+def _ollama(prompt: str, schema: dict) -> str:
+    """Local model through Ollama (offline: nothing leaves the machine). Structured output via `format`."""
+    c = cfg()["llm"]
+    body = {"model": c.get("local_model", "qwen2.5:7b-instruct-q4_K_M"), "prompt": prompt, "stream": False, "format": schema,
+            "options": {"temperature": c["temperature"], "seed": 0, "num_ctx": 4096}}
+    r = httpx.post(c.get("local_url", "http://localhost:11434") + "/api/generate", json=body, timeout=c.get("local_timeout_s", 120))
+    r.raise_for_status()
+    return r.json()["response"]
+
+
+def local_available() -> bool:
+    """True when the local Ollama server answers and has the configured model."""
+    c = cfg()["llm"]
+    try:
+        r = httpx.get(c.get("local_url", "http://localhost:11434") + "/api/tags", timeout=2)
+        return any(m.get("name") == c.get("local_model", "qwen2.5:7b-instruct-q4_K_M") for m in r.json().get("models", []))
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
 def _call(provider: str, prompt: str, schema: dict) -> str:
-    return {"gemini": _gemini, "groq": _groq}[provider](prompt, schema)
+    return {"gemini": _gemini, "groq": _groq, "ollama": _ollama}[provider](prompt, schema)
 
 
 def structured(prompt: str, schema: dict, model: type[BaseModel], transport: Transport | None = None,
-               extra_check: Callable[[BaseModel], str | None] | None = None) -> tuple[BaseModel | None, dict]:
+               extra_check: Callable[[BaseModel], str | None] | None = None, only: list[str] | None = None) -> tuple[BaseModel | None, dict]:
     """Ask for JSON, validate with `model` (+ optional extra_check returning an error text).
     Returns (object or None, trace). Tries each configured provider; each gets 1 + max_retries attempts."""
     send = transport or _call
     trace = {"attempts": []}
-    provs = providers() if transport is None else [cfg()["llm"]["provider"]]
+    provs = only if only is not None else (providers() if transport is None else [cfg()["llm"]["provider"]])
     for prov in provs:
         p = prompt
         for attempt in range(1 + cfg()["llm"]["max_retries"]):

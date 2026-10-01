@@ -26,6 +26,10 @@ def _warm():
     from app.db.models import AlertFeedback
     from app.db.session import engine
     AlertFeedback.__table__.create(engine, checkfirst=True)  # added after the first deployments: create it on older databases
+    from sqlalchemy import inspect, text
+    if "outcome_method" not in {c["name"] for c in inspect(engine).get_columns("episode")}:
+        with engine.begin() as con:
+            con.execute(text("ALTER TABLE episode ADD COLUMN outcome_method VARCHAR DEFAULT 'rule'"))
     from app.engines.context import ctx
     def warm():
         ctx()
@@ -33,6 +37,8 @@ def _warm():
         hindsight.summary()  # fills or refreshes the Hindsight cache before the first visitor asks
         from app.engines import assam
         assam.column()  # Upper Assam column (~10 s to build from the DGH/NDR sentences)
+        from app.engines import repeats
+        repeats.summary()  # preventable repeats (~30 s: offsets of every problem well)
     threading.Thread(target=warm, daemon=True, name="warm").start()
 
 

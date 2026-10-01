@@ -1,5 +1,6 @@
 "use client";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useRef, useState, type CSSProperties } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Html, Line } from "@react-three/drei";
 import { SceneEvent, SceneWell } from "./types";
@@ -254,6 +255,83 @@ export function DepthTicks({ maxDepthM, x, zPos, colors, vertExag }: { maxDepthM
           </Html>
         </group>
       ))}
+    </group>
+  );
+}
+
+function pointAtMd(tr: SceneWell["trajectory"], md: number): { x: number; y: number; z: number } | null {
+  if (!tr.length) return null;
+  if (md <= tr[0].md) return tr[0];
+  for (let i = 1; i < tr.length; i++) {
+    if (tr[i].md >= md) {
+      const a = tr[i - 1], b = tr[i];
+      const f = b.md > a.md ? (md - a.md) / (b.md - a.md) : 0;
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f };
+    }
+  }
+  return tr[tr.length - 1];
+}
+
+/** The part of the trajectory between two measured depths, as scene points (for the drilled hole and the look-ahead window). */
+function segment(tr: SceneWell["trajectory"], from: number, to: number, vertExag: number): THREE.Vector3[] {
+  const pts: { x: number; y: number; z: number }[] = [];
+  const a = pointAtMd(tr, from), b = pointAtMd(tr, to);
+  if (!a || !b || to <= from) return [];
+  pts.push(a);
+  for (const p of tr) if (p.md > from && p.md < to) pts.push(p);
+  pts.push(b);
+  return pts.map((p) => new THREE.Vector3(...toScene(p.x, p.y, p.z, vertExag)));
+}
+
+function Tube({ pts, radius, color, opacity = 1, emissive = 0.6 }: { pts: THREE.Vector3[]; radius: number; color: string; opacity?: number; emissive?: number }) {
+  const geometry = useMemo(() => {
+    if (pts.length < 2) return null;
+    if (pts.length === 2) pts = [pts[0], pts[0].clone().lerp(pts[1], 0.5), pts[1]];
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), Math.max(12, pts.length * 6), radius, 10, false);
+  }, [pts, radius]);
+  if (!geometry) return null;
+  return (
+    // drawn over the translucent rock block (depthTest off, late render order): the hole is the point of the view
+    <mesh geometry={geometry} renderOrder={20}>
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={emissive} transparent opacity={opacity} depthTest={false} depthWrite={false} fog={false} />
+    </mesh>
+  );
+}
+
+/** Drilling progress during a replay: the hole already drilled (surface to the bit) as a solid tube that grows each
+ *  tick, the look-ahead window below the bit in amber, and a rotating bit. Only real values are used: the bit depth
+ *  comes from the recorded sensor data, the path from the well's survey (or "assumed vertical"). */
+export function DrillingProgress({ well, bitMd, lookaheadM, vertExag, label, size }: { well: SceneWell; bitMd: number; lookaheadM: number; vertExag: number; label: string; size: number }) {
+  const tr = well.trajectory;
+  // drawn relative to the block size (size = half-width in scene units), so the hole and bit stay visible at a 10 km radius
+  const r = Math.max(0.08, size * 0.035);
+  const drilled = useMemo(() => segment(tr, tr.length ? tr[0].md : 0, bitMd, vertExag), [tr, bitMd, vertExag]);
+  const ahead = useMemo(() => segment(tr, bitMd, bitMd + lookaheadM, vertExag), [tr, bitMd, lookaheadM, vertExag]);
+  const bit = useMemo(() => { const p = pointAtMd(tr, bitMd); return p ? toScene(p.x, p.y, p.z, vertExag) : null; }, [tr, bitMd, vertExag]);
+  const spin = useRef<THREE.Group>(null);
+  useFrame((_, dt) => { if (spin.current) spin.current.rotation.y += dt * 4; });
+  if (!bit) return null;
+  return (
+    <group>
+      <Tube pts={drilled} radius={r} color="#7A4A2A" emissive={0.35} />
+      <Tube pts={ahead} radius={r * 1.15} color="#C98A12" opacity={0.6} emissive={0.8} />
+      <group position={bit}>
+        <group ref={spin}>
+          {/* tri-cone style bit: point down */}
+          <mesh rotation={[Math.PI, 0, 0]} position={[0, -r * 0.8, 0]} renderOrder={22}>
+            <coneGeometry args={[r * 2.2, r * 3.4, 3]} />
+            <meshStandardMaterial color="#B23A1E" emissive="#B23A1E" emissiveIntensity={0.7} metalness={0.4} roughness={0.35} transparent depthTest={false} fog={false} />
+          </mesh>
+        </group>
+        <mesh scale={2.4} renderOrder={21}>
+          <sphereGeometry args={[r * 1.6, 16, 16]} />
+          <meshBasicMaterial color="#B23A1E" transparent opacity={0.18} depthWrite={false} depthTest={false} fog={false} />
+        </mesh>
+        <Html center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
+          <div style={{ transform: "translate(40px, 0)", background: "var(--surface, #fff)", border: "1px solid #B23A1E", color: "#B23A1E",
+                        fontFamily: "var(--font-plex-mono)", fontSize: 11, padding: "1px 6px", borderRadius: 3, whiteSpace: "nowrap" }}>{label}</div>
+        </Html>
+      </group>
     </group>
   );
 }

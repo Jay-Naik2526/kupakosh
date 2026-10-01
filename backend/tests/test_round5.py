@@ -119,3 +119,14 @@ def test_engineer_feedback_teaches_estimates_but_never_becomes_a_hindsight_label
             db.commit()
         context.reset()
         hazard.base_rate.cache_clear()
+
+
+@needs_db
+def test_repeats_only_count_warnings_that_existed_before_the_well_was_spudded():
+    from app.engines import repeats
+    s = repeats.summary(force=True)
+    assert s["problems"] > 0 and 0 <= s["repeats"] <= s["archive"]["repeats"] <= s["archive"]["problems"]
+    assert sum(d["problems"] for d in s["by_decade"]) == s["problems"]
+    for x in s["examples"]:
+        assert x["earlier_spud"] < x["spud"] and x["years_before"] > 0
+        assert x["earlier_well"] != x["well"] and x["source_ref"] and x["earlier_source_ref"]

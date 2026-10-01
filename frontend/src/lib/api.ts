@@ -1,11 +1,12 @@
 // Same-origin by default: works on localhost, a LAN IP, or a shared tunnel link.
-// In `npm run dev` (:3000) Next proxies /api to the backend; the replay WebSocket goes straight to :8010.
+// Under a Next.js server (`npm run dev` on :3000, `next start` on :3001) Next proxies /api to the backend but cannot
+// proxy WebSockets, so the replay socket goes straight to :8010. The deployed site serves site + API on one address.
 export const API = process.env.NEXT_PUBLIC_API ?? "";
 export const WS = (() => {
   if (process.env.NEXT_PUBLIC_API) return process.env.NEXT_PUBLIC_API.replace(/^http/, "ws");
   if (typeof window === "undefined") return "";
   const { protocol, hostname, port, host } = window.location;
-  if (port === "3000") return `${protocol === "https:" ? "wss" : "ws"}://${hostname}:8010`;
+  if (port === "3000" || port === "3001") return `${protocol === "https:" ? "wss" : "ws"}://${hostname}:8010`;
   return `${protocol === "https:" ? "wss" : "ws"}://${host}`;
 })();
 

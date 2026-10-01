@@ -201,7 +201,7 @@ def hindsight(db: Session, log=print) -> list[EvalResult]:
     sampling cap by default). Recomputes (bypasses the cache) so the eval always reflects the
     current DB; the API's cache is then refreshed from this same run."""
     reset()
-    s = hs.recompute(log=log)
+    s = hs.summary(log=log)  # recomputes only when the saved result does not match the database (fingerprint + config)
     m, b, f = s["lift"]["model"], s["lift"]["baseline"], s["forewarned"]
     note = (f"{s['n_testable']} of {s['n_candidates']} documented wells were testable, {s['n_cells']} (well, formation, "
             f"hazard) cells walked, alert rule = '{s['alert_mode_config']}' (rr_min={s['rr_min_config']}); {s['method']}")

@@ -532,9 +532,16 @@ _LOCK = threading.Lock()          # one computation at a time; concurrent caller
 _REFRESHING = threading.Event()   # set while a background refresh of a stale cache is running
 
 
-def _read_cache() -> dict | None:
+def _cache_path(n_wanted: int | None):
+    """The full test (every testable well) has its own file; a sample run (tests, quick checks) writes a separate
+    file, so a sample can never replace the full result the website serves."""
+    return CACHE_PATH if n_wanted is None else CACHE_PATH.with_name(f"hindsight_summary.sample{n_wanted}.json")
+
+
+def _read_cache(n_wanted: int | None = None) -> dict | None:
+    path = _cache_path(n_wanted)
     try:
-        return json.loads(CACHE_PATH.read_text()) if CACHE_PATH.exists() else None
+        return json.loads(path.read_text()) if path.exists() else None
     except (json.JSONDecodeError, OSError):
         return None
 
@@ -567,7 +574,7 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
     n_wanted = max_wells if max_wells is not None else hc["max_wells"]
     fp = _fingerprint(cx)
     if not force:
-        cached = _read_cache()
+        cached = _read_cache(n_wanted)
         if _cache_ok(cached, fp, n_wanted, hc):
             return cached
         if cached and cached.get("max_wells_config") == n_wanted:
@@ -575,7 +582,7 @@ def summary(max_wells: int | None = None, force: bool = False, log=lambda *a: No
             return {**cached, "stale": True}
     with _LOCK:
         if not force:
-            cached = _read_cache()
+            cached = _read_cache(n_wanted)
             if _cache_ok(cached, fp, n_wanted, hc):
                 return cached
         return _compute(max_wells, log)
@@ -651,8 +658,11 @@ def _compute(max_wells: int | None = None, log=lambda *a: None) -> dict:
         f"baseline={baseline_lift['headline']} forewarned_share={out['forewarned']['forewarned_share']} "
         f"median_lead_m={out['forewarned']['median_lead_m']} ({elapsed}s)")
     try:
-        CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        CACHE_PATH.write_text(json.dumps(out))
+        path = _cache_path(n_wanted)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(out))
+        tmp.replace(path)  # atomic: a reader never sees a half-written file
     except OSError:
         pass
     return out

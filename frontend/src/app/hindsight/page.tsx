@@ -8,6 +8,7 @@ import { HindsightTiles, type HindsightSummary } from "@/components/v2/hindsight
 import { HindsightTimeline, type WellRow, type WellDetail } from "@/components/v2/hindsight/HindsightTimeline";
 import { HindsightStrataTable } from "@/components/v2/hindsight/HindsightStrataTable";
 import { RigHours } from "@/components/v2/hindsight/RigHours";
+import { Repeats } from "@/components/v2/hindsight/Repeats";
 import { tr } from "@/components/v2/hindsight/trLocal";
 
 /**
@@ -60,6 +61,7 @@ export default function Hindsight() {
           />
         )}
         {summaryState === "ok" && summary && <HindsightTiles s={summary} lang={lang} />}
+        {summaryState === "ok" && summary && <Repeats lang={lang} />}
         {summaryState === "ok" && summary && <RigHours lang={lang} />}
       </section>
 

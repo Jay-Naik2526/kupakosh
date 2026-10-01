@@ -12,7 +12,7 @@ import { hazardColor, wellColor, BRAND } from "@/lib/palette";
 import { EmptyState } from "@/components/kk/EmptyState";
 import { Scene, SceneEvent } from "./3d/types";
 import {
-  DepthTicks, EventSphere, DerrickGlyph, GroundPlane, PathDepthMarkers, RiskBand, SCALE, WellTube, tipStyle,
+  DepthTicks, EventSphere, DerrickGlyph, GroundPlane, PathDepthMarkers, RiskBand, SCALE, WellTube, tipStyle, DrillingProgress,
 } from "./3d/SceneObjects";
 import { GeoBlock, buildFormationLayers, type FormationLayer } from "./3d/GeoBlock";
 import { DepthProfileStrip } from "./3d/DepthProfileStrip";
@@ -131,12 +131,13 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
     setLoading(true);
     const params: Record<string, any> = {};
     if (radius) params.radius_m = radius;
-    if (bitMd != null) params.bit_md = bitMd;
+    // the bit depth is NOT a fetch parameter: refetching on every replay tick rebuilt the whole scene (flicker,
+    // "Loading…"). The scene loads once per well; BitMarker moves along the trajectory instead.
     get<Scene>(`/api/wells/${wellId}/scene`, params)
       .then((s) => setScene(s))
       .catch((e) => setError(String(e?.message ?? e)))
       .finally(() => setLoading(false));
-  }, [wellId, radius, bitMd]);
+  }, [wellId, radius]);
 
   const { maxHorizM, maxDepthM } = useMemo(() => (scene ? sceneBounds(scene) : { maxHorizM: 200, maxDepthM: 200 }), [scene]);
   const half = maxHorizM * 1.15;
@@ -201,7 +202,7 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
 
               {activeWell && toggles.activeWell && (
                 <group>
-                  <WellTube well={activeWell} color={BRAND.via} vertExag={vertExag} isActive clip={clipPlanes} />
+                  <WellTube well={activeWell} color={BRAND.via} vertExag={vertExag} isActive={bitMd == null} clip={clipPlanes} />
                   <DerrickGlyph well={activeWell} color={BRAND.via} half={half * SCALE} isActive />
                   {toggles.depthMarkers && <PathDepthMarkers well={activeWell} vertExag={vertExag} />}
                   {toggles.formations && activeWell.events.map((e) => <EventSphere key={`ev-${e.id}`} ev={e} vertExag={vertExag} lang={lang} onSelect={setSelected} />)}
@@ -218,6 +219,11 @@ export function Subsurface3D({ wellId, radius, bitMd, height }: Subsurface3DProp
 
               <DepthTicks maxDepthM={maxDepthM} x={-half * SCALE * 1.02} zPos={-half * SCALE * 1.02} colors={colors} vertExag={vertExag} />
             </Bounds>
+            {/* outside <Bounds>: the moving bit must not trigger a camera re-fit */}
+            {activeWell && toggles.activeWell && bitMd != null && (
+              <DrillingProgress well={activeWell} bitMd={bitMd} lookaheadM={150} vertExag={vertExag} size={half * SCALE}
+                label={`${lang === "hi" ? "बिट" : "bit"} ${Math.round(bitMd)} m`} />
+            )}
           </Suspense>
           <OrbitControls ref={controlsRef} makeDefault enableDamping dampingFactor={0.1} />
           <CameraRig viewMode={viewMode} groundSize={groundSize} maxDepthM={maxDepthM} vertExag={vertExag} controlsRef={controlsRef} resetKey={resetKey} />

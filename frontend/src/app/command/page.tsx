@@ -154,7 +154,7 @@ export default function Command() {
                 {show3d && (
                   <div className="mb-4">
                     <div className="label mb-1">{tr(lang, "3D subsurface — bit position live", "3D उपसतह — बिट स्थिति लाइव")}</div>
-                    <Subsurface3D wellId={wellId} radius={10000} bitMd={bit} height={260} />
+                    <Subsurface3D wellId={wellId} radius={10000} bitMd={bit} height={380} />
                   </div>
                 )}
                 <div className="overflow-x-auto">

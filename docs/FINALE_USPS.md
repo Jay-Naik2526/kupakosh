@@ -22,20 +22,21 @@ only differences we can show live and defend under questioning. Nothing here is 
 
 ## Our USPs, in the order to pitch them
 
+0. **It had happened before (new, 1 Oct).** 332 of 661 real recorded problems (50 %, range 47–54 %) had already been written down in the same rock layer, same hazard, in an older well's report. Within the well's own offset radius: 41 of 661 overall, 13 of 59 (22 %) for 2020s wells with full daily reports. Checked against all 141 competitor repos: none computes it. Line: *"Half of these problems had happened before, and the answer was already in a report."*
 1. **The Hindsight test: proven blind on real history, including real daily drilling reports.**
-   - Results on 306 public wells and 571 real recorded problems, where the model never saw the well it was tested on (nested cross-validation: even the model choice is made on training wells only):
-     - AUC 0.85 (0.83–0.87), against a field average of 0.68;
-     - 82.7 % of problem layers flagged before the bit arrived, at 15 alerts per well;
-     - right hazard in the layer's top 3 in 76.9 % of cases (field average 62.4 %);
-     - exact hazard forewarned for 269 of 571 (47 %), a median 383 m ahead (field average 113).
+   - Results on 306 public wells and 565 real recorded problems, where the model never saw the well it was tested on (nested cross-validation: even the model choice is made on training wells only):
+     - AUC 0.86 (0.84–0.88), against a field average of 0.68;
+     - 82.5 % of problem layers flagged before the bit arrived, at 15 alerts per well (86.6 % at 20);
+     - right hazard in the layer's top 3 in 74.9 % of cases (field average 62.3 %);
+     - exact hazard forewarned for 276 of 565 (49 %), a median 384 m ahead (field average 113).
    - **Rig hours at stake** (same page): logged rig-hours of the real Volve problems, and how many of them were in problems it had warned about blind.
    - **Why it wins:** among competitors, only PLANNS reports a real-data early warning, and that is one stuck pipe on one well (15/9-F-9A).
-   - **Demo:** Hindsight page. Pick 15/9-19 S (176 daily reports): 32 of its 58 problems were forewarned, the baseline caught 0. Press "Reveal what really happened".
+   - **Demo:** Hindsight page. Pick 15/9-19 S (176 daily reports): 32 of its 53 problems were forewarned. Press "Reveal what really happened".
 2. **What actually worked, from real day-by-day reports.**
    - 1,759 real Volve daily drilling reports (23,447 timed activities) are linked problem → action → outcome over the following days.
-   - Example: jarring freed stuck pipe in 9 of 13 cases, median 0.5 h; pulling out of hole in 55 of 92.
+   - Example: jarring freed stuck pipe in 9 of 13 cases, median 0.5 h; pulling out of hole in 97 of 133.
    - **Why it wins:** PLANNS and anshu2k24 hold the same public reports but use them only for summaries and regex; nobody tracks outcomes.
-   - Events from these reports are measured on a fresh random sample never used for tuning: precision 0.88 (53/60).
+   - Events from these reports are measured on a fresh random sample never used for tuning: precision 0.90–0.92 on the last two fresh samples (55/60, 37/41).
 3. **Compiled, cited, approved memory.**
    - 951 wiki pages, every sentence cited; the compiler rejects uncited sentences and unsupported numbers.
    - Government-file noting approval, with git history.

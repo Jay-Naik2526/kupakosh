@@ -22,6 +22,8 @@ hazards:
       - 'without (any )?(significant )?losses'
       - 'weight loss|heat loss|loss of (signal|power|communication|data)|pressure loss|production loss'
       - '\bobserved for (fluid )?returns\b'   # pressure / connection test: "observed for fluid returns ... No returns observed"
+      - '\b(at|over|on) (the )?shakers?\b|\bsurface (mud )?loss|\bleak(ing|age)? in (the )?(riser|surface|line|hose|valve|bop)|\bdue to (a )?leak\b'   # surface / equipment losses, not to the formation
+      - '\b(setting|set|spotting|spotted) (a |the )?(sidetrack |cement |kick-?off )?plug\b.{0,60}\b(\d+[.,]?\d*) ?m3 (of )?mud (loss|lost)\b'   # small loss while setting a planned plug
       - '\bacid\b.{0,160}\b(loss rate|losses)\b|\blosses during swabbing\b'   # planned stimulation: losses after an acid job are expected
   kick:
     label: Kick / influx
@@ -64,6 +66,7 @@ hazards:
       # planned retrieval of completion / wellhead parts: "Released seat protector with 20 MT overpull", "Pulled muleshoe free with 17 t overpull"
       - '\b(muleshoe|seat protector|bore protector|wear ?bushing|test plug|RTTS|storm valve|PBR|tubing hanger|pulling tool|lock ?down (assembly|sleeve|ring)|retrieval tool|RRT)\b.{0,100}\b(overpull|free)\b'
       - '\b(tool ?string|toolstring)\b.{0,20}\bstuck\b|\bjarring tool ?string\b|\bstuck (thread )?protectors?\b|\bin tension with an overpull\b'
+      - '\boverpull to (confirm|verify|check)\b|\b(wb ?rrt|wbrt|nsp)\b|\bcaliper\b'   # planned set checks, wear-bushing tools, caliper log readings
   torque_spike:
     label: Torque spike
     include:
@@ -99,6 +102,7 @@ hazards:
       - '\bfish(ing|ery|eries|ermen)?\b.{0,20}\b(communit(y|ies)|folk|livelihoods?|villagers?|villages?|nets?|ponds?|wetlands?|dolphins?|species|population)\b|\bfishermen\b|\bfisheries\b'
       - 'junk (slot|throat|basket|sub|mill)'
       - '\bto fish [\d /.]*(in|")? ?(tubing|casing)\b'   # planned P&A retrieval of cut tubing / casing
+      - '\bnone left in (the )?hole\b|\bnothing left in (the )?hole\b'
       - '\bcasing parted from\b|\bindications? that (the )?casing parted\b|\bcasing hanger\b.{0,80}\bparted\b'   # planned P&A cut / milling
       - '\b(cranes?|slings?|shackles?|whip ?lines?|headache ball|lifting spear|rigging|personnel basket|load (fell|dropped)|off[- ]tour|recreational)\b'
   wellbore_instability:
@@ -129,7 +133,7 @@ actions:
   cut_and_abandon: ['\bstring (had to be )?cut\b|\bcut off\b|\bbacked off\b|\bback-?off\b|\bpermanently abandoned\b|\bjunk well\b']
 
 outcomes:
-  resolved: ['\b(pipe|string) free\b|\bfreeing the pipe\b|\bstabili[sz]ed\b|\b(shakers|hole) (were |was )?clean\b|\bcirculated (the )?hole clean\b|\breleased (the )?torque and continued\b|\b(with|had) no (further )?problems\b|\ball ok\b|\bpassed (through|with no|without|ok)\b|\b(came|broke|jarred|worked|pulled|was|got) (\w+ )?(free|loose)\b|\bresumed\b|\blubricated (past|through)\b|\bfreed\b|\bgot free\b|\bpipe (was|came|got) free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
+  resolved: ['\b(disappeared|cleared up|cleared)\b|\bclear(ed)? (the )?obstruction\b|\bno (further )?issues\b|\b(pipe|string) free\b|\bfreeing the pipe\b|\bstabili[sz]ed\b|\b(shakers|hole) (were |was )?clean\b|\bcirculated (the )?hole clean\b|\breleased (the )?torque and continued\b|\b(with|had) no (further )?problems\b|\ball ok\b|\bpassed (through|with no|without|ok)\b|\b(came|broke|jarred|worked|pulled|was|got) (\w+ )?(free|loose)\b|\bresumed\b|\blubricated (past|through)\b|\bfreed\b|\bgot free\b|\bpipe (was|came|got) free\b|\bcured\b|\bregained (full )?returns\b|\bfull returns\b|\bwell (was )?(static|dead)\b|\bdead well\b|\bcontrolled\b|\bwithout (significant )?(further )?problems\b|\bsuccessful(ly)?\b|\bstopped\b|\bretrieved\b|\brecovered\b|\bsealed off\b|\bregained\b|\bback to normal\b|\bnormal\b']
   partial: ['\bnot (entirely|fully|completely) successful\b|\b(drilled|drilling) (ahead )?with (up to |minor |some )?[\d.]* ?(bbl/hr |m3/hr |m3/h )?losses\b|\bmost of (it|the \w+( \w+)?) (was|were) recovered\b|\bpart(ly)? of the (fish|junk) (was|were) recovered\b|\breduced (the )?losses\b|\blosses (were )?reduced\b|\bpartial(ly)?\b|\bslowed\b|\bminimi[sz]ed\b']
   unresolved: ['\b(plugged|cemented) back\b|\b(technically |technical )?side ?-?tracked\b|\bcontinued\b[^.]{0,60}\bloss(es| rate)\b|\bre-?spud\w*\b|\btechnical sidetracks?\b|\bunsuccessful\b|\bno success\b|\bwithout success\b|\bhad to be (cut|abandoned|plugged|sidetracked)\b|\bwas (cut|backed off)\b|\bcontinued (to|losing)\b|\bstill (losing|stuck)\b|\bnot possible\b|\bfailed\b|\bcould not\b|\bunable\b|\babandon\w*\b|\bjunk well\b|\bleaving\b']
   worsened: ['\b(well|it) (still )?flowed\b|\bcaught (on )?fire\b|\bwell control incident\b|\bunderground blow ?-?out\b|\bbecame total\b|\bincreased losses\b|\blosses increased\b|\bworsened\b|\ba second\b.*\bkick\b|\bfurther (lost circulation|losses|problems)\b|\bstuck (deeper|again)\b|\bled to\b.*\b(sidetrack|abandon)']
@@ -137,7 +141,9 @@ outcomes:
 # phrases that settle the outcome even when they come BEFORE the hazard word in the event sentence
 # ("after unsuccessful fishing, a technical sidetrack was performed"): checked on the whole event sentence
 outcome_anywhere:
-  unresolved: ['\b(after|following) (an? )?unsuccessful\b|\bunsuccessful fishing\b|\btechnical sidetracks? (was|were) (performed|drilled|made)|\brequiring a re-?spud\b']
+  unresolved: ['\b(after|following) (an? )?unsuccessful\b|\bunsuccessful fishing\b|\btechnical sidetracks? (was|were) (performed|drilled|made)|\brequiring a re-?spud\b|\b(could not|unable to|failed to) (be )?(free|freed|retrieve[d]?|recover(ed)?|cure[d]?|pass)\b']
+  # checked after "unresolved": a cure or release stated anywhere in the problem sentence ("Pumping LCM cured the static losses")
+  resolved: ['\b(cured|was freed|were freed|pipe freed|came free|temporarily stuck|momentarily stuck|stabili[sz]ed|successfully (released|retrieved|recovered|freed))\b']
 
 # event glyphs (UI) — text/glyph pairs so colour is never the only signal
 glyphs: {lost_circulation: "▲", kick: "◆", stuck_pipe: "■", cementing_issue: "○", overpressure: "△", fishing: "✕", torque_spike: "≋", wellbore_instability: "▽"}
