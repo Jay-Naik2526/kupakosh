@@ -43,9 +43,11 @@ def _render_page_to_image(path: Path, page_index: int):
         pdf.close()
 
 
-def pdf_pages_with_conf(path: Path) -> tuple[list[str], list[float | None]]:
+def pdf_pages_with_conf(path: Path, max_ocr_pages: int | None = None) -> tuple[list[str], list[float | None]]:
     """Return (pages, confs). confs[i] is None for a text-layer page, or the mean OCR word
-    confidence (0-100) for a page that had to be OCR'd."""
+    confidence (0-100) for a page that had to be OCR'd. `max_ocr_pages` (bulk loads only) stops OCR after
+    that many scanned pages of one file: very long scanned reports are mostly log prints, and the drilling
+    narrative sits near the front. Pages past the cap keep their (sparse) text layer."""
     path = Path(path)
     st = path.stat()
     key = _cache_key(path, st)
@@ -59,13 +61,15 @@ def pdf_pages_with_conf(path: Path) -> tuple[list[str], list[float | None]]:
 
     pages: list[str] = []
     confs: list[float | None] = []
+    n_ocr = 0
     for i, text in enumerate(raw_pages):
-        if len(text.strip()) >= SCANNED_CHAR_THRESHOLD:
+        if len(text.strip()) >= SCANNED_CHAR_THRESHOLD or (max_ocr_pages is not None and n_ocr >= max_ocr_pages):
             pages.append(text)
             confs.append(None)
             continue
         # Sparse/no text layer: OCR this page.
         from app.ingest.ocr import ocr_page
+        n_ocr += 1
 
         try:
             image = _render_page_to_image(path, i)

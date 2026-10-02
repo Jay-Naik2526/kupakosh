@@ -69,6 +69,15 @@ _REPORT_TITLE = re.compile(
 )
 
 
+def nlog_parent(name: str) -> str:
+    """Wellbore family from the official Dutch name (NLOG publishes no parent link): sidetracks and re-drills of one
+    wellbore share it, so the Hindsight test can hide the whole family. "SCHOONEBEEK-591-SIDETRACK1" -> "SCHOONEBEEK-591",
+    "L09-FF-104A" -> "L09-FF-104". Conservative: only these two name patterns are merged."""
+    base = re.sub(r"(?i)[-_ ]?(SIDETRACK|ST)\d*$", "", name.strip())
+    base = re.sub(r"(?<=\d)[A-Z]$", "", base)
+    return f"NL: {base}"
+
+
 def _epoch_ms_to_date(ms) -> date | None:
     if not ms:
         return None
@@ -142,7 +151,7 @@ def ingest(db: Session, log=print) -> dict:
             formation_at_td=None,
             source="nlog",
             position_source="nlog brh/details (WGS84)" if lat is not None else None,
-            parent_well=None,
+            parent_well=nlog_parent(name),
             external_id=d.get("nitgNr") or d.get("uwi") or str(dbk),
             fact_url=MAPVIEWER_URL.format(dbk=dbk),
         )
@@ -191,6 +200,31 @@ def ingest(db: Session, log=print) -> dict:
     log(f"nl_nlog: {len(top_rows)} formation-top rows")
 
     # ---- report PDFs -> documents + passages ----
+    n_docs, n_pages, n_passages, n_scanned = ingest_reports(db, wells, stats, log=log)
+    stats["report_documents"] = n_docs
+    stats["report_pages"] = n_pages
+    stats["report_passages"] = n_passages
+    stats["report_documents_scanned"] = n_scanned
+    log(f"nl_nlog: {n_docs} report PDFs ({n_scanned} scanned/no text), {n_passages} passages")
+
+    db.add(DataSource(
+        name="NLOG — Dutch borehole headers, lithostratigraphy, and public well-report PDFs",
+        url="https://www.nlog.nl/en/boreholes",
+        licence=LICENCE,
+        records=stats["wells"] + stats["formation_tops"] + n_docs,
+        notes=(f"{stats['wells']} boreholes (of 6,737 NLOG records), {stats['formation_tops']} formation-top rows, "
+               f"{n_docs} sampled public well-report PDFs ({n_scanned} scanned/no extractable text). "
+               "Real Dutch public data (TNO/EZK), used as a geographic stand-in, not Oil India data."),
+    ))
+    db.flush()
+    log(f"nl_nlog: {dict(stats)}")
+    return dict(stats)
+
+
+def ingest_reports(db: Session, wells: dict, stats: Counter, paths: list[Path] | None = None, log=print) -> tuple[int, int, int, int]:
+    """Report PDFs -> documents + passages. `wells` maps canonical name ("NL: <name>") -> Well. `paths`
+    limits the run to those files (incremental additions); by default every PDF in reports/. Files
+    already loaded (same SHA-256) are skipped, so a re-run never duplicates documents."""
     reports_dir = NL / "reports"
     # report filenames are "<sanitised boreholeName>__<assetBfileDbk>.pdf" (see download_reports() /
     # REPORT.md); match by applying the same sanitisation to every known well name rather than guessing
@@ -203,7 +237,7 @@ def ingest(db: Session, log=print) -> dict:
             title_by_bfile[s["assetBfileDbk"]] = s["fullTitle"]
     n_docs = n_pages = n_passages = n_scanned = 0
     if reports_dir.exists():
-        for pdf_path in sorted(reports_dir.glob("*.pdf")):
+        for pdf_path in (sorted(paths) if paths is not None else sorted(reports_dir.glob("*.pdf"))):
             sanitised_name, bfile_str = pdf_path.stem.rsplit("__", 1)
             w = sanitised_to_well.get(sanitised_name)
             bfile = int(bfile_str) if bfile_str.isdigit() else None
@@ -258,21 +292,4 @@ def ingest(db: Session, log=print) -> dict:
             db.flush()
     else:
         log("nl_nlog: no data/raw/netherlands/nlog/reports/ — no report PDFs ingested")
-    stats["report_documents"] = n_docs
-    stats["report_pages"] = n_pages
-    stats["report_passages"] = n_passages
-    stats["report_documents_scanned"] = n_scanned
-    log(f"nl_nlog: {n_docs} report PDFs ({n_scanned} scanned/no text), {n_passages} passages")
-
-    db.add(DataSource(
-        name="NLOG — Dutch borehole headers, lithostratigraphy, and public well-report PDFs",
-        url="https://www.nlog.nl/en/boreholes",
-        licence=LICENCE,
-        records=stats["wells"] + stats["formation_tops"] + n_docs,
-        notes=(f"{stats['wells']} boreholes (of 6,737 NLOG records), {stats['formation_tops']} formation-top rows, "
-               f"{n_docs} sampled public well-report PDFs ({n_scanned} scanned/no extractable text). "
-               "Real Dutch public data (TNO/EZK), used as a geographic stand-in, not Oil India data."),
-    ))
-    db.flush()
-    log(f"nl_nlog: {dict(stats)}")
-    return dict(stats)
+    return n_docs, n_pages, n_passages, n_scanned

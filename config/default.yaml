@@ -21,6 +21,10 @@ extract:
   # stalling, "fishing" and squeezes are normal steps. On such a line an event goes to human review (not trusted)
   # unless the line also states a clear downhole problem. Measured on fresh random samples, see data/eval/volve_ddr_*.
   planned_review_kinds: [DDR_XML, DDR_PDF]
+  # Report PDFs (often OCR'd) contain tables and forms ("REMEDIAL CEMENTATIONS", "Fluid Loss" columns, gas-log grids)
+  # whose words match a hazard though no problem is described. Such lines go to review, not into the trusted set.
+  table_review_kinds: [EOWR_PDF, WCR_PDF, DDR_PDF, OTHER]
+  table_text: {min_len: 150, num_token_share: 0.30, caps_headers: 4, form_colons: 3, form_min_len: 120}
   planned_intervention: '\b(punch(ed)? tubing|lock open ring|squeezed [\d,.]+ ?m3 mud down|shear(ed)? (pin|ring|ball seat|disk)|PBR|EZSV|top of fish at \d{2,3}(,\d+)?m\b|wire ?line|w/l|slick ?line|s/l|e-line|tractor|logging tool|correlat\w*|NPR|DHSV|xmas tree|spear|corr(osion)? cap|wellhead|WH\b|casing hanger|CH\b|cutter|cut [\d /"]*(tubing|casing)|cement retainer|P&A|adjustment sub|retrieval tool|running tool|RRT|RT\b|seat protector|wear ?bushing|lock ?down|kill mud|FLO\b|swab|muleshoe|toolstring|landing string)'
   strong_problem: '\b(packed[- ]off|pack(ed|ing)[- ]off|tight (hole|spots?)|pipe (was |became )?stuck|string (was |became )?stuck|lost returns|losses of \d|loss(es)? \d|losing mud|kick|influx|pit gain|(recovered|found)[^.]{0,30}junk|junk (preventing|in hole)|left in (the )?hole|fished lost|lost toolstring|waiting (on|for) fishing tools|stalled out several times)\b'
 

@@ -75,7 +75,7 @@ def _compute(cx) -> dict:
         if w.spud_date is None or w.lat is None:
             continue
         fam = _family(wid)
-        earlier = [o for o in offsets_for_well(wid) if o["well_id"] not in fam and cx.wells[o["well_id"]].spud_date
+        earlier = [o for o in offsets_for_well(wid, documented_only=True) if o["well_id"] not in fam and cx.wells[o["well_id"]].spud_date
                    and cx.wells[o["well_id"]].spud_date < w.spud_date]
         for f, h, e in items:
             prior = [o for o in earlier if (o["well_id"], f, h) in cx.ev_wf_records]

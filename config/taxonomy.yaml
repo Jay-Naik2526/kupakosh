@@ -42,6 +42,7 @@ hazards:
       - '\bno (kick|influx)'
       - 'shut[ -]in (at|during) (the )?time of|at (the )?time of (the )?(accident|incident)|shut[ -]in for (maintenance|repairs?|the storm|hurricane)'
       - '\blined up (to|on) (the )?kill (mud|line)\b'   # routine line-up during a planned displacement
+      - '\b(flow ?check\w*|pit gain)\b[^.]{0,40}\b(static|negative|no gain)\b'   # a check that found nothing
   stuck_pipe:
     label: Stuck pipe
     include:

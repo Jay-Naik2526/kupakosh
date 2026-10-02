@@ -39,6 +39,8 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
     planned_rx = re.compile(c["planned_intervention"], re.I) if c.get("planned_intervention") else None
     strong_rx = re.compile(c["strong_problem"], re.I) if c.get("strong_problem") else None
     planned_kinds = set(c.get("planned_review_kinds") or [])
+    table_kinds = set(c.get("table_review_kinds") or [])
+    tt = c.get("table_text") or {}
     tops = TopIndex(db)
     wells = {w.id: w for w in db.scalars(select(Well))}
     mud: dict[int, list[MudCheck]] = defaultdict(list)
@@ -84,11 +86,12 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
                 # planned intervention work (P&A, completion, wireline) with no clearly stated problem: keep, but for review
                 planned = (doc.kind in planned_kinds and planned_rx is not None and bool(planned_rx.search(p.text))
                            and not (strong_rx and strong_rx.search(p.text)))
+                table_like = doc.kind in table_kinds and looks_like_table(p.text, tt)
                 ev = Event(
                     well_id=well.id, passage_id=p.id, activity_id=act.id if act else None, hazard=h.hazard, md_m=md,
                     formation=formation, t=act.t_start if act else None, severity=h.severity, quantity=h.quantity, quantity_unit=h.quantity_unit,
                     mud_weight_ppg=mw, mud_weight_source=mw_src, confidence=round(min(conf, 1.0), 3),
-                    method="rule", needs_review=conf < c["review_threshold"] or planned, evidence_span=p.text,
+                    method="rule", needs_review=conf < c["review_threshold"] or planned or table_like, evidence_span=p.text,
                     source_ref=source_ref(doc, p, well),
                 )
                 db.add(ev)
@@ -105,6 +108,20 @@ def run(db: Session, log=print, kinds: tuple[str, ...] = ("WELL_HISTORY", "DDR_P
     db.flush()
     log(f"extract: {n_ev} events ({n_rev} need review, {n_dup} duplicates merged), {n_act} action mentions")
     return {"events": n_ev, "needs_review": n_rev, "duplicates_merged": n_dup, "actions": n_act}
+
+
+def looks_like_table(text: str, tt: dict) -> bool:
+    """A line from a table or form rather than narrative: mostly number tokens, table bars, several all-caps form
+    headers, or many "Field: value" pairs (only for long lines; real problem sentences are short)."""
+    import re
+    if not tt:
+        return False
+    toks = text.split()
+    num = sum(1 for x in toks if re.fullmatch(r"[-+]?[\d.,/%°'\"]+[a-zA-Z]{0,3}", x)) / max(1, len(toks))
+    caps = len(re.findall(r"\b[A-Z][A-Z()&/-]{3,}\b", text))
+    return ((len(text) > tt["min_len"] and num > tt["num_token_share"]) or text.count("|") >= 2
+            or (len(text) > tt["min_len"] and caps >= tt["caps_headers"])
+            or (len(text) > tt["form_min_len"] and text.count(":") >= tt["form_colons"]))
 
 
 def _is_duplicate(seen, hazard, md, seq, tol_m, window) -> bool:

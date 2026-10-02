@@ -24,7 +24,9 @@ CHANNEL_HAZARD = {"torque": ["torque_spike", "stuck_pipe"], "hookload": ["stuck_
 
 @lru_cache(maxsize=64)
 def _profile(well_id: int) -> tuple[list[dict], list[dict]]:
-    offs = offsets_for_well(well_id)
+    # documented wells only: the hazard model can only use wells with reports, and in dense fields (NLOG, 6,737
+    # wells) the top-40-by-similarity list would otherwise be filled with undocumented wells
+    offs = offsets_for_well(well_id, documented_only=True)
     cx = ctx()
     tops = cx.tops.tops(well_id)
     forms = []

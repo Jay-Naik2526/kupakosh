@@ -44,7 +44,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 6  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 7  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -89,7 +89,11 @@ def _blind_offsets(well_id: int) -> list[dict]:
     re-entries of the same wellbore) removed — the same non-independence rule as hazard_loo."""
     cx = ctx()
     parent = cx.wells[well_id].parent_well
-    return [o for o in offsets_for_well(well_id) if cx.wells[o["well_id"]].parent_well != parent]
+    # documented only (see lookahead._profile): dense fields would otherwise fill the 40-well list with wells without reports.
+    # Hidden: the well and its family (same parent wellbore). A well with no parent hides only itself — comparing
+    # None == None would wrongly drop every offset that also has no parent.
+    hidden = _family(well_id)
+    return [o for o in offsets_for_well(well_id, documented_only=True) if o["well_id"] not in hidden]
 
 
 def _formation_top_md(ints: list[dict]) -> dict[str, float]:

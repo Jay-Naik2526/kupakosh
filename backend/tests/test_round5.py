@@ -130,3 +130,22 @@ def test_repeats_only_count_warnings_that_existed_before_the_well_was_spudded():
     for x in s["examples"]:
         assert x["earlier_spud"] < x["spud"] and x["years_before"] > 0
         assert x["earlier_well"] != x["well"] and x["source_ref"] and x["earlier_source_ref"]
+
+
+def test_nlog_families_link_sidetracks_only():
+    from app.ingest.ext.nl_nlog import nlog_parent
+    assert nlog_parent("SCHOONEBEEK-591-SIDETRACK1") == nlog_parent("SCHOONEBEEK-591")
+    assert nlog_parent("L09-FF-104A") == nlog_parent("L09-FF-104")
+    assert nlog_parent("K15-FA-108") != nlog_parent("K15-FA-107")
+
+
+@needs_db
+def test_blind_offsets_keep_neighbours_of_wells_without_a_parent_but_hide_the_family():
+    from app.engines import hindsight as H
+    from app.engines.context import ctx
+    cx = ctx()
+    wid = next(w for w in sorted(cx.documented) if cx.wells[w].source == "nlog" and cx.wells[w].lat is not None
+               and len(H._family(w)) > 1)
+    offs = H._blind_offsets(wid)
+    assert offs, "a documented Dutch well must keep documented neighbours"
+    assert not ({o["well_id"] for o in offs} & H._family(wid))
