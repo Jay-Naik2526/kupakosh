@@ -5,7 +5,7 @@ import { Register } from "@/components/kk/Register";
 import { Drawer } from "@/components/kk/Drawer";
 import { UploadReport } from "@/components/kk/UploadReport";
 import { useApp } from "@/lib/state";
-import { t } from "@/lib/i18n";
+import { t, Lang } from "@/lib/i18n";
 import { countryColor } from "@/lib/palette";
 
 // Flat earth tones (DESIGN_V3_COLOUR.md) — one per headline figure, used only as a thin underline bar.
@@ -45,6 +45,7 @@ export default function Accuracy() {
   const [up, setUp] = useState(false);
   const [hs, setHs] = useState<any>(null);
   const [hsErr, setHsErr] = useState(false);
+  const [verify, setVerify] = useState<null | { name: string; metric: string }>(null);
   useEffect(() => { get("/api/status").then(setS); }, [up]);
   useEffect(() => { get("/api/hindsight/summary").then(setHs).catch(() => setHsErr(true)); }, []);
   if (!s) return <p className="label">{t("loading", lang)}</p>;
@@ -136,7 +137,13 @@ export default function Accuracy() {
             { key: "v", head: t("acCol_value", lang), num: true, cell: fmt },
             { key: "n", head: "n", num: true, cell: (r: any) => r.n?.toLocaleString() ?? "—" },
             { key: "h", head: t("acCol_how", lang), cell: (r: any) => <span className="small">{HOW[r.name + "|" + r.metric] ?? ""}{r.notes ? <span className="label"> {r.notes}</span> : null}</span> },
+            { key: "x", head: "", cell: (r: any) => r.value === null || r.value === undefined ? null
+              : <button className="btn" style={{ whiteSpace: "nowrap" }} onClick={() => setVerify({ name: r.name, metric: r.metric })}
+                  aria-label={`verify ${r.metric}`}>{tr(lang, "Verify", "जाँचें")} ▸</button> },
           ]} />
+          <Drawer open={!!verify} onClose={() => setVerify(null)} title={verify ? `${tr(lang, "Verify", "जाँचें")}: ${verify.metric}` : ""} width={760}>
+            {verify && <VerifyNumber key={verify.name + verify.metric} name={verify.name} metric={verify.metric} lang={lang} />}
+          </Drawer>
           <p className="small mt-2"><b>{t("acReadingHazard", lang)}</b> the offset-well model is not measurably better than the formation base rate on this data (Brier model vs base above). Kupakosh therefore shows the rate with its range and evidence count, and says “insufficient evidence” when the evidence is thin — it does not claim predictive skill.</p>
 
           <h2 className="serif font-semibold mt-6 mb-2">{tr(lang, "Hindsight (blind leave-well-out replay)", "हिंडसाइट (अंध लीव-वन-वेल-आउट पुनःचलन)")}</h2>
@@ -170,6 +177,84 @@ export default function Accuracy() {
           <p className="label mt-3">{t("acDemoUsers", lang)} ({s.demo_users.map((u: any) => u.name).join(", ")}) {t("acDemoUsersNote", lang)}</p>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** "Verify this number": the stored figure, the same figure recounted now from its labelled rows, and every row
+ *  with its report line one click away. Figures with no row-level breakdown say so (GET /api/accuracy/evidence). */
+function VerifyNumber({ name, metric, lang }: { name: string; metric: string; lang: Lang }) {
+  const { openSource } = useApp();
+  const [d, setD] = useState<any>(null);
+  const [err, setErr] = useState(false);
+  const [only, setOnly] = useState<"all" | "wrong">("all");
+  useEffect(() => { get("/api/accuracy/evidence", { name, metric }).then(setD).catch(() => setErr(true)); }, [name, metric]);
+  if (err) return <p className="label">{tr(lang, "Could not load the rows.", "पंक्तियाँ लोड नहीं हुईं।")}</p>;
+  if (!d) return <p className="label">{t("loading", lang)}</p>;
+  const fmtV = (v: number | null | undefined) => v === null || v === undefined ? "—" : metric.startsWith("Brier") ? v.toFixed(5) : `${(v * 100).toFixed(1)}%`;
+  const rc = d.recount;
+  const rows = (d.rows ?? []).filter((r: any) => only === "all" || r.ok === false);
+  const nWrong = (d.rows ?? []).filter((r: any) => r.ok === false).length;
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="label">{tr(lang, "Shown on the page", "पृष्ठ पर दिखाया")}</div>
+          <div className="num" style={{ fontSize: 26 }}>{fmtV(d.stored?.value)}</div>
+          <div className="label num">n = {d.stored?.n ?? "—"}</div>
+        </div>
+        <div>
+          <div className="label">{tr(lang, "Recounted now from the rows below", "नीचे की पंक्तियों से अभी पुनर्गणना")}</div>
+          {rc ? <>
+            <div className="num" style={{ fontSize: 26 }}>{fmtV(rc.value)}</div>
+            <div className="label num">{rc.k} / {rc.n} ·{" "}
+              {rc.matches_stored
+                ? <span style={{ color: "#166534" }}>✓ {tr(lang, "matches", "मेल खाता है")}</span>
+                : <span style={{ color: "var(--hazard)" }}>✗ {tr(lang, "differs — the data changed after this figure was stored", "भिन्न — आँकड़ा सहेजने के बाद डेटा बदला")}</span>}
+            </div>
+          </> : <div className="small text-ink2">{tr(lang, "No per-row recount for this figure (see below).", "इस आँकड़े की पंक्ति-स्तरीय पुनर्गणना नहीं।")}</div>}
+        </div>
+      </div>
+      <p className="small">{d.how}</p>
+      <p className="label">
+        {d.file && <>{tr(lang, "Rows from", "पंक्तियाँ")} <span className="num">{d.file}</span>. </>}
+        {d.labellers?.length > 0 && <>{tr(lang, "Labelled by", "लेबलकर्ता")}: {d.labellers.join("; ")}.</>}
+      </p>
+      {d.rows?.length > 0 && (
+        <>
+          {nWrong > 0 && (
+            <div className="flex gap-2" role="group" aria-label="filter rows">
+              <button className="chip" aria-pressed={only === "all"} onClick={() => setOnly("all")}>{tr(lang, "All rows", "सभी")} ({d.rows.length})</button>
+              <button className="chip" aria-pressed={only === "wrong"} onClick={() => setOnly("wrong")}>{tr(lang, "Where Kupakosh was wrong", "जहाँ कूपकोश गलत था")} ({nWrong})</button>
+            </div>
+          )}
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderTop: "2px solid var(--text)", borderBottom: "1px solid var(--border)" }}>
+                <th className="label" style={{ textAlign: "left", padding: "6px 6px 6px 0", width: 24 }} aria-label="result" />
+                <th className="label" style={{ textAlign: "left", padding: 6 }}>{tr(lang, "Report line", "रिपोर्ट पंक्ति")}</th>
+                <th className="label" style={{ textAlign: "left", padding: 6 }}>{d.columns?.system}</th>
+                <th className="label" style={{ textAlign: "left", padding: "6px 0 6px 6px" }}>{d.columns?.truth}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r: any, i: number) => (
+                <tr key={i} style={{ borderBottom: "1px solid var(--border)", verticalAlign: "top" }}>
+                  <td className="num" style={{ padding: "6px 6px 6px 0", color: r.ok === true ? "#166534" : r.ok === false ? "var(--hazard)" : "var(--text-2)" }}
+                    aria-label={r.ok === true ? "correct" : r.ok === false ? "wrong" : "not scored"}>{r.ok === true ? "✓" : r.ok === false ? "✗" : "–"}</td>
+                  <td className="small" style={{ padding: 6 }}>
+                    {r.text}
+                    {r.ref && <div><button className="link label num" onClick={() => openSource(r.ref)}>{r.ref}</button></div>}
+                  </td>
+                  <td className="small" style={{ padding: 6 }}>{r.system}</td>
+                  <td className="small" style={{ padding: "6px 0 6px 6px" }}>{r.truth}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+      {d.stored?.notes && <p className="label">{d.stored.notes}</p>}
     </div>
   );
 }

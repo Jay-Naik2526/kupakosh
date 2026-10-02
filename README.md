@@ -107,14 +107,15 @@ We replayed **431 public wells** (Norway, the Netherlands and the USA), includin
 |---|:-:|:-:|---|
 | Event extraction — precision | **0.92** | 36 | Hand-labelled report lines (AI-labelled, pending human check) |
 | Events from real daily reports (Volve) — precision | **0.90** | 41 | Latest fresh round: every remaining trusted event never used to tune the rules, judged from its full report line (AI-labelled, pending human check). Rounds: 0.85 → 0.83 → 0.78 → 0.88 → 0.92 → 0.90 |
+| Events from Dutch well reports (NLOG, many OCR'd) — precision | **0.88** | 60 | Fresh random sample after the table/form filter (was 0.67 before it); AI-labelled, pending human check |
 | Event extraction — recall | **0.87** | 38 | same set |
 | Depth within ±30 m | **0.92** | 13 | same set |
 | Episode outcome — precision | **0.75** | 16 | Fresh blind sample (round 6), labelled before the predictions were seen: when an outcome is named it is right 3 times in 4 (was 0.50) |
-| Episode outcome — accuracy | **0.58** | 38 | same sample, including "unknown" (was 0.44; 0.80 on the set used for tuning). The weakest part — see limits |
+| Episode outcome — accuracy | **0.61** | 36 | same sample, including "unknown" (was 0.44; 0.80 on the set used for tuning; 0.58 on 38 before 3 Dutch lines left the episode set, see limits). The weakest part — see limits |
 | Copilot — cites the right source | **1.00** | 25 | templated questions (optimistic, see limits) |
 | Copilot — refuses when it should | **1.00** | 30 | includes questions with no answer in the records |
 | Tried and rejected: sensor "déjà vu" match | 0.28 | 15 | percentile of the real pre-problem hour (chance 0.50): no skill, so not used |
-| Hazard model — Brier score (leave-one-well-out) | 0.0035 | 41,848 | **equal to the base rate: no measured skill on its own**, which is why the UI shows ranges and says "insufficient evidence" |
+| Hazard model — Brier score (leave-one-well-out) | 0.0045 | 41,848 | **equal to the base rate: no measured skill on its own**, which is why the UI shows ranges and says "insufficient evidence" |
 
 ## What's inside
 
@@ -168,6 +169,27 @@ flowchart LR
 
 Every fact keeps a `source_ref` — a report sentence (`doc:<id>#<page/para/sentence>`), an official table row, or a sensor record — and `GET /api/source?ref=` opens the original text. More in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+**Check any figure yourself.** Every row on the Accuracy page has a **Verify** button. It lists the labelled rows the figure was computed from, with each report line one click away, and recounts the figure from those rows on the spot next to the stored value. A filter shows only the rows where Kupakosh was wrong. If the data changed after a figure was stored, the recount says so: that is how the episode accuracy drift above was found. Figures with no row-level breakdown (AUC, Brier) say so and explain how they were computed.
+
+## Live rig feed (eRTMAC, WITSML, WITS0)
+
+Kupakosh sits beside eRTMAC and reads the same real-time data. A rig system posts batches of sensor rows to a well's live address; every viewer of that well (Well Room → **Live feed**) sees them within a second, with the same anomaly check and 150 m look-ahead as the replay.
+
+| | |
+|---|---|
+| WITSML 1.4.1 log documents | `POST /api/live/{well_id}/witsml` (XML body) |
+| WITS Level 0, record 01 | `POST /api/live/{well_id}/wits0?units=metric\|imperial` |
+| Viewers | `WS /ws/live/{well_id}` (same messages as the replay) |
+| Feeds now streaming | `GET /api/live` (source, seconds since data, channels, ignored curves) |
+
+- **Token.** A sender needs `Authorization: Bearer <token>`. The token is `KK_FEED_TOKEN` on the server; otherwise one is generated on first use and kept in `data/processed/feed_token.txt` (never uploaded by the deploy script).
+- **Unit conversion.** Mnemonics and units are converted using `config/default.yaml → livefeed` (ft, bar, kPa, kN·m, m³, L/min …). A curve with an unknown name or unit is listed as *ignored*, never guessed.
+- **No data is not "safe".** A feed silent for 120 s shows as stale.
+- **Try it.**
+  - `python -m scripts.witsml_feeder --well 16B --start-md 1500` posts recorded Utah FORGE data over HTTP, exactly as a rig system would (`--format wits0` for WITS0).
+  - The **Start demo feeder** button does the same on the server.
+  - Both are labelled on screen as recorded data, not a live rig. No live Oil India stream is connected.
+
 ## Run it
 
 Tested on macOS; no Docker needed.
@@ -187,7 +209,7 @@ The LLM passes are optional: set `GEMINI_API_KEY` or `GROQ_API_KEY` in `.env` to
 ### A 5-minute demo
 
 1. **Accuracy** — real public data: 96,418 wells, 2,49,222 report sentences, measured accuracy with its n.
-2. **Well Room** — start the replay; about 150 m before a risky layer the alert appears with probability, range and evidence count.
+2. **Well Room** — start the replay at 1,500 m; the stuck-pipe alert (83 %, range 60–99 %) appears with its evidence count. Switch to **Live feed** → **Start demo feeder**: the same alert arrives through the WITSML reader, which is how eRTMAC would connect.
 3. **View source** — the exact report line opens.
 4. **Wiki** — the formation page: citations, approval stamp, noting sheet, version diff.
 5. **Fixes** — a fix that *made things worse*.

@@ -2,10 +2,10 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Box, Play, Pause, Gauge, Ruler, Layers, Clock } from "lucide-react";
+import { Box, Play, Pause, Gauge, Ruler, Layers, Clock, Radio } from "lucide-react";
 import { formationColor } from "@/lib/palette";
 import { scaleLinear } from "d3-scale";
-import { get, WS } from "@/lib/api";
+import { get, post, WS } from "@/lib/api";
 import { useApp } from "@/lib/state";
 import { Lang } from "@/lib/i18n";
 import { actionText, m, pct } from "@/lib/format";
@@ -43,7 +43,10 @@ export default function Command() {
   const [anomaly, setAnomaly] = useState<any>(null);
   const [rig, setRig] = useState(false);
   const [show3d, setShow3d] = useState(false);
-  const [drawer, setDrawer] = useState<null | "offsets" | "alerts" | "handover">(null);
+  const [drawer, setDrawer] = useState<null | "offsets" | "alerts" | "handover" | "connect">(null);
+  const [mode, setMode] = useState<"replay" | "live">("replay");
+  const [feed, setFeed] = useState<any>(null); // live feed info from the server (source, freshness, channels)
+  const [liveErr, setLiveErr] = useState<string | null>(null);
   const [offsets, setOffsets] = useState<any[]>([]);
   const [handoverMd, setHandoverMd] = useState(0); // bit depth frozen when the note is opened (the replay keeps moving)
   const [ended, setEnded] = useState(false);
@@ -53,7 +56,7 @@ export default function Command() {
   useEffect(() => { if (!ready) return; get("/api/replay/wells").then((ws) => { if (!ws.some((w: any) => w.id === wellId) && ws.length) setWellId(ws.find((w: any) => w.name.startsWith("16B"))?.id ?? ws[0].id); }); }, [ready]); // eslint-disable-line
   useEffect(() => {
     if (!wellId) return;
-    stop(); setSamples([]); setLa(null); setEnded(false);
+    stop(); setSamples([]); setLa(null); setEnded(false); setFeed(null);
     get(`/api/wells/${wellId}`).then(setWell);
     get(`/api/wells/${wellId}/survey`).then(setSurvey);
     get(`/api/replay/${wellId}/range`).then(setRange);
@@ -63,11 +66,16 @@ export default function Command() {
   const stop = useCallback(() => { ws.current?.close(); ws.current = null; setRunning(false); }, []);
   const start = () => {
     if (!wellId) return;
-    stop(); setSamples([]); setLa(null); setEnded(false);
-    const s = new WebSocket(`${WS}/ws/replay/${wellId}?speed=${speed}${startMd !== "" ? `&start_md=${startMd}` : ""}`);
+    stop(); setSamples([]); setLa(null); setEnded(false); setFeed(null); setLiveErr(null);
+    const s = new WebSocket(mode === "live" ? `${WS}/ws/live/${wellId}`
+      : `${WS}/ws/replay/${wellId}?speed=${speed}${startMd !== "" ? `&start_md=${startMd}` : ""}`);
     s.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
-      if (msg.type === "samples") {
+      if (msg.feed !== undefined) setFeed(msg.feed);
+      if (msg.type === "snapshot") {
+        setSamples(msg.samples ?? []);
+        if (msg.lookahead) setLa(msg.lookahead);
+      } else if (msg.type === "samples") {
         const batch: Sample[] = msg.samples.map((x: any, i: number) => ({ ...x, flag: !!msg.anomaly && i === msg.samples.length - 1 }));
         setSamples((prev) => [...prev, ...batch].slice(-4000));
         if (msg.anomaly) setAnomaly({ ...msg.anomaly, t: msg.t });
@@ -78,6 +86,14 @@ export default function Command() {
     ws.current = s; setRunning(true);
   };
   useEffect(() => () => stop(), [stop]);
+  // live: ask the server to re-send a recorded well as WITSML documents (labelled demo source), then watch it arrive
+  const startDemo = async () => {
+    if (!wellId) return;
+    if (!running) start();
+    try { await post(`/api/live/${wellId}/demo`, { speed, start_md: startMd === "" ? null : startMd }); setLiveErr(null); }
+    catch (e: any) { setLiveErr(String(e.message ?? e)); }
+  };
+  const stopDemo = () => { post("/api/live/demo/stop", {}).catch(() => {}); };
 
   const last = samples[samples.length - 1];
   const bit = last ? (last.md_m ?? null) : null;
@@ -110,16 +126,28 @@ export default function Command() {
         {/* Zone A — step hint + status + controls */}
         <section aria-label="status" className="mb-5">
           <Card>
-            <StepHint step={step} lang={lang} />
+            <StepHint step={step} lang={lang} live={mode === "live"} />
             <div className="flex flex-wrap items-end gap-x-6 gap-y-3 mt-4">
               <WellPicker onlyReplay label={tr(lang, "Replay well (has sensor data)", "पुनःचलन कूप (सेंसर डेटा सहित)")} />
-              <ReplayBadge label={t("replay", lang)} sub={t("cmdReplaySub", lang)} />
+              {mode === "replay" ? <ReplayBadge label={t("replay", lang)} sub={t("cmdReplaySub", lang)} />
+                : <LiveBadge feed={feed} connected={running} lang={lang} />}
               <StatusFigure label={t("bitDepth", lang)} value={bit !== null ? `${Math.round(bit).toLocaleString()} m MD` : "—"} rig={rig} icon={Gauge} />
               <StatusFigure label="TVD" value={tvd !== null ? `${Math.round(tvd).toLocaleString()} m` : "—"} rig={rig} icon={Ruler} />
               <StatusFigure label={t("formationLabel", lang)} value={la?.current?.label ?? "—"} rig={rig} mono={false} icon={Layers} valueColor={la?.current?.label ? formationColor(la.current.label) : undefined} />
               <StatusFigure label={tr(lang, "Time", "समय")} value={last ? new Date(last.t).toLocaleString("en-IN") : range?.t_min ? `${range.t_min.slice(0, 10)} → ${range.t_max.slice(0, 10)}` : "—"} rig={rig} mono={false} icon={Clock} />
             </div>
             <div className="flex items-end gap-3 flex-wrap mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+              <div role="group" aria-label={tr(lang, "data source", "डेटा स्रोत")}>
+                <div className="label mb-1">{tr(lang, "Data", "डेटा")}</div>
+                <div className="flex gap-1">
+                  {(["replay", "live"] as const).map((md) => (
+                    <button key={md} className="chip" aria-pressed={mode === md}
+                      onClick={() => { if (mode !== md) { stop(); setSamples([]); setLa(null); setFeed(null); setEnded(false); setMode(md); } }}>
+                      {md === "replay" ? tr(lang, "Replay (recorded)", "पुनःचलन (दर्ज)") : <><Radio size={13} className="inline -mt-0.5 mr-1" aria-hidden="true" />{tr(lang, "Live feed (WITSML)", "लाइव फ़ीड (WITSML)")}</>}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <label className="label block mb-1" htmlFor="startmd">{t("startAt", lang)}</label>
                 <select id="startmd" className="input" value={startMd} onChange={(e) => setStartMd(e.target.value === "" ? "" : Number(e.target.value))}>
@@ -134,14 +162,32 @@ export default function Command() {
                   {[30, 60, 120, 300, 600].map((s) => <option key={s} value={s}>{s}×</option>)}
                 </select>
               </div>
-              {running
+              {mode === "replay" && (running
                 ? <button className="btn" onClick={stop}><Pause size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{t("pauseBtn", lang)}</button>
-                : <button className="btn btn-primary" onClick={start} disabled={!wellId}><Play size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{t("startReplay", lang)}</button>}
+                : <button className="btn btn-primary" onClick={start} disabled={!wellId}><Play size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{t("startReplay", lang)}</button>)}
+              {mode === "live" && <>
+                {running
+                  ? <button className="btn" onClick={stop}>{tr(lang, "Disconnect", "डिस्कनेक्ट")}</button>
+                  : <button className="btn" onClick={start} disabled={!wellId}>{tr(lang, "Connect to live feed", "लाइव फ़ीड से जुड़ें")}</button>}
+                {feed?.demo && feed && !feed.stale
+                  ? <button className="btn" onClick={stopDemo}>{tr(lang, "Stop demo feeder", "डेमो फ़ीडर रोकें")}</button>
+                  : <button className="btn btn-primary" onClick={startDemo} disabled={!wellId}><Play size={14} className="inline -mt-0.5 mr-1" aria-hidden="true" />{tr(lang, "Start demo feeder", "डेमो फ़ीडर शुरू करें")}</button>}
+                <button className="btn" onClick={() => setDrawer("connect")}>{tr(lang, "How a rig system connects", "रिग सिस्टम कैसे जुड़ता है")} ▸</button>
+              </>}
               <button className="chip" aria-pressed={rig} onClick={() => setRig(!rig)}>{t("rigMode", lang)}</button>
               <button className="chip ml-auto" aria-pressed={show3d} onClick={() => setShow3d((s) => !s)}>
                 <Box size={13} className="inline -mt-0.5 mr-1" aria-hidden="true" />{tr(lang, "3D mini-view", "3D लघु-दृश्य")}
               </button>
             </div>
+            {mode === "live" && (
+              <p className="label mt-3">
+                {feed?.source
+                  ? <>{tr(lang, "Source", "स्रोत")}: <b>{feed.source}</b> · {feed.samples.toLocaleString()} {tr(lang, "rows in", "पंक्तियाँ")} {feed.posts.toLocaleString()} {tr(lang, "posts", "पोस्ट")} · {tr(lang, "channels", "चैनल")}: {feed.channels.join(", ") || "—"}{feed.ignored?.length ? ` · ${tr(lang, "ignored (unknown name or unit)", "अनदेखा")}: ${feed.ignored.join(", ")}` : ""}</>
+                  : tr(lang, "No data received for this well yet. A rig system (eRTMAC or any WITSML 1.4 / WITS0 sender) posts to this well's live address; or start the demo feeder, which re-sends recorded Utah FORGE data as WITSML documents through the same reader.",
+                         "इस कूप के लिए अभी कोई डेटा नहीं आया। रिग सिस्टम (eRTMAC या कोई WITSML 1.4 / WITS0 प्रेषक) इस कूप के लाइव पते पर भेजता है; या डेमो फ़ीडर शुरू करें।")}
+                {liveErr && <span style={{ color: "var(--hazard)" }}> · {liveErr}</span>}
+              </p>
+            )}
           </Card>
         </section>
 
@@ -175,7 +221,10 @@ export default function Command() {
 
             {/* Zone C — top look-ahead hazard */}
             <section aria-label="look-ahead">
-              {!la && <EmptyState title={running ? t("cmdReadingAhead", lang) : t("cmdReplayNotStarted", lang)} why={`Start the replay. Every tick, Kupakosh looks ${150} m ahead of the bit and checks offset-well records for the formations coming up.`} />}
+              {!la && <EmptyState title={mode === "live" ? (running ? tr(lang, "Waiting for data from the rig feed", "रिग फ़ीड से डेटा की प्रतीक्षा") : tr(lang, "Not connected to the live feed", "लाइव फ़ीड से नहीं जुड़ा"))
+                  : running ? t("cmdReadingAhead", lang) : t("cmdReplayNotStarted", lang)}
+                why={mode === "live" ? "Each batch the rig sends goes through the same anomaly check and 150 m look-ahead as the replay. No data means no assessment, never 'all clear'."
+                  : `Start the replay. Every tick, Kupakosh looks ${150} m ahead of the bit and checks offset-well records for the formations coming up.`} />}
               {la && !top && <EmptyState title={t("cmdNothingAhead", lang)} why={`No offset well recorded a problem in ${la.current?.label ?? "this formation"} or in the formations within 150 m below the bit (${la.n_offsets} offsets in radius). Absence of a record is not proof of safety.`} />}
               {top && (
                 <NoticeSlip level={top.level} title={`${top.label} · ${top.formation_label}`}
@@ -228,6 +277,9 @@ export default function Command() {
       <Drawer open={drawer === "handover"} onClose={() => setDrawer(null)} title={tr(lang, "Shift handover note", "शिफ्ट हैंडओवर नोट")} width={560}>
         {wellId && drawer === "handover" && <HandoverNote wellId={wellId} bitMd={handoverMd} lang={lang} />}
       </Drawer>
+      <Drawer open={drawer === "connect"} onClose={() => setDrawer(null)} title={tr(lang, "Connecting a rig system (eRTMAC, WITSML, WITS0)", "रिग सिस्टम जोड़ना (eRTMAC, WITSML, WITS0)")} width={600}>
+        <ConnectHelp wellId={wellId} wellName={well?.name} />
+      </Drawer>
       <Drawer open={drawer === "alerts"} onClose={() => setDrawer(null)} title={t("cmdAllLookahead", lang)}>
         {[...(la?.alerts ?? []), ...(la?.notices ?? [])].slice(1).map((a: any, i: number) => (
           <div key={i} className="rule-b py-2 small">
@@ -242,10 +294,10 @@ export default function Command() {
 
 /** A simple numbered text stepper — no gradient/pill chips (DESIGN_V3.md). The active step is filled in
  *  this page's section colour (operate = rust, DESIGN_V3_COLOUR.md), not a tint or gradient. */
-function StepHint({ step, lang }: { step: 1 | 2 | 3; lang: Lang }) {
+function StepHint({ step, lang, live = false }: { step: 1 | 2 | 3; lang: Lang; live?: boolean }) {
   const steps: { n: 1 | 2 | 3; en: string; hi: string }[] = [
     { n: 1, en: "Pick a start depth", hi: "प्रारंभ गहराई चुनें" },
-    { n: 2, en: "Start replay", hi: "पुनःचलन प्रारंभ करें" },
+    live ? { n: 2, en: "Connect the feed", hi: "फ़ीड जोड़ें" } : { n: 2, en: "Start replay", hi: "पुनःचलन प्रारंभ करें" },
     { n: 3, en: "Watch the alert", hi: "चेतावनी देखें" },
   ];
   return (
@@ -321,4 +373,59 @@ function interpTvd(sv: any[], md: number | null): number | null {
     return a.tvd_m + f * (b.tvd_m - a.tvd_m);
   }
   return null;
+}
+
+/** LIVE indicator. Receiving = --ok dot + "LIVE FEED"; no data for livefeed.stale_s = --caution dot + age; the text always
+ *  says which, so colour is never the only signal. The demo source is named in the sub-line. */
+function LiveBadge({ feed, connected, lang }: { feed: any; connected: boolean; lang: Lang }) {
+  const receiving = connected && feed && !feed.stale;
+  const c = receiving ? "var(--ok)" : "var(--caution)";
+  const sub = !connected ? tr(lang, "not connected", "जुड़ा नहीं")
+    : !feed ? tr(lang, "connected · no data yet", "जुड़ा · अभी डेटा नहीं")
+    : feed.stale ? `${tr(lang, "no data for", "डेटा नहीं")} ${Math.round(feed.seconds_since_data ?? 0)} s`
+    : feed.demo ? tr(lang, "demo feeder · recorded data as WITSML", "डेमो फ़ीडर · दर्ज डेटा WITSML के रूप में")
+    : tr(lang, "receiving", "प्राप्त हो रहा");
+  return (
+    <span className="inline-flex items-center gap-2 px-3 py-1.5 select-none"
+      style={{ border: `1px solid color-mix(in srgb, ${c} 45%, transparent)`, background: "var(--surface-2)", borderRadius: "var(--radius-lg, 12px)" }}>
+      <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: 999, background: c, flex: "0 0 auto" }} />
+      <span className="flex flex-col leading-tight">
+        <span className="text-[0.82rem] font-semibold tracking-wide">{receiving ? "LIVE FEED" : tr(lang, "LIVE FEED · waiting", "लाइव फ़ीड · प्रतीक्षा")}</span>
+        <span className="text-[0.7rem] label">{sub}</span>
+      </span>
+    </span>
+  );
+}
+
+function ConnectHelp({ wellId, wellName }: { wellId: number | null; wellName?: string }) {
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const id = wellId ?? "{well_id}";
+  return (
+    <div className="space-y-3 small">
+      <p>Kupakosh sits beside eRTMAC and reads the same real-time data. A rig system sends batches of sensor rows to this well&apos;s live address; every viewer of the well sees them within a second, with the same anomaly check and 150 m look-ahead as the replay.</p>
+      <div className="label">WITSML 1.4.1 log documents (XML){wellName ? ` — well ${wellName}` : ""}</div>
+      <pre className="num" style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 8, border: "1px solid var(--border)" }}>{`POST ${origin}/api/live/${id}/witsml
+Authorization: Bearer <feed token>
+X-Feed-Source: <name shown to viewers>
+Content-Type: application/xml
+
+<logs xmlns="http://www.witsml.org/schemas/1series" version="1.4.1.1">
+  <log> … <logData>
+    <mnemonicList>TIME,DEPT,DBTM,TQA,SPPA,MFIA,TVA,HKLA</mnemonicList>
+    <unitList>s,m,m,kft.lbf,psi,gal/min,bbl,klbf</unitList>
+    <data>2023-05-11T19:14:20Z,1500.7,1500.7,9.8,2510,612,402.1,188</data>
+  </logData></log>
+</logs>`}</pre>
+      <div className="label">WITS Level 0 (ASCII, record 01)</div>
+      <pre className="num" style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 8, border: "1px solid var(--border)" }}>{`POST ${origin}/api/live/${id}/wits0?units=metric   (or imperial)
+&&
+0105230511
+0106191420
+0110 1500.7
+0118 13.3
+!!`}</pre>
+      <p>Mnemonics and units are converted using <span className="num">config/default.yaml → livefeed</span> (feet, bar, kPa, kN·m, m³ and L/min are understood). A channel with an unknown name or unit is listed as ignored, never guessed. The feed token is set on the server (<span className="num">KK_FEED_TOKEN</span>); without it a post is refused.</p>
+      <p>Try it from a terminal: <span className="num">python -m scripts.witsml_feeder --well 16B --start-md 1500</span> sends recorded data the way a rig system would. The <b>Start demo feeder</b> button does the same on the server. Both are labelled as recorded data, not a live rig.</p>
+    </div>
+  );
 }

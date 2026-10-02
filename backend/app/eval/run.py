@@ -246,6 +246,17 @@ def hindsight(db: Session, log=print) -> list[EvalResult]:
     return res
 
 
+def _check_rounds(pattern: str) -> list[tuple[str, int, int, str]]:
+    """Rounds of a precision check, oldest first: (file, real problems, sample size, labeller)."""
+    files = sorted(EVAL_DIR.glob(pattern), key=lambda f: (len(f.stem), f.stem))
+    rounds = []
+    for f in files:
+        rows = list(csv.DictReader(f.open()))
+        if rows:
+            rounds.append((f.name, sum(r["is_real_problem"] == "yes" for r in rows), len(rows), rows[0]["labelled_by"]))
+    return rounds
+
+
 def volve_ddr(db: Session) -> list[EvalResult]:
     """Precision of events extracted from the real Volve daily drilling reports: a random sample of events
     the system trusts (needs_review = false), each judged real problem / not a problem from its full report line.
@@ -253,12 +264,7 @@ def volve_ddr(db: Session) -> list[EvalResult]:
     Measured in rounds. After each round the extraction rules were improved, and the NEXT round is a fresh random
     sample of events never looked at before, so no round grades the rules that were tuned on it. The headline is
     the latest round; earlier rounds are kept in the notes as the before-numbers."""
-    files = sorted(EVAL_DIR.glob("volve_ddr_events_check*.csv"), key=lambda f: (len(f.stem), f.stem))
-    rounds = []
-    for f in files:
-        rows = list(csv.DictReader(f.open()))
-        if rows:
-            rounds.append((f.name, sum(r["is_real_problem"] == "yes" for r in rows), len(rows), rows[0]["labelled_by"]))
+    rounds = _check_rounds("volve_ddr_events_check*.csv")
     if not rounds:
         return []
     name, yes, n, who = rounds[-1]
@@ -268,10 +274,23 @@ def volve_ddr(db: Session) -> list[EvalResult]:
                               f"the rules ({name}); all rounds (rules improved between rounds): {history}; labels: {who}"))]
 
 
+def nlog_reports(db: Session) -> list[EvalResult]:
+    """Same check on events read from the public Dutch NLOG well reports (many OCR'd scans): the latest round is a fresh
+    random sample taken after the table/form filter was added, never used to tune it."""
+    rounds = _check_rounds("nlog_events_check_r*.csv")
+    if not rounds:
+        return []
+    name, yes, n, who = rounds[-1]
+    history = "; ".join(f"round {i + 1}: {k}/{m}" for i, (_, k, m, _) in enumerate(rounds))
+    return [EvalResult(name="nlog_reports", metric="event precision (Dutch well reports)", value=yes / n, n=n,
+                       notes=(f"fresh random sample of trusted events from the NLOG well reports, never used to tune the rules "
+                              f"({name}); all rounds: {history}; labels: {who}"))]
+
+
 def run_all(db: Session, log=print):
     db.execute(delete(EvalResult))
     from app.eval import dejavu
-    res = extraction(db) + volve_ddr(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log) + dejavu.run(db)
+    res = extraction(db) + volve_ddr(db) + nlog_reports(db) + episodes(db) + hazard_loo(db, log) + copilot(db) + hindsight(db, log) + dejavu.run(db)
     db.add_all(res)
     db.flush()
     for r in res:

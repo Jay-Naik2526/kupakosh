@@ -340,3 +340,10 @@ def replay_wells(db: Session = Depends(get_db)):
 def survey(well_id: int, db: Session = Depends(get_db)):
     return [{"md_m": s.md_m, "inc_deg": s.inc_deg, "azi_deg": s.azi_deg, "tvd_m": s.tvd_m, "north_m": s.north_m, "east_m": s.east_m}
             for s in db.scalars(select(SurveyStation).where(SurveyStation.well_id == well_id).order_by(SurveyStation.md_m))]
+
+
+@router.get("/accuracy/evidence")
+def accuracy_evidence(name: str, metric: str, db: Session = Depends(get_db)):
+    """'Verify this number': the labelled rows behind an Accuracy-page figure, recounted now (eval/evidence.py)."""
+    from app.eval.evidence import evidence
+    return evidence(db, name, metric)

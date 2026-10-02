@@ -50,6 +50,66 @@ handover:                 # shift-handover note (engines/handover.py)
 auditor: {depth_tol_m: 30, time_tol_min: 60, mw_tol_ppg: 0.3, pit_drop_bbl: 5}
 mudwindow: {near_edge_ppg: 0.3}
 replay: {default_speed: 60, max_speed: 600, tick_ms: 500}
+livefeed:                 # live rig feed (ingest/witsml_stream.py, engines/livefeed.py): eRTMAC or any WITSML 1.4 / WITS0 source
+  stale_s: 120            # a feed with no data for this long is shown as "no data" (never as safe)
+  max_samples_per_post: 20000
+  max_feeds: 6            # wells that can stream at once (in-memory hub)
+  keep_samples: 4000      # per well, for a viewer that joins late
+  demo_tick_s: 1.0        # demo feeder: one WITSML document per second
+  demo_max_s: 1800        # demo feeder stops itself after 30 minutes
+  demo_idle_s: 60         # ... or when nobody has watched for 60 s
+  # Internal units (same as the replay): md m, rop m/h, wob klbf, rpm, torque kft.lbf, spp psi, flow gpm, pit bbl, hookload klbf
+  witsml_mnemonics:       # WITSML log curve mnemonic (upper case) -> internal channel; first match wins
+    md_m: [DEPT, DEPTH, DMEA, HDTH, HOLE_DEPTH, DEPTH_HOLE, MD]
+    bit_md_m: [DBTM, BDEP, BIT_DEPTH, DEPTH_BIT, BITDEPTH]
+    rop: [ROPA, ROP, ROP_AVG]
+    wob: [SWOB, WOBA, WOB, WOB_AVG]
+    rpm: [RPMA, RPM, TRPM, SURF_RPM]
+    torque: [TQA, TORQUE, STOR, TQ, TORQUE_AVG]
+    spp: [SPPA, SPP, STANDPIPE_PRESSURE]
+    flow_in: [MFIA, TFLO, FLOWIN, FLOW_IN, MUD_FLOW_IN]
+    pit_vol: [TVA, PVT, TVT, PITVOL, PIT_VOL, ACTIVE_PIT_VOLUME]
+    hookload: [HKLA, HKLD, HOOKLOAD, HOOK_LOAD]
+    time: [TIME, DATETIME, INDEX_TIME]
+  wits0_items:            # WITS Level 0, record 01 (time-based drilling) item code -> internal channel
+    "0108": bit_md_m
+    "0110": md_m
+    "0113": rop
+    "0114": hookload
+    "0116": wob
+    "0118": torque
+    "0120": rpm
+    "0121": spp
+    "0126": pit_vol
+    "0130": flow_in
+  wits0_units:            # WITS0 carries no units; the sender says which set it uses (?units=metric|imperial)
+    metric: {md_m: m, bit_md_m: m, rop: m/h, hookload: kN, wob: kN, torque: kN.m, rpm: rpm, spp: kPa, pit_vol: m3, flow_in: L/min}
+    imperial: {md_m: ft, bit_md_m: ft, rop: ft/h, hookload: klbf, wob: klbf, torque: kft.lbf, rpm: rpm, spp: psi, pit_vol: bbl, flow_in: gal/min}
+  units:                  # unit (lower case) -> [internal unit, factor]
+    m: [m, 1]
+    ft: [m, 0.3048]
+    m/h: [m/h, 1]
+    ft/h: [m/h, 0.3048]
+    klbf: [klbf, 1]
+    lbf: [klbf, 0.001]
+    kn: [klbf, 0.224809]
+    "1000 kgf": [klbf, 2.20462]
+    kft.lbf: [kft.lbf, 1]
+    ft.lbf: [kft.lbf, 0.001]
+    kn.m: [kft.lbf, 0.737562]
+    n.m: [kft.lbf, 0.000737562]
+    rpm: [rpm, 1]
+    "c/min": [rpm, 1]
+    rev/min: [rpm, 1]
+    psi: [psi, 1]
+    kpa: [psi, 0.145038]
+    bar: [psi, 14.5038]
+    gal/min: [gpm, 1]
+    gpm: [gpm, 1]
+    l/min: [gpm, 0.264172]
+    m3/min: [gpm, 264.172]
+    bbl: [bbl, 1]
+    m3: [bbl, 6.2898]
 copilot:
   top_k: 6
   min_overlap: 0.7          # a passage must contain >= 70% of the question's content words
