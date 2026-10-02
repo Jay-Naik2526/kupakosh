@@ -105,6 +105,10 @@ hindsight:
     # round 4 (accuracy): each outer fold chooses among these by an inner grouped CV on its training wells only
     candidates: [single, ensemble, ensemble_ctx]
     inner_folds: 4
+    # one model per region, each trained, thresholded and tested blind on its own wells only (report styles differ by
+    # country). Regions with fewer than min_region_wells testable wells join the largest region.
+    regions: {norway_usa: [sodir, forge], netherlands: [nlog]}
+    min_region_wells: 30
     members:                      # ensemble = the average of these tree configurations (overrides of the values above)
       - {}
       - {max_iter: 800, max_leaf_nodes: 63}

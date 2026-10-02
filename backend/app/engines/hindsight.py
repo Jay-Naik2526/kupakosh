@@ -36,6 +36,8 @@ import time
 from collections import defaultdict
 from statistics import median
 
+import numpy as np
+
 from app.config import DATA_DIR, cfg, taxonomy
 from app.engines import hazard as hz
 from app.engines.context import ctx
@@ -44,7 +46,7 @@ from app.engines.lookahead import formation_intervals
 from app.engines.offsets import offsets_for_well
 
 CACHE_PATH = DATA_DIR / "processed" / "hindsight_summary.json"
-ENGINE_VERSION = 7  # bump when the cell walk or metrics change, so cached summaries are recomputed
+ENGINE_VERSION = 8  # bump when the cell walk or metrics change, so cached summaries are recomputed
 
 
 def _hindsight_cfg() -> dict:
@@ -464,9 +466,31 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
     flags: dict[str, dict] = defaultdict(lambda: {m: {} for m in LEARNED_MODES})
     budgets = list(lc.get("budget_curve") or [])
     chosen: dict[str, list[str]] = {}
+    # One model per region (config hindsight.learned.regions): report styles differ by country (Norwegian well
+    # histories vs Dutch end-of-well reports), so each region is trained, thresholded and tested blind on its own wells.
+    # Sources not listed in any region, or regions with too few wells, share one model with the rest.
+    region_of = {src: name for name, srcs in (lc.get("regions") or {}).items() for src in srcs}
+    idx_by_region: dict[str, list[int]] = defaultdict(list)
+    for i, c in enumerate(cells):
+        idx_by_region[region_of.get(c["source"], "other")].append(i)
+    small = [r for r, ix in idx_by_region.items() if len({cells[i]["well_id"] for i in ix}) < lc.get("min_region_wells", 30)]
+    if small and len(idx_by_region) > 1:
+        merged = [i for r in small for i in idx_by_region.pop(r)]
+        target = max(idx_by_region, key=lambda r: len(idx_by_region[r])) if idx_by_region else "other"
+        idx_by_region.setdefault(target, []).extend(merged)
+    region_wells = {r: len({cells[i]["well_id"] for i in ix}) for r, ix in idx_by_region.items()}
     for mode, live in (("learned_blind", False), ("learned_live", True)):
-        prob, flag, extra = HL.cross_validated(cells, groups, live, lc, budgets)
-        chosen[mode] = list(getattr(HL.cross_validated, "last_choice", []))
+        prob = np.zeros(len(cells))
+        flag = np.zeros(len(cells), dtype=bool)
+        extra = {b: np.zeros(len(cells), dtype=bool) for b in budgets}
+        chosen[mode] = []
+        for r, ix in sorted(idx_by_region.items()):
+            sub = [cells[i] for i in ix]
+            p_r, f_r, e_r = HL.cross_validated(sub, [groups[i] for i in ix], live, lc, budgets)
+            chosen[mode] += [f"{r}:{m}" for m in getattr(HL.cross_validated, "last_choice", [])]
+            prob[ix], flag[ix] = p_r, f_r
+            for b in budgets:
+                extra[b][ix] = e_r[b]
         for c, p, f in zip(cells, prob, flag):
             c[f"p_{mode}"] = float(p)
             c[f"flagged_{mode}"] = bool(f)
@@ -476,7 +500,7 @@ def _learned(per_well: list[tuple], cx) -> dict | None:
             for c, f in zip(cells, fl):
                 c.setdefault("_budget", {}).setdefault(mode, {})[b] = bool(f)
     return {"config": {k: v for k, v in lc.items() if k != "watchlist_k"}, "flags": dict(flags), "budgets": budgets,
-            "model_chosen_per_fold": chosen}
+            "model_chosen_per_fold": chosen, "regions": region_wells}
 
 
 def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tuple], hc: dict) -> dict:
@@ -509,6 +533,25 @@ def _learned_metrics(per_well: list[tuple], cells: list[dict], events: list[tupl
                       "share_of_cells": round(n_fl / len(cells), 4) if cells else None,
                       "hit_rate": round(k_fl / n_fl, 4) if n_fl else None})
     out["budget_curve"] = curve
+    # each region's own blind result (its own model and thresholds)
+    lc = HL.learned_cfg()
+    region_of = {src: name for name, srcs in (lc.get("regions") or {}).items() for src in srcs}
+    by_r: dict[str, dict] = {}
+    for r in sorted({region_of.get(c["source"], "other") for c in cells}):
+        rc = [c for c in cells if region_of.get(c["source"], "other") == r]
+        rw = {c["well_id"] for c in rc}
+        rev = [e for e in events if e[0] in rw]
+        if not rev or len({c["y"] for c in rc}) < 2:
+            continue
+        ry = np.array([c["y"] for c in rc])
+        row = {"wells": len(rw), "events": len(rev), "auc": HL.auc_with_ci(ry, np.array([c["p_learned_live"] for c in rc]), np.array([c["well_id"] for c in rc]))}
+        for b in budgets:
+            fl = {(c["well_id"], c["formation"], c["hazard"]) for c in rc if c["_budget"]["learned_live"][b]}
+            lay = {(w, f) for w, f, _ in fl}
+            row[f"budget_{b}"] = {"forewarned": sum(1 for e in rev if e in fl), "layer_flagged": sum(1 for e in rev if (e[0], e[1]) in lay)}
+        row["top3"] = HL.hazard_in_layer_topk(rc, "p_learned_live", rev, [3], n_h)[0]
+        by_r[r] = row
+    out["by_region"] = by_r
     for c in cells:
         c.pop("_budget", None)
     for mode in LEARNED_MODES:

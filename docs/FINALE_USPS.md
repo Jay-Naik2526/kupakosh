@@ -25,11 +25,11 @@ only differences we can show live and defend under questioning. Nothing here is 
 0. **It had happened before (new, 1 Oct).** 452 of 840 real recorded problems (50 %, range 47–54 %) had already been written down in the same rock layer, same hazard, in an older well's report. Within the well's own offset radius: 41 of 661 overall, 13 of 59 (22 %) for 2020s wells with full daily reports. Checked against all 141 competitor repos: none computes it. Line: *"Half of these problems had happened before, and the answer was already in a report."*
 1. **The Hindsight test: proven blind on real history, including real daily drilling reports.**
    - Results on 431 public wells in 3 countries and 1,015 real recorded problems, where the model never saw the well it was tested on (nested cross-validation: even the model choice is made on training wells only):
-     - AUC 0.86 (0.83–0.87), against a field average of 0.71;
-     - 76.9 % of problem layers flagged before the bit arrived, at 15 alerts per well (80.9 % at 20);
-     - right hazard in the layer's top 3 in 70.2 % of cases (field average 56.9 %);
-     - exact hazard forewarned for 500 of 1,015 (49 %), a median 405 m ahead (field average 299);
-     - **second country, same method:** the Netherlands alone, 121 wells: 250 of 452 problems forewarned (55 %).
+     - AUC 0.87 (0.85–0.89), against a field average of 0.71; Netherlands alone 0.90;
+     - Norway + USA: 82.6 % of problem layers flagged before the bit arrived at 15 alerts per well, 87.0 % at 20;
+     - right hazard in the layer's top 3: 77.8 % (Norway + USA), 72.4 % across all regions (field average 56.9 %);
+     - exact hazard forewarned for 579 of 1,015 (57 %), a median 391 m ahead (field average 313);
+     - **second country, same method:** the Netherlands alone, 121 wells: 273 of 452 problems forewarned (60 %), AUC 0.90.
    - **Rig hours at stake** (same page): logged rig-hours of the real Volve problems, and how many of them were in problems it had warned about blind.
    - **Why it wins:** among competitors, only PLANNS reports a real-data early warning, and that is one stuck pipe on one well (15/9-F-9A).
    - **Demo:** Hindsight page. Pick 15/9-19 S (176 daily reports): 32 of its 53 problems were forewarned. Press "Reveal what really happened".

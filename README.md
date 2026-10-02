@@ -89,14 +89,14 @@ Also: **Mud Window**, **Checker**, a **Ctrl+K** command palette, an **EN / ह�
 
 ## The proof: the Hindsight test
 
-We replayed **431 public wells** (Norway, the Netherlands and the USA), including wells whose problems come from **real Volve daily drilling reports**, layer by layer. For every well, the model was trained on *other* wells only (grouped 5-fold cross-validation by well family). In live mode it may read the well's own reports only from above the alert point. Then we checked it against **1,015 real recorded problems** across **43,920 layer cells**. The model itself (one tree model, an average of three, or that average plus the neighbouring layers' estimates) is chosen inside each training fold by a second cross-validation, so the tested wells never pick it (**nested** cross-validation).
+We replayed **431 public wells** (Norway, the Netherlands and the USA), including wells whose problems come from **real Volve daily drilling reports**, layer by layer. For every well, the model was trained on *other* wells only (grouped 5-fold cross-validation by well family). In live mode it may read the well's own reports only from above the alert point. Then we checked it against **1,015 real recorded problems** across **43,920 layer cells**. Each region (Norway + USA, the Netherlands) has its own model, trained, thresholded and tested blind on its own wells only. The model itself (one tree model, an average of three, or that average plus the neighbouring layers' estimates) is chosen inside each training fold by a second cross-validation, so the tested wells never pick it (**nested** cross-validation).
 
 | Measure | Kupakosh | Comparison | What it means |
 |---|:-:|:-:|---|
-| **Ranking accuracy (AUC)** | **0.86** <sub>(95 % CI 0.834–0.873)</sub> | field average 0.71 | Picks a real problem layer over a quiet one 86 times in 100 (blind pre-drill: 0.84). |
-| **Problem layer flagged before the bit arrived** | **76.9 %** | — | At 15 alerts per well. The trade-off: 64.1 % at 6 · 72.7 % at 10 · 80.9 % at 20. |
-| **Right hazard in the layer's top 3** | **70.2 %** | random 37.5 % · field average 56.9 % | When trouble came, the true hazard was among the three named (top 1: 43.0 %). |
-| **Exact hazard forewarned** | **500 / 1,015** <sub>(49 %)</sub> | field average 299 / 1,015 | At about 6 alerts per well, a median **405 m** before the bit got there. Netherlands alone: 250 / 452 (55 %). |
+| **Ranking accuracy (AUC)** | **0.87** <sub>(95 % CI 0.851–0.890)</sub> | field average 0.71 | Picks a real problem layer over a quiet one 87 times in 100 (Norway + USA 0.87 · Netherlands **0.90** · blind pre-drill 0.85). |
+| **Problem layer flagged before the bit arrived** | **82.6 %** Norway + USA | all regions 79.1 % | At 15 alerts per well (Norway + USA 87.0 % at 20). All regions: 70.3 % at 6 · 75.8 % at 10 · 81.9 % at 20. |
+| **Right hazard in the layer's top 3** | **77.8 %** Norway + USA | all regions 72.4 % · random 37.5 % · field average 56.9 % | When trouble came, the true hazard was among the three named. |
+| **Exact hazard forewarned** | **579 / 1,015** <sub>(57 %)</sub> | field average 313 / 1,015 | At about 6 alerts per well, a median **391 m** before the bit got there. Netherlands **273 / 452 (60 %)**, Norway + USA 306 / 563 (54 %). |
 
 > [!NOTE]
 > These are not "alerts that were right". Most alerts do not match a recorded event (about 1 in 10 does), partly because reports under-record problems. The thresholds are chosen on training wells only. The tested well and its sidetracks are excluded from their own prior. Full detail: [`docs/LIMITATIONS.md`](docs/LIMITATIONS.md) item 15.

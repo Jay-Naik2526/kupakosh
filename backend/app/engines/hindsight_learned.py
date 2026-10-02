@@ -50,6 +50,7 @@ def learned_cfg() -> dict:
         "members": list(c.get("members") or [{}]),       # ensemble members: parameter overrides of the base model
         "candidates": list(c.get("candidates") or ["single"]),  # chosen per outer fold by inner CV: single | ensemble | ensemble_ctx
         "inner_folds": c.get("inner_folds", 4),
+        "regions": dict(c.get("regions") or {}), "min_region_wells": c.get("min_region_wells", 30),
         "watchlist_k": list((cfg().get("hindsight") or {}).get("watchlist_k", [3, 5, 10])),
     }
 
